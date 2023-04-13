@@ -52,7 +52,30 @@ def upgrade(force_refresh: Optional[bool] = False):
 
 def clean():
     """Clean up unused package cache data"""
-    subprocess.run(shlex.split(f"pacman -Sc"))
+    subprocess.run(shlex.split(f"sudo pacman -Sc"))
+    response = console.input(
+        "\n[bright_blue]::[/bright_blue] Do you want to remove all other AUR packages from cache? [Y/n] "
+    )
+
+    if response.lower() == "y":
+        os.chdir(CACHEDIR)
+        for obj in os.listdir():
+            shutil.rmtree(obj)
+    response = console.input(
+        "\n[bright_blue]::[/bright_blue] Do you want to remove ALL untracked AUR files? [Y/n] "
+    )
+
+    if response.lower() == "y":
+        os.chdir(CACHEDIR)
+        for obj in os.listdir():
+            if os.path.isdir(os.path.join(os.getcwd(), obj)):
+                os.chdir(os.path.join(os.getcwd(), obj))
+                for _ in os.listdir():
+                    if _.endswith(".tar.zst"):
+                        os.remove(_)
+                os.chdir("../")
+
+    os.chdir(SRCDIR)
 
 
 def query_local(query: Optional[str] = ""):
