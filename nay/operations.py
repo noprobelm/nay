@@ -13,14 +13,14 @@ class Nay:
     args: "Args"
 
     def run(self):
-        if not self.args:
+        if not self.args["args"]:
             utils.upgrade()
         else:
             utils.refresh(verbose=False)
-            packages = utils.search(" ".join(self.args["args"]))
-            utils.print_pkglist(packages, include_num=True)
-            packages = utils.select_packages(packages)
-            utils.install([packages[selection] for selection in packages])
+            results = utils.search(" ".join(self.args["args"]))
+            utils.print_pkglist(results, include_num=True)
+            packages = utils.select_packages(results)
+            utils.install(packages)
 
 
 @dataclass

@@ -14,6 +14,14 @@ from .config import CACHEDIR
 
 
 SRCDIR = os.getcwd()
+SORT_PRIORITIES = {"db": {"core": 0, "extra": 1, "community": 2, "multilib": 4}}
+for num, db in enumerate(DATABASES):
+    num += 5
+    if db not in SORT_PRIORITIES["db"].keys():
+        SORT_PRIORITIES["db"][db] = num
+SORT_PRIORITIES["db"]["aur"] = max([num for num in SORT_PRIORITIES["db"].values()])
+
+print(SORT_PRIORITIES)
 
 #####################################################################################################################################
 #  ____                                   __        __                                 _____                 _   _                  #
@@ -102,7 +110,7 @@ def install(packages):
         )
 
 
-def search(query: str):
+def search(query: str, sortby: Optional[str] = "db"):
     """Query the sync databases and AUR"""
     packages = []
 
@@ -116,8 +124,14 @@ def search(query: str):
     ).json()
 
     packages.extend(AUR.from_query(result) for result in aur_query["results"])
-    packages = sorted(packages)
-    packages = {num + 1: pkg for num, pkg in enumerate(packages)}
+    packages = list(
+        reversed(
+            sorted(
+                packages, key=lambda val: SORT_PRIORITIES[sortby][getattr(val, sortby)]
+            )
+        )
+    )
+    packages = {len(packages) - num: pkg for num, pkg in enumerate(packages)}
 
     return packages
 
@@ -194,4 +208,4 @@ def select_packages(packages):
         else:
             selections.add(int(match))
 
-    return {num: packages[num] for num in selections}
+    return {packages[num] for num in selections}
