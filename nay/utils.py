@@ -58,6 +58,7 @@ def clean():
     )
 
     if response.lower() == "y":
+        console.print("removing AUR packages from cache...")
         os.chdir(CACHEDIR)
         for obj in os.listdir():
             shutil.rmtree(obj)
@@ -66,6 +67,7 @@ def clean():
     )
 
     if response.lower() == "y":
+        console.print("removing untracked AUR files from cache...")
         os.chdir(CACHEDIR)
         for obj in os.listdir():
             if os.path.isdir(os.path.join(os.getcwd(), obj)):
