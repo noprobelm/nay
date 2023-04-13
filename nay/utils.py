@@ -10,6 +10,7 @@ import shlex
 from .console import console
 from rich.console import Group
 from rich.text import Text
+from .config import CACHEDIR
 
 
 SRCDIR = os.getcwd()
@@ -67,34 +68,35 @@ def get_pkgbuild(pkg, clonedir: Optional[str] = None) -> None:
         shlex.split(
             f"git clone https://aur.archlinux.org/{pkg.name}.git {clonedir}/{pkg.name}"
         ),
-        capture_output=True,
     )
 
 
-def rm_pkgbuild(pkg, clonedir) -> None:
-    shutil.rmtree(f"{clonedir}/{pkg.name}")
-
-
-def makepkg(pkg, clonedir):
+def makepkg(pkg, clonedir, clean: Optional[bool] = False):
     """Run makepkg on a PKGBUILD"""
     os.chdir(f"{clonedir}/{pkg.name}")
-    subprocess.run(shlex.split(f"makepkg -si"))
+    subprocess.run(shlex.split("makepkg -si"))
+
+    if clean:
+        os.chdir("../")
+        shutil.rmtree(f"{os.getcwd()}/{pkg.name}", ignore_errors=True)
+
     os.chdir(SRCDIR)
 
 
-def install(packages, clonedir: Optional[str] = "/tmp"):
+def install(packages):
     """Install a package based on package.Package data"""
     aur = [pkg for pkg in packages if pkg.db == "aur"]
     sync = [pkg for pkg in packages if pkg.db != "aur"]
 
-    for pkg in aur:
-        get_pkgbuild(pkg, clonedir)
-        makepkg(pkg, clonedir)
-        rm_pkgbuild(pkg, clonedir)
+    if aur:
+        for pkg in aur:
+            get_pkgbuild(pkg, CACHEDIR)
+            makepkg(pkg, CACHEDIR, clean=False)
 
-    subprocess.run(
-        shlex.split(f"sudo pacman -S {' '.join([pkg.name for pkg in sync])}")
-    )
+    if sync:
+        subprocess.run(
+            shlex.split(f"sudo pacman -S {' '.join([pkg.name for pkg in sync])}")
+        )
 
 
 def search(query: str):

@@ -44,10 +44,10 @@ class Sync:
             # Add error handling for missing args here
             self.install()
         elif any(opt in ["c", "s", "i"] for opt in self.args["options"]):
-            for opt in self.args["options"]:
+            for opt in set(self.args["options"]):
                 self.key[opt]()
         else:
-            for opt in self.args["options"]:
+            for opt in set(self.args["options"]):
                 self.key[opt]()
             if self.args["args"]:
                 self.install()

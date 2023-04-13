@@ -29,13 +29,6 @@ class InvalidOption(ArgumentError):
     pass
 
 
-@dataclass
-class Option:
-    option: str
-    stacks: Optional[int] = 0
-    conflicts: Optional[list[str]] = None
-
-
 class Args(dict):
     OPERATIONS = {
         "S": {
@@ -46,67 +39,67 @@ class Args(dict):
                 "s": {"conflicts": ["u", "w"]},
                 "w": {"conflicts": ["i", "s"]},
                 "i": {"conflicts": ["w", "s"]},
+                "c": {"conflicts": []},
             },
         },
-        "Q": {"operation": operations.Query, "options": {}},
-        "G": {"operation": operations.GetPKGBUILD, "options": {}},
         "R": {"operation": operations.Remove, "options": {}},
-        "P": {"operation": operations.Nay, "options": {}},
+        "G": {"operation": operations.GetPKGBUILD, "options": {}},
+        "N": {"operation": operations.Nay, "options": {}},
         "": {"operation": operations.Nay, "options": {}},
     }
 
     def __init__(self):
         args = sys.argv[1:]
-        operations = [opt for opt in args[0] if opt.isupper()]
-        options = [opt for opt in args[0] if opt.islower()]
-        if len(operations) > 1:
-            try:
+        operation = [opt for opt in args[0] if opt.isupper()]
+
+        try:
+            if len(operation) > 1:
                 raise ConflictingOperations(
                     "error: only one operation may be used at a time"
                 )
-            except ConflictingOperations as err:
-                print(err)
-                quit()
-        else:
-            operation = operations[0]
+            elif len(operation) == 1:
+                operation = operation[0]
+            else:
+                operation = ""
+
+        except ConflictingOperations as err:
+            print(err)
+            quit()
+
         try:
             optlist, args = getopt.gnu_getopt(
                 args,
-                f"{operation}{''.join([key for key in self.OPERATIONS[operation]['options'].keys()])}",
+                f"{operation}{''.join([opt for opt in self.OPERATIONS[operation]['options'].keys()])}",
             )
-        except getopt.GetoptError:
-            try:
-                if operation not in self.OPERATIONS.keys():
-                    raise InvalidOperation(f"nay: invalid option -- '{operation}'")
-                for opt in options:
-                    if (
-                        opt not in self.OPERATIONS[operation]["options"].keys()
-                        and operation != "S"
-                    ):
-                        args = sys.argv[2:]
-                        super().__init__(
-                            {
-                                "operation": self.OPERATIONS[operation]["operation"],
-                                "options": options,
-                                "args": args,
-                            }
-                        )
-                    else:
-                        raise InvalidOption(f"nay: invalid option -'{opt}'")
-            except ArgumentError as err:
-                print(err)
-                quit()
 
-        optlist = {"operation": operation, "options": options}
-        optlist = self.parse_options(optlist)
+            operation = []
+            options = []
+            for opt in optlist:
+                opt = opt[0][1]
+                if opt.isupper():
+                    operation.append(opt)
+                elif opt.islower():
+                    options.append(opt)
+
+            if len(operation) > 1:
+                raise ConflictingOperations(
+                    "error: only one operation may be used at a time"
+                )
+            elif len(operation) == 0:
+                operation = ""
+            else:
+                operation = operation[0]
+        except KeyError as err:
+            print(f"nay: invalid option -- '{operation}'")
+            quit()
+        except getopt.GetoptError as err:
+            print(f"nay: invalid option '-{err.opt}'")
+            quit()
+
         super().__init__(
             {
-                "operation": self.OPERATIONS[optlist["operation"]]["operation"],
-                "options": optlist["options"],
+                "operation": self.OPERATIONS[operation]["operation"],
+                "options": options,
                 "args": args,
             }
         )
-
-    def parse_options(self, optlist):
-        optlist["options"] = sorted(optlist["options"])
-        return optlist
