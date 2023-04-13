@@ -8,10 +8,10 @@ This project is a work in progress. Many commands are not supported, and behavio
 
 ## Installation
 
-Clone from the AUR
+Clone from the AUR and `makepkg -si`
 
 ```
-git clone https://aur.archlinux.org/nay.git && cd nay && makepkg -si
+git clone https://aur.archlinux.org/nay.git && cd nay && makepkg -si && cd ../ && rm -rf nay
 ```
 
 Use your favorite AUR helper
@@ -27,6 +27,17 @@ pip install git+https://github.com/noprobelm/nay
 ```
 
 ## Supported Commands
+
+To update all system packages:
+
+`nay`
+
+To install a package from a database/AUR query, run optionless:
+
+`nay yay`
+
+
+Standard
 
 | Operation                              | Description                                                                                            |
 |----------------------------------------|--------------------------------------------------------------------------------------------------------|
