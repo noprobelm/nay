@@ -21,8 +21,6 @@ for num, db in enumerate(DATABASES):
         SORT_PRIORITIES["db"][db] = num
 SORT_PRIORITIES["db"]["aur"] = max([num for num in SORT_PRIORITIES["db"].values()])
 
-print(SORT_PRIORITIES)
-
 #####################################################################################################################################
 #  ____                                   __        __                                 _____                 _   _                  #
 # |  _ \ __ _  ___ _ __ ___   __ _ _ __   \ \      / / __ __ _ _ __  _ __   ___ _ __  |  ___|   _ _ __   ___| |_(_) ___  _ __  ___  #
