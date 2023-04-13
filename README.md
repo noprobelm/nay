@@ -11,7 +11,7 @@ This project is a work in progress. Many commands are not supported, and behavio
 Clone from the AUR
 
 ```
-git clone https://aur.archlinux.org/packages/nay.git && cd nay && makepkg -si
+git clone https://aur.archlinux.org/nay.git && cd nay && makepkg -si
 ```
 
 Use your favorite AUR helper
