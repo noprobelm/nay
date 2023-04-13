@@ -4,7 +4,6 @@
 
 
 ## USE AT YOUR OWN RISK
----
 This project is a work in progress. Many commands are not supported, and behavior may be erratic during development. You should use a different package manager when doing important things with your system.
 
 ## Installation
