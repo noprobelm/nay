@@ -8,6 +8,20 @@ This project is a work in progress. Many commands are not supported, and behavio
 
 ## Installation
 
+Clone from the AUR
+
+```
+git clone https://aur.archlinux.org/packages/nay.git && cd nay && makepkg -si
+```
+
+Use your favorite AUR helper
+
+```
+yay nay
+```
+
+Use `pip`
+
 ```
 pip install git+https://github.com/noprobelm/nay
 ```
