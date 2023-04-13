@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "nay"
+version = "0.1.0"
+description = "A wrapper for pacman which includes support for AUR packages."
+authors = ["noprobelm <noprobelm@protonmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+rich = "^13.3.4"
+requests = "^2.28.2"
+pyalpm = "^0.10.6"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+nay = 'nay.__main__:main'
