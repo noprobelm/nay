@@ -25,12 +25,15 @@ SRCDIR = os.getcwd()
 #####################################################################################################################################
 
 
-def refresh(force: Optional[bool] = False):
+def refresh(verbose: Optional[bool] = True, force: Optional[bool] = False):
     """Refresh the sync databases"""
+
     if force:
-        subprocess.run(shlex.split(f"sudo pacman -Syy"))
+        subprocess.run(shlex.split(f"sudo pacman -Syy"), capture_output=not verbose)
     else:
-        subprocess.run(shlex.split(f"sudo pacman -Sy"))
+        args = "-Sy"
+
+    subprocess.run(shlex.split(f"sudo pacman -Sy"), capture_output=not verbose)
 
 
 def upgrade(force_refresh: Optional[bool] = False):

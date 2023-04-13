@@ -16,8 +16,8 @@ class Nay:
         if not self.args:
             utils.upgrade()
         else:
-            utils.refresh()
-            packages = utils.search(" ".join(self.args))
+            utils.refresh(verbose=False)
+            packages = utils.search(" ".join(self.args["args"]))
             utils.print_pkglist(packages, include_num=True)
             packages = utils.select_packages(packages)
             utils.install([packages[selection] for selection in packages])
