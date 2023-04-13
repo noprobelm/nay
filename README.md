@@ -1,4 +1,4 @@
-# Not *Another* Yaourt (nay)
+# Not *Another* Yaourt
 
 `nay` is a wrapper for pacman that includes support for AUR package management. It can be used in the same way as `pacman`, with additional features.
 
