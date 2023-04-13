@@ -1,8 +1,5 @@
-import getopt
 import sys
 from . import operations
-from dataclasses import dataclass
-from typing import Optional
 
 
 class ArgumentError(Exception):
@@ -12,6 +9,12 @@ class ArgumentError(Exception):
 
 
 class ConflictingOperations(ArgumentError):
+    """Conflicting operations were passed as command line arguments"""
+
+    pass
+
+
+class ConflictingOptions(ArgumentError):
     """Conflicting operations were passed as command line arguments"""
 
     pass
@@ -41,18 +44,26 @@ class Args(dict):
                 "i": {"conflicts": ["w", "s"]},
                 "c": {"conflicts": []},
             },
+            "pure_wrapper": False,
         },
-        "R": {"operation": operations.Remove, "options": {}},
-        "G": {"operation": operations.GetPKGBUILD, "options": {}},
-        "N": {"operation": operations.Nay, "options": {}},
+        "G": {
+            "operation": operations.GetPKGBUILD,
+            "options": {},
+            "pure_wrapper": False,
+        },
+        "N": {"operation": operations.Nay, "options": {}, "pure_wrapper": False},
         "": {"operation": operations.Nay, "options": {}},
+        "R": {"operation": operations.Remove, "options": {}, "pure_wrapper": True},
+        "Q": {"operatoin": operations.Query, "options": {}, "pure_wrapper": True},
     }
 
     def __init__(self):
-        args = sys.argv[1:]
-        operation = [opt for opt in args[0] if opt.isupper()]
+        args = sys.argv[2:]
+        operation = [opt for opt in sys.argv[1] if opt.isupper()]
+        options = [opt for opt in sys.argv[1] if opt.islower()]
 
         try:
+
             if len(operation) > 1:
                 raise ConflictingOperations(
                     "error: only one operation may be used at a time"
@@ -62,38 +73,21 @@ class Args(dict):
             else:
                 operation = ""
 
-        except ConflictingOperations as err:
+            if operation not in self.OPERATIONS.keys():
+                raise InvalidOperation(f"nay: invalid option -- {operation}")
+
+            if self.OPERATIONS[operation]["pure_wrapper"] == False:
+                for opt in options:
+                    if opt not in self.OPERATIONS[operation]["options"].keys():
+                        raise InvalidOption(f"nay: invalid option '-{opt}'")
+                    elif any(
+                        _ in options
+                        for _ in self.OPERATIONS[operation]["options"][opt]["conflicts"]
+                    ):
+                        raise ConflictingOptions(f"error: conflicting options")
+
+        except ArgumentError as err:
             print(err)
-            quit()
-
-        try:
-            optlist, args = getopt.gnu_getopt(
-                args,
-                f"{operation}{''.join([opt for opt in self.OPERATIONS[operation]['options'].keys()])}",
-            )
-
-            operation = []
-            options = []
-            for opt in optlist:
-                opt = opt[0][1]
-                if opt.isupper():
-                    operation.append(opt)
-                elif opt.islower():
-                    options.append(opt)
-
-            if len(operation) > 1:
-                raise ConflictingOperations(
-                    "error: only one operation may be used at a time"
-                )
-            elif len(operation) == 0:
-                operation = ""
-            else:
-                operation = operation[0]
-        except KeyError as err:
-            print(f"nay: invalid option -- '{operation}'")
-            quit()
-        except getopt.GetoptError as err:
-            print(f"nay: invalid option '-{err.opt}'")
             quit()
 
         super().__init__(
