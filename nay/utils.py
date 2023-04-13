@@ -16,7 +16,7 @@ from .config import CACHEDIR
 SRCDIR = os.getcwd()
 SORT_PRIORITIES = {"db": {"core": 0, "extra": 1, "community": 2, "multilib": 4}}
 for num, db in enumerate(DATABASES):
-    num += 5
+    num += max([num for num in SORT_PRIORITIES["db"].values()])
     if db not in SORT_PRIORITIES["db"].keys():
         SORT_PRIORITIES["db"][db] = num
 SORT_PRIORITIES["db"]["aur"] = max([num for num in SORT_PRIORITIES["db"].values()])
