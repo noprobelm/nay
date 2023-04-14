@@ -96,8 +96,8 @@ class Sync:
     def clean(self):
         utils.clean()
 
-    def info(self, targets):
-        packages = [utils.get_pkg(target) for target in targets]
+    def info(self):
+        packages = [utils.get_pkg(target) for target in self.args["args"]]
         utils.print_pkginfo(packages)
 
 
