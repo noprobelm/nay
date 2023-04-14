@@ -122,12 +122,33 @@ class GetPKGBUILD:
     args: "Args"
 
     def run(self):
-        for arg in self.args:
+        succeeded = []
+        failed = []
+        for arg in self.args["args"]:
             pkg = utils.get_pkg(arg)
             if pkg:
-                utils.get_pkgbuild(pkg)
+                succeeded.append(pkg)
+
             else:
-                console.print(f"Unable to find the following packages: {arg}")
+                failed.append(arg)
+
+        if succeeded:
+            for idx, pkg in enumerate(succeeded):
+                idx += 1
+                utils.get_pkgbuild(pkg)
+                if pkg.db == "aur":
+                    console.print(
+                        f"[bright_blue]::[/bright_blue] ({idx}/{len(succeeded)}) Downloaded PKGBIULD: {pkg.name}"
+                    )
+                else:
+                    console.print(
+                        f"[bright_blue]::[/bright_blue] ({idx}/{len(succeeded)}) Downloaded PKGBIULD from ABS: {pkg.name}"
+                    )
+
+        if failed:
+            console.print(
+                f"[bright_yellow] ->[/bright_yellow] Unable to find the following packages: {', '.join([arg for arg in failed])}"
+            )
 
 
 @dataclass
