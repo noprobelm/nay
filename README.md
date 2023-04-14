@@ -1,6 +1,6 @@
 # Not *Another* Yaourt
 
-`nay` is a wrapper for pacman which includes support for AUR packages. It can be used in the same way as `pacman`, with additional features.
+`nay` is a wrapper for `pacman` which includes support for AUR packages. It can be used in the same way as `pacman`, with additional features.
 
 
 ## USE AT YOUR OWN RISK
@@ -8,7 +8,7 @@ This project is a work in progress. Many commands are not supported, and behavio
 
 ## Installation
 
-Clone from the AUR and `makepkg -si`
+Install directly from the AUR with `git` and `makepkg`
 
 ```
 git clone https://aur.archlinux.org/nay.git && cd nay && makepkg -si && cd ../ && rm -rf nay
