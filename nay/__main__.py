@@ -4,7 +4,7 @@ from . import operations
 
 def main():
     args = Args()
-    operation = args["operation"](args)
+    operation = args["operation"](options=args["options"], args=args["args"])
     operation.run()
 
 

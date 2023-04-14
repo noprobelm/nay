@@ -8,30 +8,36 @@ from .console import console
 
 
 @dataclass
-class Nay:
+class Operation:
+    """Boilerplate class for Nay operations"""
+
+    options: list[str]
+    args: list[str]
+    run: Callable
+
+
+class Nay(Operation):
     """Pyaura-specific operations"""
 
-    args: dict
+    def __init__(self, options: list[str], args: list[str]):
+        super().__init__(options, args, self.run)
 
     def run(self):
-        if not self.args["args"]:
+        if not self.args:
             utils.refresh()
             utils.upgrade()
         else:
-            results = utils.search(" ".join(self.args["args"]))
+            results = utils.search(" ".join(self.args))
             utils.print_pkglist(results, include_num=True)
             packages = utils.select_packages(results)
             utils.refresh(verbose=False)
             utils.install(packages)
 
 
-@dataclass
-class Sync:
+class Sync(Operation):
     """Sync operations"""
 
-    args: dict
-
-    def __post_init__(self):
+    def __init__(self, options: list[str], args: list[str]):
         self.key = {
             "y": self.refresh,
             "u": self.upgrade,
@@ -40,27 +46,28 @@ class Sync:
             "s": self.query,
             "i": self.info,
         }
+        super().__init__(options, args, self.run)
 
     def run(self):
-        if not self.args["options"]:
+        if not self.options:
             # Add error handling for missing args here
             self.install()
-        elif any(opt in ["c", "s", "i"] for opt in self.args["options"]):
-            for opt in set(self.args["options"]):
+        elif any(opt in ["c", "s", "i"] for opt in self.options):
+            for opt in set(self.options):
                 self.key[opt]()
         else:
-            for opt in set(self.args["options"]):
+            for opt in set(self.options):
                 self.key[opt]()
-            if self.args["args"]:
+            if self.args:
                 self.install()
 
     def query(self):
-        packages = utils.search(" ".join(self.args["args"]))
+        packages = utils.search(" ".join(self.args))
         utils.print_pkglist(packages)
 
     def install(self):
         targets = []
-        for arg in self.args["args"]:
+        for arg in self.args:
             pkg = utils.get_pkg(arg, verbose=True)
             if pkg:
                 targets.append(pkg)
@@ -76,7 +83,7 @@ class Sync:
     def download(self):
         packages = {"aur": [], "sync": []}
 
-        for target in self.args["args"]:
+        for target in self.args:
             pkg = utils.get_pkg(target, verbose=True)
             if pkg:
                 if pkg.db == "aur":
@@ -98,34 +105,32 @@ class Sync:
         utils.clean()
 
     def info(self):
-        packages = [utils.get_pkg(target) for target in self.args["args"]]
+        packages = [utils.get_pkg(target) for target in self.args]
         utils.print_pkginfo(packages)
 
 
-@dataclass
-class Query:
+class Query(Operation):
     """Query the local/sync databases. Purely pacman"""
 
-    args: dict
+    def __init__(self, options: list[str], args: list[str]):
+        super().__init__(options, args, self.run)
 
     def run(self):
         subprocess.run(
-            shlex.split(
-                f"sudo pacman -Q{''.join(self.args['options'])} {' '.join(self.args['args'])}"
-            )
+            shlex.split(f"sudo pacman -Q{''.join(self.options)} {' '.join(self.args)}")
         )
 
 
-@dataclass
-class GetPKGBUILD:
+class GetPKGBUILD(Operation):
     """Get PKGBUILD from specified args"""
 
-    args: dict
+    def __init__(self, options: list[str], args: list[str]):
+        super().__init__(options, args, self.run)
 
     def run(self):
         succeeded = []
         failed = []
-        for arg in self.args["args"]:
+        for arg in self.args:
             pkg = utils.get_pkg(arg)
             if pkg:
                 succeeded.append(pkg)
@@ -152,18 +157,13 @@ class GetPKGBUILD:
             )
 
 
-@dataclass
-class Remove:
+class Remove(Operation):
     """Remove packages from the system"""
 
-    args: dict
+    def __init__(self, options: list[str], args: list[str]):
+        super().__init__(options, args, self.run)
 
     def run(self):
-        print(self.args["options"])
-        print(self.args["args"])
-        print(" ".join(self.args["args"]))
         subprocess.run(
-            shlex.split(
-                f"sudo pacman -R{''.join(self.args['options'])} {' '.join(self.args['args'])}"
-            )
+            shlex.split(f"sudo pacman -R{''.join(self.args)} {' '.join(self.args)}")
         )
