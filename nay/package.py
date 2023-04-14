@@ -5,11 +5,9 @@ from rich.table import Table, Column
 from dataclasses import dataclass
 from typing import Optional
 from datetime import datetime
-import configparser
 import pyalpm
-from pyalpm import Handle
 import requests
-from .db import DATABASES, INSTALLED
+from .db import INSTALLED
 
 
 @dataclass(eq=False)
