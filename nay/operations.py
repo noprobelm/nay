@@ -17,10 +17,10 @@ class Nay:
         if not self.args["args"]:
             utils.upgrade()
         else:
-            utils.refresh(verbose=False)
             results = utils.search(" ".join(self.args["args"]))
             utils.print_pkglist(results, include_num=True)
             packages = utils.select_packages(results)
+            utils.refresh(verbose=False)
             utils.install(packages)
 
 
