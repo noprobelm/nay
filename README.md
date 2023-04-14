@@ -37,18 +37,19 @@ To install a package from a database/AUR query, run `nay` optionless:
 `nay yay`
 
 
-| Operation                              | Description                                                                                            |
-|----------------------------------------|--------------------------------------------------------------------------------------------------------|
-| None                                   | Refresh the database and perform a full system upgrade (i.e. `sudo pacman -Syu`)                       |
-| None `<targets>`                       | Refresh the database; query the Sync DB and AUR for packages; install selected                         |
-| `-S`                                   | Install targets                                                                                        |
-| `-Ss`                                  | Query the Sync DB and AUR for packages                                                                 |
-| `-Sy <optional targets>`               | Refresh the Sync DB; optionally install targets                                                        |
-| `-Syu <optional targets>`              | Refresh the Sync DB; perform full system upgrade; optionally install targets                           |
-| `-Sc`                                  | Remove packages that are no longer installed from the cache as well as currently unused sync databases |
-| `-R<flags> <targets>`                  | Remove packages from the system                                                                        |
-| `-Q<flags> <optional targets>`         | All `pacman` query operations are currently supported                                                  |
-| `-G <targets>` * Partially implemented | Get the `PKGBUILD` from ABS or AUR                                                                     |
+| Operation                      | Description                                                                                            |
+|--------------------------------|--------------------------------------------------------------------------------------------------------|
+| <optionless>                   | Refresh the database and perform a full system upgrade (i.e. `sudo pacman -Syu`)                       |
+| <optionless> `<targets>`       | Refresh the database; query the Sync DB and AUR for packages; install selected                         |
+| `-S`                           | Install targets                                                                                        |
+| `-Ss`                          | Query the Sync DB and AUR for packages                                                                 |
+| `-Sy <optional targets>`       | Refresh the Sync DB; optionally install targets                                                        |
+| `-Syu <optional targets>`      | Refresh the Sync DB; perform full system upgrade; optionally install targets                           |
+| `-Si <targets>`                | Print information about a package to the terminal                                                      |
+| `-Sc`                          | Remove packages that are no longer installed from the cache as well as currently unused sync databases |
+| `-R<flags> <targets>`          | Remove packages from the system                                                                        |
+| `-Q<flags> <optional targets>` | All `pacman` query operations are currently supported                                                  |
+| `-G <targets>`                 | Get `PKGBUILD` from ABS or AUR                                                                         | 
 
 
 # License
