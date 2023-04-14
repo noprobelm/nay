@@ -11,7 +11,7 @@ from .console import console
 class Nay:
     """Pyaura-specific operations"""
 
-    args: "Args"
+    args: dict
 
     def run(self):
         if not self.args["args"]:
@@ -28,7 +28,7 @@ class Nay:
 class Sync:
     """Sync operations"""
 
-    args: "Args"
+    args: dict
 
     def __post_init__(self):
         self.key = {
@@ -96,8 +96,8 @@ class Sync:
     def clean(self):
         utils.clean()
 
-    def info(self, targets):
-        packages = [utils.get_pkg(target) for target in targets]
+    def info(self):
+        packages = [utils.get_pkg(target) for target in self.args["args"]]
         utils.print_pkginfo(packages)
 
 
@@ -105,7 +105,7 @@ class Sync:
 class Query:
     """Query the local/sync databases. Purely pacman"""
 
-    args: "Args"
+    args: dict
 
     def run(self):
         subprocess.run(
@@ -119,7 +119,7 @@ class Query:
 class GetPKGBUILD:
     """Get PKGBUILD from specified args"""
 
-    args: "Args"
+    args: dict
 
     def run(self):
         succeeded = []
@@ -155,7 +155,7 @@ class GetPKGBUILD:
 class Remove:
     """Remove packages from the system"""
 
-    args: "Args"
+    args: dict
 
     def run(self):
         print(self.args["options"])
