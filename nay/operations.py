@@ -15,6 +15,7 @@ class Nay:
 
     def run(self):
         if not self.args["args"]:
+            utils.refresh()
             utils.upgrade()
         else:
             results = utils.search(" ".join(self.args["args"]))
