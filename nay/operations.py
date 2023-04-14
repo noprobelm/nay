@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import subprocess
 import shlex
 from typing import Optional, Callable
+from .console import console
 
 
 @dataclass
@@ -121,8 +122,12 @@ class GetPKGBUILD:
     args: "Args"
 
     def run(self):
-        for pkg in self.args:
-            utils.get_pkgbuild(pkg)
+        for arg in self.args:
+            pkg = utils.get_pkg(arg)
+            if pkg:
+                utils.get_pkgbuild(pkg)
+            else:
+                console.print(f"Unable to find the following packages: {arg}")
 
 
 @dataclass
