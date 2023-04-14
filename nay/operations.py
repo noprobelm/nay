@@ -1,10 +1,11 @@
-from .config import CACHEDIR
-from . import utils
 from dataclasses import dataclass
+from typing import Optional, Callable
 import subprocess
 import shlex
-from typing import Optional, Callable
+
 from .console import console
+from .config import CACHEDIR
+from . import utils
 
 
 @dataclass
