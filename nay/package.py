@@ -8,7 +8,7 @@ from rich.text import Text
 from rich.table import Table, Column
 
 from .db import INSTALLED
-from .console import console
+from .console import console, default
 
 
 @dataclass(eq=False)
@@ -55,7 +55,12 @@ class SyncDB(Package):
     @property
     def renderable(self) -> Text:
         renderable = Text.assemble(
-            (Text(self.db, style=self.db)),
+            (
+                Text(
+                    self.db,
+                    style=self.db if self.db in default.styles.keys() else "other_db",
+                )
+            ),
             (Text("/")),
             (Text(f"{self.name} ")),
             (Text(f"{self.version} ", style="cyan")),
@@ -102,7 +107,12 @@ class AUR(Package):
         flag_date = self.flag_date.strftime("%Y-%m-%d") if self.flag_date else ""
         popularity = "{:.2f}".format(self.popularity)
         renderable = Text.assemble(
-            (Text(self.db, style=self.db)),
+            (
+                Text(
+                    self.db,
+                    style=self.db if self.db in default.styles.keys() else "other_db",
+                )
+            ),
             (Text("/")),
             (Text(f"{self.name} ")),
             (Text(f"{self.version} ", style="cyan")),
