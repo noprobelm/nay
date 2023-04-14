@@ -71,7 +71,6 @@ class Args(dict):
             options = []
 
         try:
-
             if len(operation) > 1:
                 raise ConflictingOperations(
                     "error: only one operation may be used at a time"
