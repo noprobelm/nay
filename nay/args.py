@@ -52,13 +52,16 @@ class Args(dict):
             "pure_wrapper": False,
         },
         "N": {"operation": operations.Nay, "options": {}, "pure_wrapper": False},
-        "": {"operation": operations.Nay, "options": {}, "pure_wrapper": False},
         "R": {"operation": operations.Remove, "options": {}, "pure_wrapper": True},
         "Q": {"operatoin": operations.Query, "options": {}, "pure_wrapper": True},
     }
 
     def __init__(self):
-        if sys.argv[1].startswith("-"):
+        if len(sys.argv) == 1:
+            args = []
+            operation = "N"
+            options = []
+        elif sys.argv[1].startswith("-"):
             args = sys.argv[2:]
             operation = [opt for opt in sys.argv[1] if opt.isupper()]
             options = [opt for opt in sys.argv[1] if opt.islower()]
