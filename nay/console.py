@@ -8,6 +8,7 @@ default = Theme(
         "extra": "bright_green",
         "core": "bright_yellow",
         "multilib": "bright_cyan",
+        "other_db": "bright_yellow",
     }
 )
 
