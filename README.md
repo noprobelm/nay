@@ -8,7 +8,7 @@ This project is a work in progress. Many commands are not supported, and behavio
 
 ## Installation
 
-Install directly from the AUR with `git` and `makepkg`
+Install directly from the AUR
 
 ```
 git clone https://aur.archlinux.org/nay.git && cd nay && makepkg -si && cd ../ && rm -rf nay
