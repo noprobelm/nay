@@ -67,7 +67,7 @@ class Args(dict):
             options = [opt for opt in sys.argv[1] if opt.islower()]
         else:
             args = sys.argv[1:]
-            operation = ""
+            operation = "N"
             options = []
 
         try:
