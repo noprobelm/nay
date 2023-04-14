@@ -1,13 +1,14 @@
-from .console import console
-from rich.console import Console, ConsoleOptions, RenderResult
-from rich.text import Text
-from rich.table import Table, Column
 from dataclasses import dataclass
-from typing import Optional
 from datetime import datetime
 import pyalpm
 import requests
+from typing import Optional
+from rich.console import Console, ConsoleOptions, RenderResult
+from rich.text import Text
+from rich.table import Table, Column
+
 from .db import INSTALLED
+from .console import console
 
 
 @dataclass(eq=False)
