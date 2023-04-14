@@ -44,10 +44,7 @@ def refresh(verbose: Optional[bool] = True, force: Optional[bool] = False):
 
 def upgrade(force_refresh: Optional[bool] = False):
     """Upgrade all system packages"""
-    if force_refresh:
-        subprocess.run(shlex.split("sudo pacman -Syyu"))
-    else:
-        subprocess.run(shlex.split("sudo pacman -Syu"))
+    subprocess.run(shlex.split("sudo pacman -Su"))
 
 
 def clean():
