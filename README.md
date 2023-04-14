@@ -32,12 +32,10 @@ To update all system packages:
 
 `nay`
 
-To install a package from a database/AUR query, run optionless:
+To install a package from a database/AUR query, run `nay` optionless:
 
 `nay yay`
 
-
-Standard
 
 | Operation                              | Description                                                                                            |
 |----------------------------------------|--------------------------------------------------------------------------------------------------------|
@@ -47,7 +45,6 @@ Standard
 | `-Ss`                                  | Query the Sync DB and AUR for packages                                                                 |
 | `-Sy <optional targets>`               | Refresh the Sync DB; optionally install targets                                                        |
 | `-Syu <optional targets>`              | Refresh the Sync DB; perform full system upgrade; optionally install targets                           |
-| `-Sw <targets>`                        | Retrieve package data from server; do not install (AUR packages go to `~/.cache/nay`)               |
 | `-Sc`                                  | Remove packages that are no longer installed from the cache as well as currently unused sync databases |
 | `-R<flags> <targets>`                  | Remove packages from the system                                                                        |
 | `-Q<flags> <optional targets>`         | All `pacman` query operations are currently supported                                                  |
