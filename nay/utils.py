@@ -1,12 +1,13 @@
 import os
 import shutil
-import re
-import requests
-from typing import Optional
-from .package import SyncDB, AUR
-from .db import DATABASES
 import subprocess
 import shlex
+import requests
+import re
+from typing import Optional
+
+from .package import SyncDB, AUR
+from .db import DATABASES
 from .console import console
 from rich.console import Group
 from rich.text import Text
