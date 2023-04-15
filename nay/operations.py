@@ -166,5 +166,15 @@ class Remove(Operation):
 
     def run(self):
         subprocess.run(
-            shlex.split(f"sudo pacman -R{''.join(self.args)} {' '.join(self.args)}")
+            shlex.split(f"sudo pacman -R{''.join(self.options)} {' '.join(self.args)}")
+        )
+
+
+class Upgrade(Operation):
+    def __init__(self, options: list[str], args: list[str]):
+        super().__init__(options, args, self.run)
+
+    def run(self):
+        subprocess.run(
+            shlex.split(f"sudo pacman -U {''.join(self.options)} {' '.join(self.args)}")
         )
