@@ -54,6 +54,7 @@ class Args(dict):
         "N": {"operation": operations.Nay, "options": {}, "pure_wrapper": False},
         "R": {"operation": operations.Remove, "options": {}, "pure_wrapper": True},
         "Q": {"operation": operations.Query, "options": {}, "pure_wrapper": True},
+        "U": {"operation": operations.Upgrade, "options": {}, "pure_wrapper": True},
     }
 
     def __init__(self):
