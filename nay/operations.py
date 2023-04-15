@@ -29,6 +29,8 @@ class Nay(Operation):
             utils.upgrade()
         else:
             results = utils.search(" ".join(self.args))
+            if not results:
+                quit()
             utils.print_pkglist(results, include_num=True)
             packages = utils.select_packages(results)
             utils.refresh(verbose=False)
