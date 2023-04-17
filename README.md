@@ -39,8 +39,8 @@ To install a package from a database/AUR query, run `nay` optionless:
 
 | Operation                      | Description                                                                                            |
 |--------------------------------|--------------------------------------------------------------------------------------------------------|
-| <optionless>                   | Refresh the database and perform a full system upgrade (i.e. `sudo pacman -Syu`)                       |
-| <optionless> `<targets>`       | Refresh the database; query the Sync DB and AUR for packages; install selected                         |
+| `<optionless>`                   | Refresh the database and perform a full system upgrade (i.e. `sudo pacman -Syu`)                       |
+| `<optionless> <targets>`       | Refresh the database; query the Sync DB and AUR for packages; install selected                         |
 | `-S`                           | Install targets                                                                                        |
 | `-Ss`                          | Query the Sync DB and AUR for packages                                                                 |
 | `-Sy <optional targets>`       | Refresh the Sync DB; optionally install targets                                                        |
