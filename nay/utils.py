@@ -6,8 +6,8 @@ import requests
 import re
 from typing import Optional
 
-from .package import SyncDB, AUR
-from .db import DATABASES
+from .package import Sync, AUR
+from .db import DATABASES, INSTALLED
 from .console import console
 from rich.console import Group
 from rich.text import Text
@@ -32,15 +32,13 @@ SORT_PRIORITIES["db"]["aur"] = max([num for num in SORT_PRIORITIES["db"].values(
 #####################################################################################################################################
 
 
-def refresh(verbose: Optional[bool] = True, force: Optional[bool] = False):
+def refresh(force: Optional[bool] = False):
     """Refresh the sync databases"""
 
     if force:
-        subprocess.run(shlex.split(f"sudo pacman -Syy"), capture_output=not verbose)
+        subprocess.run(shlex.split(f"sudo pacman -Syy"))
     else:
-        args = "-Sy"
-
-    subprocess.run(shlex.split(f"sudo pacman -Sy"), capture_output=not verbose)
+        subprocess.run(shlex.split(f"sudo pacman -Sy"))
 
 
 def upgrade(force_refresh: Optional[bool] = False):
@@ -115,20 +113,70 @@ def makepkg(pkg, clonedir, clean: Optional[bool] = False):
     os.chdir(SRCDIR)
 
 
-def install(packages):
+def install(*packages):
     """Install a package based on package.Package data"""
-    aur = [pkg for pkg in packages if pkg.db == "aur"]
-    sync = [pkg for pkg in packages if pkg.db != "aur"]
-
-    if aur:
-        for pkg in aur:
-            get_pkgbuild(pkg, CACHEDIR)
-            makepkg(pkg, CACHEDIR, clean=False)
+    sync = [pkg for pkg in packages if isinstance(pkg, Sync)]
+    aur = [pkg for pkg in packages if isinstance(pkg, AUR)]
+    unresolved = []
 
     if sync:
-        subprocess.run(
-            shlex.split(f"sudo pacman -S {' '.join([pkg.name for pkg in sync])}")
+        console.print(
+            f"Sync Explicit {len(sync)}: {', '.join([pkg.name for pkg in sync])}"
         )
+    if aur:
+        console.print(
+            f"AUR Explicit {len(sync)}: {', '.join([pkg.name for pkg in aur])}"
+        )
+
+        for pkg in aur:
+            PKGPATH = os.path.join(CACHEDIR, pkg.name)
+            PKGBUILD_MISSING = False
+            if not os.path.exists(PKGPATH):
+                PKGBUILD_MISSING = True
+
+            else:
+                with open(os.path.join(PKGPATH, ".SRCINFO"), "r") as f:
+                    if re.search(r"pkgver=(.*)", f.read()) != pkg.version:
+                        PKGBUILD_MISSING = True
+                    else:
+                        console.print(
+                            f"Build files existing, skipping download for {pkg.name}"
+                        )
+
+            if PKGBUILD_MISSING == True:
+                get_pkgbuild(pkg, CACHEDIR)
+
+            with open(os.path.join(PKGPATH, ".SRCINFO")) as f:
+                SRCINFO = [line for line in f.readlines()]
+
+            depends = []
+            opt_depends = []
+            for line in SRCINFO:
+                line = line.strip()
+                if "depends" in line:
+                    if "opt" in line:
+                        opt_depend = (
+                            re.search(r"(?<==)\s*(\w+-?\w+)", line).group(0).strip()
+                        )
+                        opt_depends.append(opt_depend)
+                    else:
+                        depend = (
+                            re.search(r"(?<==)\s*(\w+-?\w+)", line).group(0).strip()
+                        )
+                        depends.append(depend)
+
+            aur_query = requests.get(
+                f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join([depends for depends in depends])}"
+            ).json()
+            for result in aur_query["results"]:
+                if result["Name"] not in INSTALLED:
+                    unresolved.append(AUR.from_query(result))
+
+            # Recursion occurs here
+            if unresolved:
+                install(*unresolved)
+
+            makepkg(pkg, CACHEDIR)
 
 
 def search(query: str, sortby: Optional[str] = "db"):
@@ -137,7 +185,7 @@ def search(query: str, sortby: Optional[str] = "db"):
 
     for database in DATABASES:
         packages.extend(
-            [SyncDB.from_pyalpm(pkg) for pkg in DATABASES[database].search(query)]
+            [Sync.from_pyalpm(pkg) for pkg in DATABASES[database].search(query)]
         )
 
     aur_query = requests.get(
@@ -157,11 +205,11 @@ def search(query: str, sortby: Optional[str] = "db"):
     return packages
 
 
-def get_pkg(pkg_name, verbose: Optional[bool] = False):
+def get_pkg(pkg_name):
     for database in DATABASES:
         pkg = DATABASES[database].get_pkg(pkg_name)
         if pkg:
-            return SyncDB.from_pyalpm(pkg)
+            return Sync.from_pyalpm(pkg)
 
     pkg = requests.get(
         f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={pkg_name}"
@@ -170,8 +218,7 @@ def get_pkg(pkg_name, verbose: Optional[bool] = False):
         pkg = AUR.from_query(pkg[0])
         return pkg
 
-    if verbose:
-        console.print(f"[red]->[/red] No AUR package found for {pkg_name}")
+    console.print(f"[red]->[/red] No AUR package found for {pkg_name}")
 
 
 def print_pkglist(packages, include_num: Optional[bool] = False):
@@ -229,4 +276,11 @@ def select_packages(packages):
         else:
             selections.add(int(match))
 
-    return {packages[num] for num in selections}
+    selected = []
+    for num in selections:
+        try:
+            selected.append(packages[num])
+        except KeyError:
+            pass
+
+    return selected

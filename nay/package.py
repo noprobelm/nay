@@ -33,7 +33,7 @@ class Package:
 
 
 @dataclass(eq=False)
-class SyncDB(Package):
+class Sync(Package):
     size: int
     isize: int
 
