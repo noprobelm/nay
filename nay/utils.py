@@ -36,11 +36,9 @@ def refresh(force: Optional[bool] = False):
     """Refresh the sync databases"""
 
     if force:
-        subprocess.run(shlex.split(f"sudo pacman -Syy"), capture_output=not verbose)
+        subprocess.run(shlex.split(f"sudo pacman -Syy"))
     else:
-        args = "-Sy"
-
-    subprocess.run(shlex.split(f"sudo pacman -Sy"), capture_output=not verbose)
+        subprocess.run(shlex.split(f"sudo pacman -Sy"))
 
 
 def upgrade(force_refresh: Optional[bool] = False):
