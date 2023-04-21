@@ -33,8 +33,8 @@ class Nay(Operation):
                 quit()
             utils.print_pkglist(results, include_num=True)
             packages = utils.select_packages(results)
-            utils.refresh(verbose=False)
-            utils.install(packages)
+            utils.refresh()
+            utils.install(*packages)
 
 
 class Sync(Operation):
