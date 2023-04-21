@@ -6,7 +6,7 @@ import requests
 import re
 from typing import Optional
 
-from .package import SyncDB, AUR
+from .package import Sync, AUR
 from .db import DATABASES
 from .console import console
 from rich.console import Group
@@ -32,7 +32,7 @@ SORT_PRIORITIES["db"]["aur"] = max([num for num in SORT_PRIORITIES["db"].values(
 #####################################################################################################################################
 
 
-def refresh(verbose: Optional[bool] = True, force: Optional[bool] = False):
+def refresh(force: Optional[bool] = False):
     """Refresh the sync databases"""
 
     if force:
@@ -137,7 +137,7 @@ def search(query: str, sortby: Optional[str] = "db"):
 
     for database in DATABASES:
         packages.extend(
-            [SyncDB.from_pyalpm(pkg) for pkg in DATABASES[database].search(query)]
+            [Sync.from_pyalpm(pkg) for pkg in DATABASES[database].search(query)]
         )
 
     aur_query = requests.get(
@@ -157,11 +157,11 @@ def search(query: str, sortby: Optional[str] = "db"):
     return packages
 
 
-def get_pkg(pkg_name, verbose: Optional[bool] = False):
+def get_pkg(pkg_name):
     for database in DATABASES:
         pkg = DATABASES[database].get_pkg(pkg_name)
         if pkg:
-            return SyncDB.from_pyalpm(pkg)
+            return Sync.from_pyalpm(pkg)
 
     pkg = requests.get(
         f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={pkg_name}"
@@ -170,8 +170,7 @@ def get_pkg(pkg_name, verbose: Optional[bool] = False):
         pkg = AUR.from_query(pkg[0])
         return pkg
 
-    if verbose:
-        console.print(f"[red]->[/red] No AUR package found for {pkg_name}")
+    console.print(f"[red]->[/red] No AUR package found for {pkg_name}")
 
 
 def print_pkglist(packages, include_num: Optional[bool] = False):
