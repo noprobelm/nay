@@ -34,7 +34,7 @@ class Nay(Operation):
             utils.print_pkglist(results, include_num=True)
             packages = utils.select_packages(results)
             utils.refresh()
-            utils.install(*packages)
+            utils.install(*packages, top=True)
 
 
 class Sync(Operation):
@@ -75,7 +75,7 @@ class Sync(Operation):
             if pkg:
                 targets.append(pkg)
         if targets:
-            utils.install(targets)
+            utils.install(targets, top=True)
 
     def refresh(self, force: Optional[bool] = False):
         utils.refresh(force=force)
