@@ -1,3 +1,5 @@
+import os
+import re
 from dataclasses import dataclass
 from datetime import datetime
 import pyalpm
@@ -8,6 +10,7 @@ from rich.text import Text
 from rich.table import Table, Column
 
 from .db import INSTALLED
+from .config import CACHEDIR
 from .console import console, default
 
 
@@ -101,6 +104,33 @@ class AUR(Package):
         self.flag_date = (
             datetime.fromtimestamp(self.flag_date) if self.flag_date else None
         )
+
+    @property
+    def PKGBUILD(self):
+        return os.path.join(CACHEDIR, f"{self.name}/PKGBUILD")
+
+    @property
+    def SRCINFO(self):
+        return os.path.join(CACHEDIR, f"{self.name}/.SRCINFO")
+
+    @property
+    def pkgbuild_exists(self):
+        if os.path.exists(self.PKGBUILD):
+            try:
+                with open(self.SRCINFO, "r") as f:
+                    if re.search(r"pkgver=(.*)", f.read()) != self.version:
+                        return True
+            except FileNotFoundError:
+                return False
+        else:
+            return False
+
+    @property
+    def info_query(self):
+        query = requests.get(
+            f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={self.name}"
+        ).json()
+        return query["results"][0]
 
     @property
     def renderable(self) -> Text:
