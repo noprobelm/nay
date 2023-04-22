@@ -71,7 +71,7 @@ class Sync(Operation):
     def install(self):
         targets = []
         for arg in self.args:
-            pkg = utils.get_pkg(arg, verbose=True)
+            pkg = utils.get_pkg(arg)
             if pkg:
                 targets.append(pkg)
         if targets:
