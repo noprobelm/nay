@@ -214,7 +214,7 @@ class AUR(Package):
             "db": "aur",
             "name": result["Name"],
             "version": result["Version"],
-            "desc": result["Description"],
+            "desc": result["Description"] if result["Description"] else "",
             "url": result["URL"],
             "votes": result["NumVotes"],
             "popularity": result["Popularity"],
