@@ -154,6 +154,8 @@ def install(*packages):
         )
 
         aur_depends = get_aur_dependencies(*aur_explicit, recursive=False)
+
+    if aur_depends:
         output = [f"{dep.name}-{dep.version}" for dep in aur_depends]
         console.print(
             f"AUR Dependency ({len(aur_depends)}): {', '.join([out for out in output])}"
@@ -168,9 +170,9 @@ def install(*packages):
         else:
             console.print(f":: PKGBUILD up to date, skipping download: {pkg.name}")
 
-    for num, missing in enumerate(missing):
-        get_pkgbuild(missing)
-        console.print(f":: {num+1}/{len(missing)} Downloaded PKGBUILD: {missing.name}")
+    for num, pkg in enumerate(missing):
+        get_pkgbuild(pkg, CACHEDIR)
+        console.print(f":: {num+1}/{len(missing)} Downloaded PKGBUILD: {pkg.name}")
 
     install_preview = Table.grid(
         Column("num", justify="right"),
@@ -234,6 +236,11 @@ def search(query: str, sortby: Optional[str] = "db"):
             )
         )
     )
+
+    for num, pkg in enumerate(packages):
+        if pkg.name == query:
+            packages.append(packages.pop(num))
+
     packages = {len(packages) - num: pkg for num, pkg in enumerate(packages)}
 
     return packages
