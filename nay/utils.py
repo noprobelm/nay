@@ -11,6 +11,7 @@ from .db import DATABASES, INSTALLED
 from .console import console
 from rich.console import Group
 from rich.text import Text
+from rich.table import Table, Column
 from .config import CACHEDIR
 
 
@@ -101,29 +102,19 @@ def get_pkgbuild(pkg, clonedir: Optional[str] = None) -> None:
     )
 
 
-def makepkg(pkg, clonedir, install=True, clean: Optional[bool] = False):
+def makepkg(pkg, clonedir, flags: str, clean: Optional[bool] = False):
     """Run makepkg on a PKGBUILD"""
     os.chdir(f"{clonedir}/{pkg.name}")
-    if install:
-        subprocess.run(shlex.split("makepkg -si"))
-    else:
-        subprocess.run(shlex.split("makepkg -s"))
+    subprocess.run(shlex.split(f"makepkg -{flags}"))
 
     if clean:
         os.chdir("../")
         shutil.rmtree(f"{os.getcwd()}/{pkg.name}", ignore_errors=True)
 
-    os.chdir(SRCDIR)
 
-
-def get_aur_dependencies(*packages):
+def get_aur_dependencies(*packages, recursive=True):
 
     depends = []
-    aur_query = requests.get(
-        f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join([pkg for pkg in packages])}"
-    ).json()
-
-    packages = [AUR.from_info_query(query) for query in aur_query["results"]]
     for pkg in packages:
         info_query = pkg.info_query
         if "MakeDepends" in info_query.keys():
@@ -133,118 +124,98 @@ def get_aur_dependencies(*packages):
         if "Depends" in info_query.keys():
             depends.extend(info_query["Depends"])
 
+    aur_query = requests.get(
+        f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join([depends for depends in depends])}"
+    ).json()
+
+    depends = [AUR.from_info_query(result) for result in aur_query["results"]]
+
+    if depends and recursive == True:
+        depends.extend(get_aur_dependencies(*depends))
+
+    return depends
+
 
 def install(*packages, top=False):
     """Install a package based on package.Package data"""
-    sync = [pkg for pkg in packages if isinstance(pkg, Sync)]
-    aur = [pkg for pkg in packages if isinstance(pkg, AUR)]
-    unresolved = []
+    sync_explicit = [pkg for pkg in packages if isinstance(pkg, Sync)]
+    aur_explicit = [pkg for pkg in packages if isinstance(pkg, AUR)]
+    aur_depends = []
 
-    if sync:
-        output = [f"{pkg.name}-{pkg.version}" for pkg in sync]
+    if sync_explicit:
+        output = [f"{pkg.name}-{pkg.version}" for pkg in sync_explicit]
         console.print(
-            f"Sync Explicit {len(sync)}: {', '.join([pkg for pkg in output])}"
+            f"Sync Explicit {len(sync_explicit)}: {', '.join([pkg for pkg in output])}"
         )
-    if aur:
-        output = [f"{pkg.name}-{pkg.version}" for pkg in aur]
-        console.print(f"AUR Explicit {len(aur)}: {', '.join([pkg for pkg in output])}")
+    if aur_explicit:
+        output = [f"{pkg.name}-{pkg.version}" for pkg in aur_explicit]
+        console.print(
+            f"AUR Explicit {len(aur_explicit)}: {', '.join([pkg for pkg in output])}"
+        )
 
-        if top:
-            missing_pkgbuild = []
-            depends = []
-            for pkg in aur:
-                info_query = pkg.info_query
-                if "MakeDepends" in info_query.keys():
-                    depends.extend(info_query["MakeDepends"])
-                if "CheckDepends" in info_query.keys():
-                    depends.extend(info_query["CheckDepends"])
-                if "Depends" in info_query.keys():
-                    depends.extend(info_query["Depends"])
+        aur_depends = get_aur_dependencies(*aur_explicit, recursive=False)
+        output = [f"{dep.name}-{dep.version}" for dep in aur_depends]
+        console.print(
+            f"AUR Dependency ({len(aur_depends)}): {', '.join([out for out in output])}"
+        )
 
-                depends = [dep for dep in depends if dep not in INSTALLED]
+    aur = [pkg for total in [aur_explicit, aur_depends] for pkg in total]
+    missing = []
 
-                # Note we're not checking if installed dependencies are updated to the latest version here... Which is
-                # why pacman should inherently run as -Syu prior to / along with any package install in the first place.
-                aur_query = requests.get(
-                    f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join([depends for depends in depends])}"
-                ).json()
-
-                depends = [
-                    AUR.from_info_query(result)
-                    for result in aur_query["results"]
-                    if result["Name"] not in INSTALLED
-                ]
-
-                output = [f"{dep.name}-{dep.version}" for dep in depends]
-                console.print(
-                    f"AUR Dependency ({len(depends)}): {', '.join([out for out in output])}"
-                )
-
-            for dep in depends:
-                if not dep.pkgbuild_exists:
-                    missing_pkgbuild.append(dep)
-                else:
-                    console.print(
-                        f":: PKGBUILD up to date, skipping download: {dep.name}"
-                    )
-            missing_pkgbuild.extend([dep for dep in depends if not dep.pkgbuild_exists])
-
-            for pkg in aur:
-                if not pkg.pkgbuild_exists:
-                    missing_pkgbuild.append(pkg)
-
-                else:
-                    console.print(
-                        f":: PKGBUILD up to date, skipping download: {pkg.name}"
-                    )
-
-            for num, missing in enumerate(missing_pkgbuild):
-                get_pkgbuild(missing)
-                console.print(
-                    f":: {num+1}/{len(missing)} Downloaded PKGBUILD: {missing.name}"
-                )
-
-            to_install = depends
-            to_install.extend(aur)
-            install(*to_install)
-
+    for pkg in aur:
+        if not pkg.pkgbuild_exists:
+            missing.append(pkg)
         else:
-            for pkg in aur:
-                if not pkg.pkgbuild_exists:
-                    get_pkgbuild(pkg, CACHEDIR)
+            console.print(f":: PKGBUILD up to date, skipping download: {pkg.name}")
 
-                with open(pkg.SRCINFO, "r") as f:
-                    SRCINFO = [line for line in f.readlines()]
+    for num, missing in enumerate(missing):
+        get_pkgbuild(missing)
+        console.print(f":: {num+1}/{len(missing)} Downloaded PKGBUILD: {missing.name}")
 
-                depends = []
-                opt_depends = []
-                for line in SRCINFO:
-                    line = line.strip()
-                    if "depends" in line:
-                        if "opt" in line:
-                            opt_depend = (
-                                re.search(r"(?<==)\s*(\w+-?\w+)", line).group(0).strip()
-                            )
-                            opt_depends.append(opt_depend)
-                        else:
-                            depend = (
-                                re.search(r"(?<==)\s*(\w+-?\w+)", line).group(0).strip()
-                            )
-                            depends.append(depend)
+    install_preview = Table.grid(
+        Column("num", justify="right"),
+        Column("pkgname", width=50, justify="left"),
+        Column("pkgbuild_exists"),
+        padding=(0, 1, 0, 1),
+    )
+    for num, pkg in enumerate(aur):
+        # TODO: Fix hardcoded "Build Files Exist" -- I'm not how we'd encounter a scenario where we got here and they __dont__ exist
+        install_preview.add_row(str(len(aur) - num), pkg.name, "Build Files Exist")
 
-                aur_query = requests.get(
-                    f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join([depend for depend in depends])}"
-                ).json()
-                for result in aur_query["results"]:
-                    if result["Name"] not in INSTALLED:
-                        unresolved.append(AUR.from_info_query(result))
+    console.print(install_preview)
 
-                # Recursion occurs here
-                if unresolved:
-                    if top:
-                        install(*unresolved, top=True)
+    proceed_prompt = console.input(
+        "[bright_green]==>[/bright_green] Install packages? [Y/n] "
+    )
+    if not proceed_prompt.lower().startswith("y"):
+        quit()
 
-                makepkg(pkg, CACHEDIR)
+    child_depends = get_aur_dependencies(*aur_depends)
+    for dep in child_depends:
+        if not dep.pkgbuild_exists:
+            get_pkgbuild(dep)
+
+    aur.extend(child_depends)
+
+    proceed = console.input("Proceed?")
+
+    if not proceed.lower().startswith("y"):
+        quit()
+
+    if sync_explicit:
+        subprocess.run(
+            shlex.split(f"sudo pacman -S {[pkg.name for pkg in sync_explicit]}")
+        )
+
+    targets = []
+    for pkg in aur:
+        makepkg(pkg, CACHEDIR, "fsd")
+        pattern = f"{pkg.name}-{pkg.version}-"
+        for obj in os.listdir(os.path.join(CACHEDIR, pkg.name)):
+            if pattern in obj and obj.endswith("zst"):
+                targets.append(os.path.join(CACHEDIR, pkg.name, obj))
+
+    subprocess.run(shlex.split(f"sudo pacman -U {' '.join(targets)}"))
 
 
 def search(query: str, sortby: Optional[str] = "db"):
@@ -348,6 +319,8 @@ def select_packages(packages):
     for num in selections:
         try:
             selected.append(packages[num])
+
+        # Ignore invalid selections by the user
         except KeyError:
             pass
 
