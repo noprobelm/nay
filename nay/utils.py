@@ -116,6 +116,24 @@ def makepkg(pkg, clonedir, install=True, clean: Optional[bool] = False):
     os.chdir(SRCDIR)
 
 
+def get_aur_dependencies(*packages):
+
+    depends = []
+    aur_query = requests.get(
+        f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join([pkg for pkg in packages])}"
+    ).json()
+
+    packages = [AUR.from_info_query(query) for query in aur_query["results"]]
+    for pkg in packages:
+        info_query = pkg.info_query
+        if "MakeDepends" in info_query.keys():
+            depends.extend(info_query["MakeDepends"])
+        if "CheckDepends" in info_query.keys():
+            depends.extend(info_query["CheckDepends"])
+        if "Depends" in info_query.keys():
+            depends.extend(info_query["Depends"])
+
+
 def install(*packages, top=False):
     """Install a package based on package.Package data"""
     sync = [pkg for pkg in packages if isinstance(pkg, Sync)]
@@ -152,7 +170,7 @@ def install(*packages, top=False):
                 ).json()
 
                 depends = [
-                    AUR.from_query(result)
+                    AUR.from_info_query(result)
                     for result in aur_query["results"]
                     if result["Name"] not in INSTALLED
                 ]
@@ -219,7 +237,7 @@ def install(*packages, top=False):
                 ).json()
                 for result in aur_query["results"]:
                     if result["Name"] not in INSTALLED:
-                        unresolved.append(AUR.from_query(result))
+                        unresolved.append(AUR.from_info_query(result))
 
                 # Recursion occurs here
                 if unresolved:
@@ -242,7 +260,7 @@ def search(query: str, sortby: Optional[str] = "db"):
         f"https://aur.archlinux.org/rpc/?v=5&type=search&arg={query}"
     ).json()
 
-    packages.extend(AUR.from_query(result) for result in aur_query["results"])
+    packages.extend(AUR.from_search_query(result) for result in aur_query["results"])
     packages = list(
         reversed(
             sorted(
@@ -265,7 +283,7 @@ def get_pkg(pkg_name):
         f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={pkg_name}"
     ).json()["results"]
     if pkg:
-        pkg = AUR.from_query(pkg[0])
+        pkg = AUR.from_info_query(pkg[0])
         return pkg
 
     console.print(f"[red]->[/red] No AUR package found for {pkg_name}")
