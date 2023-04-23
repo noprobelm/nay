@@ -58,7 +58,7 @@ def clean():
         console.print("removing AUR packages from cache...")
         os.chdir(CACHEDIR)
         for obj in os.listdir():
-            shutil.rmtree(obj)
+            shutil.rmtree(obj, ignore_errors=True)
     response = console.input(
         "\n[bright_blue]::[/bright_blue] Do you want to remove ALL untracked AUR files? [Y/n] "
     )
@@ -108,7 +108,7 @@ def makepkg(pkg, clonedir, flags: str, clean: Optional[bool] = False):
     os.chdir(f"{clonedir}/{pkg.name}")
     subprocess.run(shlex.split(f"makepkg -{flags}"))
 
-    if clean:
+    if clean == True:
         os.chdir("../")
         shutil.rmtree(f"{os.getcwd()}/{pkg.name}", ignore_errors=True)
 
