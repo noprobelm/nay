@@ -168,9 +168,9 @@ def install(*packages):
         else:
             console.print(f":: PKGBUILD up to date, skipping download: {pkg.name}")
 
-    for num, missing in enumerate(missing):
-        get_pkgbuild(missing)
-        console.print(f":: {num+1}/{len(missing)} Downloaded PKGBUILD: {missing.name}")
+    for num, pkg in enumerate(missing):
+        get_pkgbuild(pkg)
+        console.print(f":: {num+1}/{len(missing)} Downloaded PKGBUILD: {pkg.name}")
 
     install_preview = Table.grid(
         Column("num", justify="right"),
@@ -234,6 +234,11 @@ def search(query: str, sortby: Optional[str] = "db"):
             )
         )
     )
+
+    for num, pkg in enumerate(packages):
+        if pkg.name == query:
+            packages.append(packages.pop(num))
+
     packages = {len(packages) - num: pkg for num, pkg in enumerate(packages)}
 
     return packages
