@@ -7,7 +7,7 @@ import re
 from typing import Optional
 
 from .package import Sync, AUR
-from .db import DATABASES, INSTALLED
+from .db import DATABASES
 from .console import console
 from rich.console import Group
 from rich.text import Text
