@@ -197,11 +197,6 @@ def install(*packages):
 
     aur.extend(child_depends)
 
-    proceed = console.input("Proceed?")
-
-    if not proceed.lower().startswith("y"):
-        quit()
-
     if sync_explicit:
         subprocess.run(
             shlex.split(f"sudo pacman -S {[pkg.name for pkg in sync_explicit]}")
