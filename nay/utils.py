@@ -136,7 +136,7 @@ def get_aur_dependencies(*packages, recursive=True):
     return depends
 
 
-def install(*packages, top=False):
+def install(*packages):
     """Install a package based on package.Package data"""
     sync_explicit = [pkg for pkg in packages if isinstance(pkg, Sync)]
     aur_explicit = [pkg for pkg in packages if isinstance(pkg, AUR)]
