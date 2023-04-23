@@ -351,4 +351,10 @@ def select_packages(packages):
         except KeyError:
             pass
 
+    aur_query = requests.get(
+        f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join([pkg.name for pkg in selected])}"
+    ).json()
+
+    selected = [AUR.from_info_query(result) for result in aur_query["results"]]
+
     return selected
