@@ -99,6 +99,7 @@ def get_pkgbuild(pkg, clonedir: Optional[str] = None) -> None:
         shlex.split(
             f"git clone https://aur.archlinux.org/{pkg.name}.git {clonedir}/{pkg.name}"
         ),
+        capture_output=True,
     )
 
 
