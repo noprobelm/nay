@@ -34,7 +34,7 @@ class Nay(Operation):
             utils.print_pkglist(results, include_num=True)
             packages = utils.select_packages(results)
             utils.refresh()
-            utils.install(*packages, top=True)
+            utils.install(*packages)
 
 
 class Sync(Operation):
