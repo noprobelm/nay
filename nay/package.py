@@ -209,7 +209,7 @@ class AUR(Package):
         return grid
 
     @classmethod
-    def from_query(cls, result: dict):
+    def from_search_query(cls, result: dict):
         kwargs = {
             "db": "aur",
             "name": result["Name"],
@@ -218,7 +218,21 @@ class AUR(Package):
             "url": result["URL"],
             "votes": result["NumVotes"],
             "popularity": result["Popularity"],
-            "query": result,
+            "search_query": result,
+        }
+        return cls(**kwargs)
+
+    @classmethod
+    def from_info_query(cls, result: dict):
+        kwargs = {
+            "db": "aur",
+            "name": result["Name"],
+            "version": result["Version"],
+            "desc": result["Description"],
+            "url": result["URL"],
+            "votes": result["NumVotes"],
+            "popularity": result["Popularity"],
+            "info_query": result,
         }
         return cls(**kwargs)
 
