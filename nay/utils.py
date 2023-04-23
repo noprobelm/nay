@@ -207,7 +207,7 @@ def install(*packages):
 
     targets = []
     for pkg in aur:
-        makepkg(pkg, CACHEDIR, "fsd")
+        makepkg(pkg, CACHEDIR, "fsdc")
         pattern = f"{pkg.name}-{pkg.version}-"
         for obj in os.listdir(os.path.join(CACHEDIR, pkg.name)):
             if pattern in obj and obj.endswith("zst"):
