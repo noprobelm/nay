@@ -113,33 +113,59 @@ def makepkg(pkg, clonedir, flags: str, clean: Optional[bool] = False):
         shutil.rmtree(f"{os.getcwd()}/{pkg.name}", ignore_errors=True)
 
 
-def get_aur_dependencies(*packages):
+def get_dependencies(*packages, recursive=True):
+    depends = {
+        pkg: {"make": [], "check": [], "depend": [], "optional": []} for pkg in packages
+    }
+    depends_all = []
 
-    depends = {pkg: [] for pkg in packages}
-    for pkg in depends:
-        child_deps = []
+    for pkg in packages:
         info_query = pkg.info_query
         if "MakeDepends" in info_query.keys():
-            child_deps.extend(info_query["MakeDepends"])
+            for dep in info_query["MakeDepends"]:
+                depends[pkg]["make"].append(dep)
+                depends_all.append(dep)
         if "CheckDepends" in info_query.keys():
-            child_deps.extend(info_query["CheckDepends"])
+            for dep in info_query["CheckDepends"]:
+                depends[pkg]["check"].append(dep)
+                depends_all.append(dep)
         if "Depends" in info_query.keys():
-            child_deps.extend(info_query["Depends"])
+            for dep in info_query["Depends"]:
+                depends[pkg]["depend"].append(dep)
+                depends_all.append(dep)
+        if "OptDepends" in info_query.keys():
+            for dep in info_query["Depends"]:
+                depends[pkg]["optional"].append(dep)
+                depends_all.append(dep)
 
-        aur_query = requests.get(
-            f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join([dep for dep in child_deps])}"
-        ).json()
+    depends_all = list(set(depends_all))
 
-        if aur_query["results"]:
-            for result in aur_query["results"]:
-                dep = AUR.from_info_query(result)
-                depends[pkg].append(dep)
+    aur_query = requests.get(
+        f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join([dep for dep in depends_all])}"
+    ).json()
 
-    concat = [dep for total in depends.values() for dep in total]
-    if concat:
-        depends.update(
-            get_aur_dependencies(*[i for depend in depends.values() for i in depend])
-        )
+    if aur_query["results"]:
+        for result in aur_query["results"]:
+            dep = AUR.from_info_query(result)
+            depends_all.append(dep)
+            for pkg in depends:
+                for dep_type in depends[pkg].keys():
+                    if result["Name"] in depends[pkg][dep_type]:
+                        depends[pkg][dep_type].append(dep)
+
+        depends_all = [dep for dep in depends_all if isinstance(dep, AUR)]
+        for pkg in depends:
+            for dep_type in depends[pkg].keys():
+                depends[pkg][dep_type] = [
+                    dep for dep in depends[pkg][dep_type] if isinstance(dep, AUR)
+                ]
+
+        console.print(depends)
+        quit()
+        if not recursive:
+            return depends
+        else:
+            depends.update(get_dependencies(*depends_all))
 
     return depends
 
@@ -161,7 +187,7 @@ def install(*packages):
             f"AUR Explicit {len(aur_explicit)}: {', '.join([pkg for pkg in output])}"
         )
 
-        aur_depends = get_aur_dependencies(*aur_explicit)
+        aur_depends = get_dependencies(*aur_explicit, recursive=False)
         console.print(aur_depends)
         quit()
         output = []
@@ -209,7 +235,7 @@ def install(*packages):
     if not proceed_prompt.lower().startswith("y"):
         quit()
 
-    child_depends = get_aur_dependencies(*aur_depends)
+    child_depends = get_dependencies(*aur_depends)
     for dep in child_depends:
         if not dep.pkgbuild_exists:
             get_pkgbuild(dep)
