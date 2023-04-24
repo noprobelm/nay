@@ -14,7 +14,7 @@ from .config import CACHEDIR
 from .console import console, default
 
 
-@dataclass(eq=False)
+@dataclass
 class Package:
     db: str
     name: str
@@ -33,6 +33,16 @@ class Package:
             elif self.db == other.db:
                 if self.name < other.name:
                     return True
+
+    def __hash__(self):
+        return hash((self.name, self.version))
+
+    def __eq__(self, other):
+        if not isinstance(other, Package):
+            return False
+
+        else:
+            return hash(self) == hash(other)
 
 
 @dataclass(eq=False)
