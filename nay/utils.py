@@ -5,6 +5,7 @@ import shlex
 import requests
 import re
 from typing import Optional
+import networkx as nx
 
 from .package import Sync, AUR
 from .db import DATABASES
@@ -114,67 +115,55 @@ def makepkg(pkg, clonedir, flags: str, clean: Optional[bool] = False):
 
 
 def get_dependencies(*packages, recursive=True):
-    depends = {
-        pkg: {"make": [], "check": [], "depend": [], "optional": []} for pkg in packages
-    }
-    depends_all = []
+    depends_all = {pkg: [] for pkg in packages}
+    depends_aur = {"package": [], "depend": []}
 
     for pkg in packages:
         info_query = pkg.info_query
         if "MakeDepends" in info_query.keys():
             for dep in info_query["MakeDepends"]:
-                depends[pkg]["make"].append(dep)
-                depends_all.append(dep)
+                depends_all[pkg].append(dep)
         if "CheckDepends" in info_query.keys():
             for dep in info_query["CheckDepends"]:
-                depends[pkg]["check"].append(dep)
-                depends_all.append(dep)
+                depends_all[pkg].append(dep)
         if "Depends" in info_query.keys():
             for dep in info_query["Depends"]:
-                depends[pkg]["depend"].append(dep)
-                depends_all.append(dep)
-        if "OptDepends" in info_query.keys():
-            for dep in info_query["Depends"]:
-                depends[pkg]["optional"].append(dep)
-                depends_all.append(dep)
+                depends_all[pkg].append(dep)
+        # if "OptDepends" in info_query.keys():
+        #     for dep in info_query["Depends"]:
+        #         depends_all[pkg].append(dep)
 
-    depends_all = list(set(depends_all))
+    aur_query = []
+    for pkg in depends_all:
+        aur_query.extend(depends_all[pkg])
 
-    aur_query = requests.get(
-        f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join([dep for dep in depends_all])}"
+    aur_query = list(set(aur_query))
+
+    aur_response = requests.get(
+        f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join([dep for dep in aur_query])}"
     ).json()
 
-    if aur_query["results"]:
-        for result in aur_query["results"]:
+    if aur_response["results"]:
+        for result in aur_response["results"]:
             dep = AUR.from_info_query(result)
-            depends_all.append(dep)
-            for pkg in depends:
-                for dep_type in depends[pkg].keys():
-                    if result["Name"] in depends[pkg][dep_type]:
-                        depends[pkg][dep_type].append(dep)
+            for pkg in depends_all:
+                if result["Name"] in depends_all[pkg]:
+                    depends_aur["package"].append(pkg)
+                    depends_aur["depend"].append(dep)
 
-        depends_all = [dep for dep in depends_all if isinstance(dep, AUR)]
-        for pkg in depends:
-            for dep_type in depends[pkg].keys():
-                depends[pkg][dep_type] = [
-                    dep for dep in depends[pkg][dep_type] if isinstance(dep, AUR)
-                ]
-
-        console.print(depends)
-        quit()
         if not recursive:
-            return depends
+            return depends_aur
         else:
-            depends.update(get_dependencies(*depends_all))
+            depends_aur.update(get_dependencies(*depends_aur["depend"]))
 
-    return depends
+    return depends_aur
 
 
 def install(*packages):
     """Install a package based on package.Package data"""
     sync_explicit = [pkg for pkg in packages if isinstance(pkg, Sync)]
     aur_explicit = [pkg for pkg in packages if isinstance(pkg, AUR)]
-    aur_depends = []
+    depends_aur = {}
 
     if sync_explicit:
         output = [f"{pkg.name}-{pkg.version}" for pkg in sync_explicit]
@@ -187,24 +176,16 @@ def install(*packages):
             f"AUR Explicit {len(aur_explicit)}: {', '.join([pkg for pkg in output])}"
         )
 
-        aur_depends = get_dependencies(*aur_explicit, recursive=False)
-        console.print(aur_depends)
-        quit()
-        output = []
-        for pkg in aur_explicit:
-            output.extend(aur_depends[pkg])
+        depends_aur = get_dependencies(*aur_explicit, recursive=False)
+
+    if depends_aur:
+        output = [f"{pkg.name}-{pkg.version}" for pkg in depends_aur["depend"]]
         if output:
             console.print(
-                f"AUR Dependency ({len(aur_depends)}): {', '.join([out for out in output])}"
+                f"AUR Dependency ({len(depends_aur)}): {', '.join([out for out in output])}"
             )
 
-    if aur_depends:
-        output = [f"{dep.name}-{dep.version}" for dep in aur_depends]
-        console.print(
-            f"AUR Dependency ({len(aur_depends)}): {', '.join([out for out in output])}"
-        )
-
-    aur = [pkg for total in [aur_explicit, aur_depends] for pkg in total]
+    aur = [pkg for total in [aur_explicit, depends_aur["depend"]] for pkg in total]
     missing = []
 
     for pkg in aur:
@@ -235,12 +216,20 @@ def install(*packages):
     if not proceed_prompt.lower().startswith("y"):
         quit()
 
-    child_depends = get_dependencies(*aur_depends)
-    for dep in child_depends:
+    child_depends = get_dependencies(*depends_aur["depend"])
+
+    depends_aur["package"].extend(child_depends["package"])
+    depends_aur["depend"].extend(child_depends["depend"])
+
+    dep_graph = nx.from_dict_of_lists(depends_aur, create_using=nx.DiGraph)
+    for node in dep_graph.nodes:
+        console.print(node)
+
+    quit()
+
+    for dep in child_depends["depend"]:
         if not dep.pkgbuild_exists:
             get_pkgbuild(dep)
-
-    aur.extend(child_depends)
 
     if sync_explicit:
         subprocess.run(
