@@ -113,26 +113,33 @@ def makepkg(pkg, clonedir, flags: str, clean: Optional[bool] = False):
         shutil.rmtree(f"{os.getcwd()}/{pkg.name}", ignore_errors=True)
 
 
-def get_aur_dependencies(*packages, recursive=True):
+def get_aur_dependencies(*packages):
 
-    depends = []
-    for pkg in packages:
+    depends = {pkg: [] for pkg in packages}
+    for pkg in depends:
+        child_deps = []
         info_query = pkg.info_query
         if "MakeDepends" in info_query.keys():
-            depends.extend(info_query["MakeDepends"])
+            child_deps.extend(info_query["MakeDepends"])
         if "CheckDepends" in info_query.keys():
-            depends.extend(info_query["CheckDepends"])
+            child_deps.extend(info_query["CheckDepends"])
         if "Depends" in info_query.keys():
-            depends.extend(info_query["Depends"])
+            child_deps.extend(info_query["Depends"])
 
-    aur_query = requests.get(
-        f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join([depends for depends in depends])}"
-    ).json()
+        aur_query = requests.get(
+            f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join([dep for dep in child_deps])}"
+        ).json()
 
-    depends = [AUR.from_info_query(result) for result in aur_query["results"]]
+        if aur_query["results"]:
+            for result in aur_query["results"]:
+                dep = AUR.from_info_query(result)
+                depends[pkg].append(dep)
 
-    if depends and recursive == True:
-        depends.extend(get_aur_dependencies(*depends))
+    concat = [dep for total in depends.values() for dep in total]
+    if concat:
+        depends.update(
+            get_aur_dependencies(*[i for depend in depends.values() for i in depend])
+        )
 
     return depends
 
@@ -154,7 +161,16 @@ def install(*packages):
             f"AUR Explicit {len(aur_explicit)}: {', '.join([pkg for pkg in output])}"
         )
 
-        aur_depends = get_aur_dependencies(*aur_explicit, recursive=False)
+        aur_depends = get_aur_dependencies(*aur_explicit)
+        console.print(aur_depends)
+        quit()
+        output = []
+        for pkg in aur_explicit:
+            output.extend(aur_depends[pkg])
+        if output:
+            console.print(
+                f"AUR Dependency ({len(aur_depends)}): {', '.join([out for out in output])}"
+            )
 
     if aur_depends:
         output = [f"{dep.name}-{dep.version}" for dep in aur_depends]
