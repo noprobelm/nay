@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional, Callable
 import subprocess
 import shlex
-
+from package import AUR
 from .console import console
 from .config import CACHEDIR
 from . import utils
@@ -69,13 +69,9 @@ class Sync(Operation):
         utils.print_pkglist(packages)
 
     def install(self):
-        targets = []
-        for arg in self.args:
-            pkg = utils.get_pkg(arg)
-            if pkg:
-                targets.append(pkg)
+        targets = utils.get_packages(self.args)
         if targets:
-            utils.install(targets, top=True)
+            utils.install(targets)
 
     def refresh(self, force: Optional[bool] = False):
         utils.refresh(force=force)
@@ -84,20 +80,18 @@ class Sync(Operation):
         utils.upgrade()
 
     def download(self):
-        packages = {"aur": [], "sync": []}
+        targets = {"aur": [], "sync": []}
+        packages = utils.get_packages(self.args)
+        for pkg in packages:
+            if isinstance(pkg, AUR):
+                targets["aur"].append(pkg)
+            else:
+                targets["sync"].append(pkg)
 
-        for target in self.args:
-            pkg = utils.get_pkg(target, verbose=True)
-            if pkg:
-                if pkg.db == "aur":
-                    packages["aur"].append(pkg)
-                else:
-                    packages["sync"].append(pkg)
+        for target in targets["aur"]:
+            utils.get_pkgbuild(target, clonedir=CACHEDIR)
 
-        for pkg in packages["aur"]:
-            utils.get_pkgbuild(pkg, clonedir=CACHEDIR)
-
-        if packages["sync"]:
+        if targets["sync"]:
             subprocess.run(
                 shlex.split(
                     f"sudo pacman -Sw {' '.join([pkg.name for pkg in packages['sync']])}"
@@ -108,7 +102,7 @@ class Sync(Operation):
         utils.clean()
 
     def info(self):
-        packages = [utils.get_pkg(target) for target in self.args]
+        packages = utils.get_packages(self.args)
         utils.print_pkginfo(packages)
 
 
@@ -133,13 +127,12 @@ class GetPKGBUILD(Operation):
     def run(self):
         succeeded = []
         failed = []
-        for arg in self.args:
-            pkg = utils.get_pkg(arg)
-            if pkg:
+        packages = utils.get_packages(self.args)
+        for pkg in packages:
+            if pkg.name in self.args:
                 succeeded.append(pkg)
-
             else:
-                failed.append(arg)
+                failed.append(pkg)
 
         if succeeded:
             for idx, pkg in enumerate(succeeded):
