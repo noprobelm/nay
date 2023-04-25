@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional, Callable
 import subprocess
 import shlex
-from package import AUR
+from .package import AUR
 from .console import console
 from .config import CACHEDIR
 from . import utils
