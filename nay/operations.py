@@ -69,9 +69,9 @@ class Sync(Operation):
         utils.print_pkglist(packages)
 
     def install(self):
-        targets = utils.get_packages(self.args)
+        targets = utils.get_packages(*self.args)
         if targets:
-            utils.install(targets)
+            utils.install(*targets)
 
     def refresh(self, force: Optional[bool] = False):
         utils.refresh(force=force)
