@@ -7,7 +7,7 @@ import re
 from typing import Optional
 import networkx as nx
 
-from .package import Package, Sync, AUR
+from .package import Package, SyncPackage, AURPackage
 from .db import DATABASES, SYNC_PACKAGES
 from .console import console
 from rich.console import Group
@@ -118,7 +118,7 @@ def get_dependencies(*packages, recursive=True):
     depends = {
         pkg: {"make": [], "check": [], "depend": [], "opt": []}
         for pkg in packages
-        if isinstance(pkg, AUR)
+        if isinstance(pkg, AURPackage)
     }
 
     for pkg in packages:
@@ -141,17 +141,19 @@ def get_dependencies(*packages, recursive=True):
 
         for dep in depends_all:
             for dep_type in ["make", "check", "depend"]:
-                if dep.name in depends[pkg][dep_type] and isinstance(dep, AUR):
+                if dep.name in depends[pkg][dep_type] and isinstance(dep, AURPackage):
                     depends[pkg][dep_type].append(dep)
 
         for dep_type in ["make", "check", "depend"]:
             depends[pkg][dep_type] = list(
-                filter(lambda x: isinstance(x, AUR), depends[pkg][dep_type])
+                filter(lambda x: isinstance(x, AURPackage), depends[pkg][dep_type])
             )
 
     if recursive:
         depends.update(
-            get_dependencies([dep for dep in depends_all if isinstance(dep, AUR)])
+            get_dependencies(
+                [dep for dep in depends_all if isinstance(dep, AURPackage)]
+            )
         )
 
     else:
@@ -162,8 +164,8 @@ def get_dependencies(*packages, recursive=True):
 
 def install(*packages):
     """Install a package based on package.Package data"""
-    sync_explicit = [pkg for pkg in packages if isinstance(pkg, Sync)]
-    aur_explicit = [pkg for pkg in packages if isinstance(pkg, AUR)]
+    sync_explicit = [pkg for pkg in packages if isinstance(pkg, SyncPackage)]
+    aur_explicit = [pkg for pkg in packages if isinstance(pkg, AURPackage)]
     depends_aur = {}
 
     if sync_explicit:
@@ -237,7 +239,11 @@ def install(*packages):
             depends_all = []
             for dep_type in ["make", "check", "depend"]:
                 depends_all.extend(
-                    [dep for dep in depends_aur[pkg][dep_type] if isinstance(dep, AUR)]
+                    [
+                        dep
+                        for dep in depends_aur[pkg][dep_type]
+                        if isinstance(dep, AURPackage)
+                    ]
                 )
 
             for dep in depends_all:
@@ -276,14 +282,16 @@ def search(query: str, sortby: Optional[str] = "db"):
 
     for database in DATABASES:
         packages.extend(
-            [Sync.from_pyalpm(pkg) for pkg in DATABASES[database].search(query)]
+            [SyncPackage.from_pyalpm(pkg) for pkg in DATABASES[database].search(query)]
         )
 
     aur_query = requests.get(
         f"https://aur.archlinux.org/rpc/?v=5&type=search&arg={query}"
     ).json()
 
-    packages.extend(AUR.from_search_query(result) for result in aur_query["results"])
+    packages.extend(
+        AURPackage.from_search_query(result) for result in aur_query["results"]
+    )
     packages = list(
         reversed(
             sorted(
@@ -310,7 +318,7 @@ def get_packages(*pkg_names):
             for database in DATABASES:
                 pkg = DATABASES[database].get_pkg(name)
                 if pkg:
-                    pkg = Sync.from_pyalpm(pkg)
+                    pkg = SyncPackage.from_pyalpm(pkg)
                     packages.append(pkg)
         else:
             aur_search.append(name)
@@ -321,7 +329,7 @@ def get_packages(*pkg_names):
         ).json()
         if aur_query:
             for result in aur_query["results"]:
-                packages.append(AUR.from_info_query(result))
+                packages.append(AURPackage.from_info_query(result))
                 aur_search = list(filter(lambda x: x != result["Name"], aur_search))
 
     if aur_search:
@@ -398,6 +406,6 @@ def select_packages(packages):
         f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join([pkg.name for pkg in selected])}"
     ).json()
 
-    selected = [AUR.from_info_query(result) for result in aur_query["results"]]
+    selected = [AURPackage.from_info_query(result) for result in aur_query["results"]]
 
     return selected

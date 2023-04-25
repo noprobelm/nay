@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional, Callable
 import subprocess
 import shlex
-from .package import AUR
+from .package import AURPackage
 from .console import console
 from .config import CACHEDIR
 from . import utils
@@ -37,7 +37,7 @@ class Nay(Operation):
             utils.install(*packages)
 
 
-class Sync(Operation):
+class SyncPackage(Operation):
     """Sync operations"""
 
     def __init__(self, options: list[str], args: list[str]):
@@ -83,7 +83,7 @@ class Sync(Operation):
         targets = {"aur": [], "sync": []}
         packages = utils.get_packages(self.args)
         for pkg in packages:
-            if isinstance(pkg, AUR):
+            if isinstance(pkg, AURPackage):
                 targets["aur"].append(pkg)
             else:
                 targets["sync"].append(pkg)

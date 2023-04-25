@@ -46,7 +46,7 @@ class Package:
 
 
 @dataclass(eq=False)
-class Sync(Package):
+class SyncPackage(Package):
     size: int
     isize: int
 
@@ -103,7 +103,7 @@ class Sync(Package):
 
 
 @dataclass(eq=False)
-class AUR(Package):
+class AURPackage(Package):
     votes: int
     popularity: float
     flag_date: Optional[int] = None
