@@ -7,7 +7,7 @@ import re
 from typing import Optional
 import networkx as nx
 
-from .package import Package, SyncPackage, AURPackage
+from .package import SyncPackage, AURPackage
 from .db import DATABASES, SYNC_PACKAGES
 from .console import console
 from rich.console import Group
