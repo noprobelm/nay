@@ -114,7 +114,6 @@ class AURPackage(Package):
     depends: Optional[list[str]] = None
     opt_depends: Optional[list[str]] = None
     info_query: Optional[dict] = None
-    lock: threading.Lock = threading.Lock()
 
     def __post_init__(self):
         self.flag_date = (
@@ -208,8 +207,8 @@ class AURPackage(Package):
         renderable = Text("\n    ").join([renderable, Text(self.desc)])
         return renderable
 
-    @property
-    def aur_dependency_tree(self):
+    def get_aur_dependency_tree(self):
+        print(f"Running thread for {self.name}")
         tree = nx.DiGraph()
         tree.add_node(self)
         dtypes = ["check_depends", "make_depends", "depends"]
@@ -229,8 +228,7 @@ class AURPackage(Package):
                         deps = getattr(self, dtype)
                         if isinstance(deps, list) and dep.name in deps:
                             tree.add_edge(self, dep, dtype=dtype)
-        with self.lock:
-            return tree
+        return tree
 
     @property
     def info(self):

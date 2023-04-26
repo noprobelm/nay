@@ -6,6 +6,7 @@ import subprocess
 from typing import Optional
 
 import concurrent.futures
+import threading
 import networkx as nx
 import requests
 from rich.console import Group
@@ -101,9 +102,12 @@ def get_aur_tree(*packages, multithread=True, recursive=True):
 
     if multithread:
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            futures = []
             for pkg in packages:
-                pkg_tree = pkg.aur_dependency_tree
-                tree = executor.submit(nx.compose, tree, pkg_tree).result()
+                future = executor.submit(pkg.get_aur_dependency_tree)
+                futures.append(future)
+        for future in futures:
+            tree = nx.compose(tree, future.result())
     else:
         for pkg in packages:
             pkg_tree = pkg.aur_dependency_tree
