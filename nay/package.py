@@ -8,19 +8,19 @@ from typing import Optional
 from rich.console import Console, ConsoleOptions, RenderResult
 from rich.text import Text
 from rich.table import Table, Column
+import networkx as nx
 
 from .db import INSTALLED
 from .config import CACHEDIR
-from .console import console, default
+from .console import default
 
 
-@dataclass(eq=False)
+@dataclass
 class Package:
     db: str
     name: str
     version: str
     desc: str
-    url: str
 
     @property
     def is_installed(self) -> bool:
@@ -34,9 +34,19 @@ class Package:
                 if self.name < other.name:
                     return True
 
+    def __hash__(self):
+        return hash((self.name, self.version))
+
+    def __eq__(self, other):
+        if not isinstance(other, Package):
+            return False
+
+        else:
+            return hash(self) == hash(other)
+
 
 @dataclass(eq=False)
-class Sync(Package):
+class SyncPackage(Package):
     size: int
     isize: int
 
@@ -80,7 +90,6 @@ class Sync(Package):
             "version": pkg.version,
             "desc": pkg.desc,
             "db": pkg.db.name,
-            "url": pkg.url,
             "size": pkg.size,
             "isize": pkg.isize,
         }
@@ -93,11 +102,15 @@ class Sync(Package):
 
 
 @dataclass(eq=False)
-class AUR(Package):
+class AURPackage(Package):
     votes: int
     popularity: float
     flag_date: Optional[int] = None
     orphaned: Optional[bool] = False
+    make_depends: Optional[list[str]] = None
+    check_depends: Optional[list[str]] = None
+    depends: Optional[list[str]] = None
+    opt_depends: Optional[list[str]] = None
     search_query: Optional[dict] = None
     info_query: Optional[dict] = None
 
@@ -105,6 +118,47 @@ class AUR(Package):
         self.flag_date = (
             datetime.fromtimestamp(self.flag_date) if self.flag_date else None
         )
+
+    @classmethod
+    def from_search_query(cls, result: dict):
+        kwargs = {
+            "db": "aur",
+            "name": result["Name"],
+            "version": result["Version"],
+            "desc": result["Description"] if result["Description"] else "",
+            "flag_date": result["OutOfDate"],
+            "orphaned": True if result["Maintainer"] is None else False,
+            "votes": result["NumVotes"],
+            "popularity": result["Popularity"],
+            "search_query": result,
+        }
+        return cls(**kwargs)
+
+    @classmethod
+    def from_info_query(cls, result: dict):
+        kwargs = {
+            "db": "aur",
+            "name": result["Name"],
+            "version": result["Version"],
+            "desc": result["Description"],
+            "flag_date": result["OutOfDate"],
+            "orphaned": True if result["Maintainer"] is None else False,
+            "votes": result["NumVotes"],
+            "popularity": result["Popularity"],
+            "info_query": result,
+        }
+
+        dep_types = {
+            "MakeDepends": "make_depends",
+            "CheckDepends": "check_depends",
+            "Depends": "depends",
+            "OptDepends": "opt_depends",
+        }
+        for dtype in dep_types.keys():
+            if dtype in result.keys():
+                kwargs[dep_types[dtype]] = result[dtype]
+
+        return cls(**kwargs)
 
     @property
     def PKGBUILD(self):
@@ -152,6 +206,29 @@ class AUR(Package):
         )
         renderable = Text("\n    ").join([renderable, Text(self.desc)])
         return renderable
+
+    @property
+    def aur_dependency_tree(self):
+        tree = nx.DiGraph()
+        tree.add_node(self)
+        dtypes = ["check_depends", "make_depends", "depends"]
+        all_depends = []
+        for dtype in dtypes:
+            deps = getattr(self, dtype)
+            if isinstance(deps, list):
+                all_depends += deps
+        if all_depends:
+            aur_query = requests.get(
+                f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join(all_depends)}"
+            ).json()
+            if aur_query["results"]:
+                for result in aur_query["results"]:
+                    dep = AURPackage.from_info_query(result)
+                    for dtype in dtypes:
+                        deps = getattr(self, dtype)
+                        if isinstance(deps, list) and dep.name in deps:
+                            tree.add_edge(self, dep, dtype=dtype)
+        return tree
 
     @property
     def info(self):
@@ -207,34 +284,6 @@ class AUR(Package):
         )
 
         return grid
-
-    @classmethod
-    def from_search_query(cls, result: dict):
-        kwargs = {
-            "db": "aur",
-            "name": result["Name"],
-            "version": result["Version"],
-            "desc": result["Description"] if result["Description"] else "",
-            "url": result["URL"],
-            "votes": result["NumVotes"],
-            "popularity": result["Popularity"],
-            "search_query": result,
-        }
-        return cls(**kwargs)
-
-    @classmethod
-    def from_info_query(cls, result: dict):
-        kwargs = {
-            "db": "aur",
-            "name": result["Name"],
-            "version": result["Version"],
-            "desc": result["Description"],
-            "url": result["URL"],
-            "votes": result["NumVotes"],
-            "popularity": result["Popularity"],
-            "info_query": result,
-        }
-        return cls(**kwargs)
 
     def __rich_console__(
         self, console: Console, options: ConsoleOptions

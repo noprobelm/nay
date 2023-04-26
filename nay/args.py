@@ -35,7 +35,7 @@ class InvalidOption(ArgumentError):
 class Args(dict):
     OPERATIONS = {
         "S": {
-            "operation": operations.Sync,
+            "operation": operations.SyncPackage,
             "options": {
                 "y": {"conflicts": []},
                 "u": {"conflicts": ["s"]},
