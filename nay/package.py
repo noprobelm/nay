@@ -11,7 +11,7 @@ from rich.table import Table, Column
 
 from .db import INSTALLED
 from .config import CACHEDIR
-from .console import console, default
+from .console import default
 
 
 @dataclass
