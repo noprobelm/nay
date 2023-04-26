@@ -5,8 +5,6 @@ import shutil
 import subprocess
 from typing import Optional
 
-import threading
-import time
 import concurrent.futures
 import networkx as nx
 import requests
