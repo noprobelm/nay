@@ -182,7 +182,7 @@ def install(*packages):
         aur_tree = nx.compose(aur_tree, get_aur_tree(*aur_depends))
         return aur_tree
 
-    def get_missing_pkgbuild(*packages, verbose=False):
+    def get_missing_pkgbuild(*packages, multithread=True, verbose=False):
         missing = []
         for pkg in packages:
             if not pkg.pkgbuild_exists:
@@ -193,12 +193,14 @@ def install(*packages):
                         f":: PKGBUILD up to date, skipping download: {pkg.name}"
                     )
 
-        for num, pkg in enumerate(missing):
-            get_pkgbuild(pkg, CACHEDIR)
-            if verbose:
-                console.print(
-                    f":: {num+1}/{len(missing)} Downloaded PKGBUILD: {pkg.name}"
-                )
+        if multithread:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+                for num, pkg in enumerate(missing):
+                    executor.submit(get_pkgbuild, pkg, CACHEDIR)
+                    if verbose:
+                        console.print(
+                            f":: {num+1}/{len(missing)} Downloaded PKGBUILD: {pkg.name}"
+                        )
 
     def install_aur(aur_tree):
         layers = [layer for layer in nx.bfs_layers(aur_tree, aur_explicit)][::-1]
