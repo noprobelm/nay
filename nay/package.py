@@ -207,7 +207,6 @@ class AURPackage(Package):
         return renderable
 
     def get_aur_dependency_tree(self):
-        print(f"Running thread for {self.name}")
         tree = nx.DiGraph()
         tree.add_node(self)
         dtypes = ["check_depends", "make_depends", "depends"]
