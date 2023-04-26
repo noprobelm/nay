@@ -220,7 +220,7 @@ def install(*packages):
     aur = aur_explicit + aur_depends
 
     preview_job(sync_explicit, aur_explicit, aur_depends)
-    get_missing_pkgbuild(*aur)
+    get_missing_pkgbuild(*aur, verbose=True)
     preview_install(*aur)
     prompt_proceed()
     aur_tree = resolve_dependencies(aur_tree)
