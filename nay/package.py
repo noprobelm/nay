@@ -55,6 +55,18 @@ class SyncPackage(Package):
         self.size = self.format_bytes(self.size)
         self.isize = self.format_bytes(self.isize)
 
+    @classmethod
+    def from_pyalpm(cls, pkg: pyalpm.Package):
+        kwargs = {
+            "name": pkg.name,
+            "version": pkg.version,
+            "desc": pkg.desc,
+            "db": pkg.db.name,
+            "size": pkg.size,
+            "isize": pkg.isize,
+        }
+        return cls(**kwargs)
+
     @staticmethod
     def format_bytes(size):
         # TODO: Fix calculations for Kebi/Mebi vs KB/MB. These are not the same.
@@ -83,18 +95,6 @@ class SyncPackage(Package):
         )
         renderable = Text("\n    ").join([renderable, Text(self.desc)])
         return renderable
-
-    @classmethod
-    def from_pyalpm(cls, pkg: pyalpm.Package):
-        kwargs = {
-            "name": pkg.name,
-            "version": pkg.version,
-            "desc": pkg.desc,
-            "db": pkg.db.name,
-            "size": pkg.size,
-            "isize": pkg.isize,
-        }
-        return cls(**kwargs)
 
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
