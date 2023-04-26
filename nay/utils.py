@@ -7,7 +7,7 @@ from typing import Optional
 
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
 import networkx as nx
 import requests
 from rich.console import Group
@@ -98,10 +98,18 @@ def makepkg(pkg, clonedir, flags: str, clean: Optional[bool] = False):
         shutil.rmtree(f"{os.getcwd()}/{pkg.name}", ignore_errors=True)
 
 
-def get_aur_tree(*packages, multithread=False, recursive=True):
+def get_aur_tree(*packages, multithread=True, recursive=True):
     tree = nx.DiGraph()
-    for pkg in packages:
-        tree = nx.compose(tree, pkg.aur_dependency_tree)
+
+    if multithread:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            for pkg in packages:
+                pkg_tree = pkg.aur_dependency_tree
+                tree = executor.submit(nx.compose, tree, pkg_tree).result()
+    else:
+        for pkg in packages:
+            pkg_tree = pkg.aur_dependency_tree
+            tree = nx.compose(tree, pkg_tree)
 
     if recursive == False:
         return tree

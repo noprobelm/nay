@@ -1,5 +1,6 @@
 import os
 import re
+import threading
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
@@ -113,6 +114,7 @@ class AURPackage(Package):
     depends: Optional[list[str]] = None
     opt_depends: Optional[list[str]] = None
     info_query: Optional[dict] = None
+    lock: threading.Lock = threading.Lock()
 
     def __post_init__(self):
         self.flag_date = (
@@ -227,7 +229,8 @@ class AURPackage(Package):
                         deps = getattr(self, dtype)
                         if isinstance(deps, list) and dep.name in deps:
                             tree.add_edge(self, dep, dtype=dtype)
-        return tree
+        with self.lock:
+            return tree
 
     @property
     def info(self):
