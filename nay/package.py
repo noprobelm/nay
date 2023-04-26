@@ -20,7 +20,6 @@ class Package:
     name: str
     version: str
     desc: str
-    url: str
 
     @property
     def is_installed(self) -> bool:
@@ -90,7 +89,6 @@ class SyncPackage(Package):
             "version": pkg.version,
             "desc": pkg.desc,
             "db": pkg.db.name,
-            "url": pkg.url,
             "size": pkg.size,
             "isize": pkg.isize,
         }
@@ -225,7 +223,6 @@ class AURPackage(Package):
             "name": result["Name"],
             "version": result["Version"],
             "desc": result["Description"] if result["Description"] else "",
-            "url": result["URL"],
             "votes": result["NumVotes"],
             "popularity": result["Popularity"],
             "search_query": result,
