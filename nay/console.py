@@ -1,5 +1,5 @@
-from rich.theme import Theme
 from rich.console import Console
+from rich.theme import Theme
 
 default = Theme(
     {

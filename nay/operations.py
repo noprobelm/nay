@@ -1,11 +1,12 @@
-from dataclasses import dataclass
-from typing import Optional, Callable
-import subprocess
 import shlex
-from .package import AURPackage
-from .console import console
-from .config import CACHEDIR
+import subprocess
+from dataclasses import dataclass
+from typing import Callable, Optional
+
 from . import utils
+from .config import CACHEDIR
+from .console import console
+from .package import AURPackage
 
 
 @dataclass

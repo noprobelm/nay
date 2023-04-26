@@ -2,17 +2,18 @@ import os
 import re
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Optional
+
+import networkx as nx
 import pyalpm
 import requests
-from typing import Optional
 from rich.console import Console, ConsoleOptions, RenderResult
+from rich.table import Column, Table
 from rich.text import Text
-from rich.table import Table, Column
-import networkx as nx
 
-from .db import INSTALLED
 from .config import CACHEDIR
 from .console import default
+from .db import INSTALLED
 
 
 @dataclass

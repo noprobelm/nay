@@ -1,20 +1,20 @@
 import os
+import re
+import shlex
 import shutil
 import subprocess
-import shlex
-import requests
-import re
 from typing import Optional
+
 import networkx as nx
-
-from .package import SyncPackage, AURPackage
-from .db import DATABASES, SYNC_PACKAGES
-from .console import console
+import requests
 from rich.console import Group
+from rich.table import Column, Table
 from rich.text import Text
-from rich.table import Table, Column
-from .config import CACHEDIR
 
+from .config import CACHEDIR
+from .console import console
+from .db import DATABASES, SYNC_PACKAGES
+from .package import AURPackage, SyncPackage
 
 SRCDIR = os.getcwd()
 SORT_PRIORITIES = {"db": {"core": 0, "extra": 1, "community": 2, "multilib": 4}}

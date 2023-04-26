@@ -1,7 +1,7 @@
 import configparser
+
 import pyalpm
 from pyalpm import Handle
-
 
 parser = configparser.ConfigParser(allow_no_value=True)
 parser.read("/etc/pacman.conf")
