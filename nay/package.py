@@ -106,6 +106,10 @@ class AURPackage(Package):
     popularity: float
     flag_date: Optional[int] = None
     orphaned: Optional[bool] = False
+    make_depends: Optional[dict] = None
+    check_depends: Optional[dict] = None
+    depends: Optional[dict] = None
+    opt_depends: Optional[dict] = None
     search_query: Optional[dict] = None
     info_query: Optional[dict] = None
 
@@ -223,6 +227,8 @@ class AURPackage(Package):
             "name": result["Name"],
             "version": result["Version"],
             "desc": result["Description"] if result["Description"] else "",
+            "flag_date": result["OutOfDate"],
+            "orphaned": True if result["Maintainer"] is None else False,
             "votes": result["NumVotes"],
             "popularity": result["Popularity"],
             "search_query": result,
@@ -236,11 +242,23 @@ class AURPackage(Package):
             "name": result["Name"],
             "version": result["Version"],
             "desc": result["Description"],
-            "url": result["URL"],
+            "flag_date": result["OutOfDate"],
+            "orphaned": True if result["Maintainer"] is None else False,
             "votes": result["NumVotes"],
             "popularity": result["Popularity"],
             "info_query": result,
         }
+
+        dep_types = {
+            "MakeDepends": "make_depends",
+            "CheckDepends": "check_depends",
+            "Depends": "depends",
+            "OptDepends": "opt_depends",
+        }
+        for dtype in dep_types.keys():
+            if dtype in result.keys():
+                kwargs[dep_types[dtype]] = result[dtype]
+
         return cls(**kwargs)
 
     def __rich_console__(
