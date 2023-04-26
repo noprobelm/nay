@@ -5,6 +5,8 @@ import shutil
 import subprocess
 from typing import Optional
 
+import concurrent.futures
+import threading
 import networkx as nx
 import requests
 from rich.console import Group
@@ -95,10 +97,21 @@ def makepkg(pkg, clonedir, flags: str, clean: Optional[bool] = False):
         shutil.rmtree(f"{os.getcwd()}/{pkg.name}", ignore_errors=True)
 
 
-def get_aur_tree(*packages, recursive=True):
+def get_aur_tree(*packages, multithread=True, recursive=True):
     tree = nx.DiGraph()
-    for pkg in packages:
-        tree = nx.compose(tree, pkg.aur_dependency_tree)
+
+    if multithread:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            futures = []
+            for pkg in packages:
+                future = executor.submit(pkg.get_aur_dependency_tree)
+                futures.append(future)
+        for future in futures:
+            tree = nx.compose(tree, future.result())
+    else:
+        for pkg in packages:
+            pkg_tree = pkg.aur_dependency_tree
+            tree = nx.compose(tree, pkg_tree)
 
     if recursive == False:
         return tree
@@ -169,7 +182,7 @@ def install(*packages):
         aur_tree = nx.compose(aur_tree, get_aur_tree(*aur_depends))
         return aur_tree
 
-    def get_missing_pkgbuild(*packages, verbose=False):
+    def get_missing_pkgbuild(*packages, multithread=True, verbose=False):
         missing = []
         for pkg in packages:
             if not pkg.pkgbuild_exists:
@@ -180,12 +193,14 @@ def install(*packages):
                         f":: PKGBUILD up to date, skipping download: {pkg.name}"
                     )
 
-        for num, pkg in enumerate(missing):
-            get_pkgbuild(pkg, CACHEDIR)
-            if verbose:
-                console.print(
-                    f":: {num+1}/{len(missing)} Downloaded PKGBUILD: {pkg.name}"
-                )
+        if multithread:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+                for num, pkg in enumerate(missing):
+                    executor.submit(get_pkgbuild, pkg, CACHEDIR)
+                    if verbose:
+                        console.print(
+                            f":: {num+1}/{len(missing)} Downloaded PKGBUILD: {pkg.name}"
+                        )
 
     def install_aur(aur_tree):
         layers = [layer for layer in nx.bfs_layers(aur_tree, aur_explicit)][::-1]

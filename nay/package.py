@@ -206,8 +206,7 @@ class AURPackage(Package):
         renderable = Text("\n    ").join([renderable, Text(self.desc)])
         return renderable
 
-    @property
-    def aur_dependency_tree(self):
+    def get_aur_dependency_tree(self):
         tree = nx.DiGraph()
         tree.add_node(self)
         dtypes = ["check_depends", "make_depends", "depends"]
