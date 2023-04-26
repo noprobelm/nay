@@ -134,75 +134,83 @@ def get_aur_tree(*packages, recursive=True):
 
 def install(*packages):
     """Install a package based on package.Package data"""
-    sync_explicit = [pkg for pkg in packages if isinstance(pkg, SyncPackage)]
-    aur_explicit = [pkg for pkg in packages if isinstance(pkg, AURPackage)]
-    aur_depends = []
 
-    if sync_explicit:
-        output = [f"{pkg.name}-{pkg.version}" for pkg in sync_explicit]
-        console.print(
-            f"Sync Explicit {len(sync_explicit)}: {', '.join([pkg for pkg in output])}"
-        )
-    if aur_explicit:
-        output = [f"{pkg.name}-{pkg.version}" for pkg in aur_explicit]
-        console.print(
-            f"AUR Explicit {len(aur_explicit)}: {', '.join([pkg for pkg in output])}"
-        )
+    def get_sync_explicit():
+        sync_explicit = [pkg for pkg in packages if isinstance(pkg, SyncPackage)]
+        return sync_explicit
 
-        aur_tree = get_aur_tree(*aur_explicit, recursive=False)
-        output = []
-        for pkg, dep in aur_tree.edges:
-            if aur_tree.get_edge_data(pkg, dep)["dtype"] in [
-                "check",
-                "make",
-                "depends",
-            ]:
-                aur_depends.append(dep)
-                output.append(f"{dep.name}-{dep.version}")
-        if output:
+    def get_aur_explicit():
+        aur_explicit = [pkg for pkg in packages if isinstance(pkg, AURPackage)]
+        return aur_explicit
+
+    def preview_job(sync_explicit=None, aur_explicit=None, aur_depends=None):
+        if sync_explicit:
+            output = [f"{pkg.name}-{pkg.version}" for pkg in sync_explicit]
+            console.print(
+                f"Sync Explicit {len(sync_explicit)}: {', '.join([pkg for pkg in output])}"
+            )
+        if aur_explicit:
+            output = [f"{pkg.name}-{pkg.version}" for pkg in aur_explicit]
+            console.print(
+                f"AUR Explicit {len(aur_explicit)}: {', '.join([pkg for pkg in output])}"
+            )
+
+        if aur_depends:
+            output = [f"{pkg.name}-{pkg.version}" for pkg in aur_depends]
             console.print(
                 f"AUR Dependency ({len(aur_depends)}): {', '.join([out for out in output])}"
             )
 
-    missing = []
-    aur = aur_explicit + aur_depends
-    for pkg in aur:
-        if not pkg.pkgbuild_exists:
-            missing.append(pkg)
-        else:
-            console.print(f":: PKGBUILD up to date, skipping download: {pkg.name}")
+    def preview_install(*packages):
+        install_preview = Table.grid(
+            Column("num", justify="right"),
+            Column("pkgname", width=50, justify="left"),
+            Column("pkgbuild_exists"),
+            padding=(0, 1, 0, 1),
+        )
 
-    for num, pkg in enumerate(missing):
-        get_pkgbuild(pkg, CACHEDIR)
-        console.print(f":: {num+1}/{len(missing)} Downloaded PKGBUILD: {pkg.name}")
+        for num, pkg in enumerate(packages):
+            # TODO: Fix hardcoded "Build Files Exist" -- I'm not how we'd encounter a scenario where we got here and they don't already exist
+            install_preview.add_row(
+                str(len(packages) - num), pkg.name, "Build Files Exist"
+            )
 
-    install_preview = Table.grid(
-        Column("num", justify="right"),
-        Column("pkgname", width=50, justify="left"),
-        Column("pkgbuild_exists"),
-        padding=(0, 1, 0, 1),
-    )
+        console.print(install_preview)
 
-    for num, pkg in enumerate(aur):
-        # TODO: Fix hardcoded "Build Files Exist" -- I'm not how we'd encounter a scenario where we got here and they don't already exist
-        install_preview.add_row(str(len(aur) - num), pkg.name, "Build Files Exist")
+    def prompt_proceed():
+        prompt = console.input(
+            "[bright_green]==>[/bright_green] Install packages? [Y/n] "
+        )
+        if not prompt.lower().startswith("y"):
+            quit()
 
-    console.print(install_preview)
-
-    proceed_prompt = console.input(
-        "[bright_green]==>[/bright_green] Install packages? [Y/n] "
-    )
-    if not proceed_prompt.lower().startswith("y"):
-        quit()
-
-    if aur:
+    def resolve_dependencies(aur_tree):
         aur_tree = nx.compose(aur_tree, get_aur_tree(*aur_depends))
+        return aur_tree
+
+    def get_missing_pkgbuild(*packages, verbose=False):
+        missing = []
+        for pkg in packages:
+            if not pkg.pkgbuild_exists:
+                missing.append(pkg)
+            else:
+                if verbose:
+                    console.print(
+                        f":: PKGBUILD up to date, skipping download: {pkg.name}"
+                    )
+
+        for num, pkg in enumerate(missing):
+            get_pkgbuild(pkg, CACHEDIR)
+            if verbose:
+                console.print(
+                    f":: {num+1}/{len(missing)} Downloaded PKGBUILD: {pkg.name}"
+                )
+
+    def install_aur(aur_tree):
         layers = [layer for layer in nx.bfs_layers(aur_tree, aur_explicit)][::-1]
         for layer in layers:
             targets = []
             for pkg in layer:
-                if not pkg.pkgbuild_exists:
-                    get_pkgbuild(pkg)
                 makepkg(pkg, CACHEDIR, "fsc")
                 pattern = f"{pkg.name}-{pkg.version}-"
                 for obj in os.listdir(os.path.join(CACHEDIR, pkg.name)):
@@ -211,10 +219,38 @@ def install(*packages):
 
             subprocess.run(shlex.split(f"sudo pacman -U {' '.join(targets)}"))
 
-    if sync_explicit:
+    def install_sync():
         subprocess.run(
             shlex.split(f"sudo pacman -S {[pkg.name for pkg in sync_explicit]}")
         )
+
+    sync_explicit = get_sync_explicit()
+    aur_explicit = get_aur_explicit()
+    aur_tree = get_aur_tree(*aur_explicit, recursive=False)
+    aur_depends = []
+    for pkg, dep in aur_tree.edges:
+        if aur_tree.get_edge_data(pkg, dep)["dtype"] in [
+            "check",
+            "make",
+            "depends",
+        ]:
+            aur_depends.append(dep)
+
+    aur = aur_explicit + aur_depends
+
+    preview_job(sync_explicit, aur_explicit, aur_depends)
+    get_missing_pkgbuild(*aur)
+    preview_install(*aur)
+    prompt_proceed()
+    aur_tree = resolve_dependencies(aur_tree)
+
+    remaining_deps = [pkg for pkg in aur_tree if pkg not in aur]
+    get_missing_pkgbuild(*remaining_deps, verbose=False)
+
+    if aur_tree:
+        install_aur(aur_tree)
+    if sync_explicit:
+        install_sync()
 
 
 def search(query: str, sortby: Optional[str] = "db"):
