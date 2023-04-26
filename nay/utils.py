@@ -114,59 +114,29 @@ def makepkg(pkg, clonedir, flags: str, clean: Optional[bool] = False):
         shutil.rmtree(f"{os.getcwd()}/{pkg.name}", ignore_errors=True)
 
 
-def get_dependencies(*packages, recursive=True):
-    depends = {
-        pkg: {"make": [], "check": [], "depend": [], "opt": []}
-        for pkg in packages
-        if isinstance(pkg, AURPackage)
-    }
-
+def get_aur_tree(*packages, recursive=True):
+    tree = nx.DiGraph()
     for pkg in packages:
-        info_query = pkg.info_query
-        if "MakeDepends" in info_query.keys():
-            depends[pkg]["make"].extend(info_query["MakeDepends"])
-        if "CheckDepends" in info_query.keys():
-            depends[pkg]["check"].extend(info_query["CheckDepends"])
-        if "Depends" in info_query.keys():
-            depends[pkg]["depend"].extend(info_query["Depends"])
-        if "OptDepends" in info_query.keys():
-            depends[pkg]["opt"].extend(info_query["OptDepends"])
+        tree = nx.compose(tree, pkg.aur_dependency_tree)
 
-    for pkg in depends:
-        depends_all = []
-        for dep_type in ["make", "check", "depend"]:
-            depends_all.extend(depends[pkg][dep_type])
+    if recursive == False:
+        return tree
 
-        depends_all = get_packages(*depends_all)
-
-        for dep in depends_all:
-            for dep_type in ["make", "check", "depend"]:
-                if dep.name in depends[pkg][dep_type] and isinstance(dep, AURPackage):
-                    depends[pkg][dep_type].append(dep)
-
-        for dep_type in ["make", "check", "depend"]:
-            depends[pkg][dep_type] = list(
-                filter(lambda x: isinstance(x, AURPackage), depends[pkg][dep_type])
-            )
-
-    if recursive:
-        depends.update(
-            get_dependencies(
-                [dep for dep in depends_all if isinstance(dep, AURPackage)]
-            )
-        )
-
+    layers = [layer for layer in nx.bfs_layers(tree, packages)]
+    if len(layers) > 1:
+        dependencies = layers[0]
+        tree = nx.compose(tree, get_aur_tree(*dependencies))
     else:
-        return depends
+        return tree
 
-    return depends
+    return tree
 
 
 def install(*packages):
     """Install a package based on package.Package data"""
     sync_explicit = [pkg for pkg in packages if isinstance(pkg, SyncPackage)]
     aur_explicit = [pkg for pkg in packages if isinstance(pkg, AURPackage)]
-    depends_aur = {}
+    aur_depends = []
 
     if sync_explicit:
         output = [f"{pkg.name}-{pkg.version}" for pkg in sync_explicit]
@@ -179,22 +149,23 @@ def install(*packages):
             f"AUR Explicit {len(aur_explicit)}: {', '.join([pkg for pkg in output])}"
         )
 
-        depends_aur = get_dependencies(*aur_explicit, recursive=False)
-
-    if depends_aur:
+        aur_tree = get_aur_tree(*aur_explicit, recursive=False)
         output = []
-        for pkg in depends_aur:
-            for dep_type in ["make", "check", "depend"]:
-                for dep in depends_aur[pkg][dep_type]:
-                    output.append(f"{dep.name}-{dep.version}")
+        for pkg, dep in aur_tree.edges:
+            if aur_tree.get_edge_data(pkg, dep)["dtype"] in [
+                "check",
+                "make",
+                "depends",
+            ]:
+                aur_depends.append(dep)
+                output.append(f"{dep.name}-{dep.version}")
         if output:
             console.print(
-                f"AUR Dependency ({len(depends_aur)}): {', '.join([out for out in output])}"
+                f"AUR Dependency ({len(aur_depends)}): {', '.join([out for out in output])}"
             )
 
-    aur = set(list(aur_explicit + list(depends_aur.keys())))
     missing = []
-
+    aur = aur_explicit + aur_depends
     for pkg in aur:
         if not pkg.pkgbuild_exists:
             missing.append(pkg)
@@ -211,8 +182,9 @@ def install(*packages):
         Column("pkgbuild_exists"),
         padding=(0, 1, 0, 1),
     )
+
     for num, pkg in enumerate(aur):
-        # TODO: Fix hardcoded "Build Files Exist" -- I'm not how we'd encounter a scenario where we got here and they __dont__ exist
+        # TODO: Fix hardcoded "Build Files Exist" -- I'm not how we'd encounter a scenario where we got here and they don't already exist
         install_preview.add_row(str(len(aur) - num), pkg.name, "Build Files Exist")
 
     console.print(install_preview)
@@ -223,50 +195,14 @@ def install(*packages):
     if not proceed_prompt.lower().startswith("y"):
         quit()
 
-    if depends_aur:
-        depends_all = []
-        for pkg in depends_aur:
-            for dep_type in ["make", "check", "depend"]:
-                depends_all.extend(
-                    [dep for dep in depends_aur[pkg][dep_type] if isinstance(dep, str)]
-                )
-        depends_all = list(set(depends_all))
-        depends_aur.update(*depends_all)
-
-    if depends_aur:
-        dep_edgelist = []
-        for pkg in depends_aur:
-            depends_all = []
-            for dep_type in ["make", "check", "depend"]:
-                depends_all.extend(
-                    [
-                        dep
-                        for dep in depends_aur[pkg][dep_type]
-                        if isinstance(dep, AURPackage)
-                    ]
-                )
-
-            for dep in depends_all:
-                dep_edgelist.append((pkg, dep))
-        dep_graph = nx.from_edgelist(dep_edgelist, create_using=nx.DiGraph)
-        for dep in dep_graph.nodes:
-            if not dep.pkgbuild_exists:
-                get_pkgbuild(dep)
-
-    if sync_explicit:
-        subprocess.run(
-            shlex.split(f"sudo pacman -S {[pkg.name for pkg in sync_explicit]}")
-        )
-
-    if depends_aur:
-        bfs_layers = [
-            layer for layer in nx.bfs_layers(dep_graph, [pkg for pkg in packages])
-        ]
-        for layer in bfs_layers[::-1]:
+    if aur:
+        aur_tree = nx.compose(aur_tree, get_aur_tree(*aur_depends))
+        layers = [layer for layer in nx.bfs_layers(aur_tree, aur_explicit)][::-1]
+        for layer in layers:
             targets = []
             for pkg in layer:
                 if not pkg.pkgbuild_exists:
-                    get_pkgbuild(pkg, CACHEDIR)
+                    get_pkgbuild(pkg)
                 makepkg(pkg, CACHEDIR, "fsc")
                 pattern = f"{pkg.name}-{pkg.version}-"
                 for obj in os.listdir(os.path.join(CACHEDIR, pkg.name)):
@@ -274,6 +210,11 @@ def install(*packages):
                         targets.append(os.path.join(CACHEDIR, pkg.name, obj))
 
             subprocess.run(shlex.split(f"sudo pacman -U {' '.join(targets)}"))
+
+    if sync_explicit:
+        subprocess.run(
+            shlex.split(f"sudo pacman -S {[pkg.name for pkg in sync_explicit]}")
+        )
 
 
 def search(query: str, sortby: Optional[str] = "db"):
