@@ -112,7 +112,6 @@ class AURPackage(Package):
     check_depends: Optional[list[str]] = None
     depends: Optional[list[str]] = None
     opt_depends: Optional[list[str]] = None
-    search_query: Optional[dict] = None
     info_query: Optional[dict] = None
 
     def __post_init__(self):
@@ -131,7 +130,6 @@ class AURPackage(Package):
             "orphaned": True if result["Maintainer"] is None else False,
             "votes": result["NumVotes"],
             "popularity": result["Popularity"],
-            "search_query": result,
         }
         return cls(**kwargs)
 
