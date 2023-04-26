@@ -6,7 +6,6 @@ import subprocess
 from typing import Optional
 
 import concurrent.futures
-import threading
 import networkx as nx
 import requests
 from rich.console import Group
@@ -15,7 +14,7 @@ from rich.text import Text
 
 from .config import CACHEDIR
 from .console import console
-from .db import DATABASES, SYNC_PACKAGES
+from .db import DATABASES, SYNC_PACKAGES, INSTALLED
 from .package import AURPackage, SyncPackage
 
 SRCDIR = os.getcwd()
@@ -137,7 +136,40 @@ def install(*packages):
         aur_explicit = [pkg for pkg in packages if isinstance(pkg, AURPackage)]
         return aur_explicit
 
-    def preview_job(sync_explicit=None, aur_explicit=None, aur_depends=None):
+    def get_aur_depends(aur_tree):
+        aur_depends = []
+        for pkg, dep in aur_tree.edges:
+            if dep.name not in INSTALLED and aur_tree.get_edge_data(pkg, dep)[
+                "dtype"
+            ] in [
+                "check",
+                "make",
+                "depends",
+            ]:
+                aur_depends.append(dep)
+
+        return aur_depends
+
+    def get_sync_depends(aur_explicit):
+        sync_depends = []
+        for pkg in aur_explicit:
+            for dep_type in ["check_depends", "make_depends", "depends"]:
+                depends = getattr(pkg, dep_type)
+                if isinstance(depends, list):
+                    sync_depends.extend(
+                        [
+                            dep
+                            for dep in depends
+                            if dep not in INSTALLED and dep in SYNC_PACKAGES
+                        ]
+                    )
+
+        sync_depends = get_packages(*sync_depends)
+        return sync_depends
+
+    def preview_job(
+        sync_explicit=None, sync_depends=None, aur_explicit=None, aur_depends=None
+    ):
         if sync_explicit:
             output = [f"{pkg.name}-{pkg.version}" for pkg in sync_explicit]
             console.print(
@@ -146,13 +178,19 @@ def install(*packages):
         if aur_explicit:
             output = [f"{pkg.name}-{pkg.version}" for pkg in aur_explicit]
             console.print(
-                f"AUR Explicit {len(aur_explicit)}: {', '.join([pkg for pkg in output])}"
+                f"AUR Explicit ({len(aur_explicit)}): {', '.join([pkg for pkg in output])}"
             )
 
         if aur_depends:
             output = [f"{pkg.name}-{pkg.version}" for pkg in aur_depends]
             console.print(
                 f"AUR Dependency ({len(aur_depends)}): {', '.join([out for out in output])}"
+            )
+
+        if sync_depends:
+            output = [f"{pkg.name}-{pkg.version}" for pkg in sync_depends]
+            console.print(
+                f"Sync Dependency ({len(sync_depends)}): {', '.join([out for out in output])}"
             )
 
     def preview_install(*packages):
@@ -223,18 +261,16 @@ def install(*packages):
     sync_explicit = get_sync_explicit()
     aur_explicit = get_aur_explicit()
     aur_tree = get_aur_tree(*aur_explicit, recursive=False)
-    aur_depends = []
-    for pkg, dep in aur_tree.edges:
-        if aur_tree.get_edge_data(pkg, dep)["dtype"] in [
-            "check",
-            "make",
-            "depends",
-        ]:
-            aur_depends.append(dep)
-
+    aur_depends = get_aur_depends(aur_tree)
+    sync_depends = get_sync_depends(aur_explicit)
     aur = aur_explicit + aur_depends
 
-    preview_job(sync_explicit, aur_explicit, aur_depends)
+    preview_job(
+        sync_explicit=sync_explicit,
+        aur_explicit=aur_explicit,
+        aur_depends=aur_depends,
+        sync_depends=sync_depends,
+    )
     get_missing_pkgbuild(*aur, verbose=True)
     preview_install(*aur)
     prompt_proceed()
