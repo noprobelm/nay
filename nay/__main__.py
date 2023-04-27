@@ -4,7 +4,10 @@ from .args import Args
 def main():
     args = Args()
     operation = args["operation"](options=args["options"], args=args["args"])
-    operation.run()
+    try:
+        operation.run()
+    except KeyboardInterrupt:
+        quit()
 
 
 if __name__ == "__main__":
