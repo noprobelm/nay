@@ -25,19 +25,18 @@ for num, db in enumerate(DATABASES):
 SORT_PRIORITIES["db"]["aur"] = max([num for num in SORT_PRIORITIES["db"].values()])
 
 
-def refresh(force: Optional[bool] = False) -> None:
+def refresh() -> None:
     """
     Refresh the sync database. This is a pure pacman wrapper
-
-    :param force: Optional parameter indicating whether the sync database should be refreshed even if it's flagged as up-to-date (not generally recommended). Default is False
-    :type force: Optional[bool]
-
     """
+    subprocess.run(shlex.split(f"sudo pacman -Sy"))
 
-    if force:
-        subprocess.run(shlex.split(f"sudo pacman -Syy"))
-    else:
-        subprocess.run(shlex.split(f"sudo pacman -Sy"))
+
+def force_refresh() -> None:
+    """
+    Force refresh the sync database. This is a pure pacman wrapper.
+    """
+    subprocess.run(shlex.split(f"sudo pacman -Syy"))
 
 
 def upgrade() -> None:

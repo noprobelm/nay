@@ -1,4 +1,3 @@
-import getopt
 import sys
 
 from . import operations
@@ -170,6 +169,8 @@ class Args(dict):
                         options.append(opt)
                     else:
                         options.append(valid_opts[opt])
+        else:
+            options = _options
 
         super().__init__(
             {
