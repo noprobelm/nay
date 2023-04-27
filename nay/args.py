@@ -61,69 +61,146 @@ class Args(dict):
     """
 
     OPERATIONS = {
-        "S": {
+        "--sync": {
+            "short": "-S",
             "operation": operations.Sync,
             "options": {
-                "y": {"conflicts": []},
-                "u": {"conflicts": ["s"]},
-                "s": {"conflicts": ["u", "w"]},
-                "w": {"conflicts": ["i", "s"]},
-                "i": {"conflicts": ["w", "s"]},
-                "c": {"conflicts": []},
+                "--refresh": {"conflicts": [], "short": "-y"},
+                "--sysupgrade": {"conflicts": ["--search"], "short": "-u"},
+                "--search": {
+                    "conflicts": ["--sysupgrade", "--downloadonly"],
+                    "short": "-s",
+                },
+                "--downloadonly": {"conflicts": ["--info", "--search"], "short": "-w"},
+                "--info": {"conflicts": ["--downloadonly", "--search"], "short": "-i"},
+                "--clean": {"conflicts": [], "short": "-c"},
             },
             "pure_wrapper": False,
         },
-        "G": {
+        "--getpkgbuild": {
+            "short": "-G",
             "operation": operations.GetPKGBUILD,
             "options": {},
             "pure_wrapper": False,
         },
-        "N": {"operation": operations.Nay, "options": {}, "pure_wrapper": False},
-        "R": {"operation": operations.Remove, "options": {}, "pure_wrapper": True},
-        "Q": {"operation": operations.Query, "options": {}, "pure_wrapper": True},
-        "U": {"operation": operations.Upgrade, "options": {}, "pure_wrapper": True},
+        "--nay": {
+            "short": "-N",
+            "operation": operations.Nay,
+            "options": {},
+            "pure_wrapper": False,
+        },
+        "--remove": {
+            "short": "-R",
+            "operation": operations.Remove,
+            "options": {},
+            "pure_wrapper": True,
+        },
+        "--query": {
+            "short": "-Q",
+            "operation": operations.Query,
+            "options": {},
+            "pure_wrapper": True,
+        },
+        "--upgrade": {
+            "short": "-U",
+            "operation": operations.Upgrade,
+            "options": {},
+            "pure_wrapper": True,
+        },
     }
 
     def __init__(self) -> None:
         if len(sys.argv) == 1:
-            args = []
-            operation = "N"
-            options = []
-        elif sys.argv[1].startswith("-"):
-            args = sys.argv[2:]
-            operation = [opt for opt in sys.argv[1] if opt.isupper()]
-            options = [opt for opt in sys.argv[1] if opt.islower()]
-        else:
-            args = sys.argv[1:]
-            operation = "N"
-            options = []
+            super().__init__(
+                {
+                    "operation": self.OPERATIONS["nay"]["operation"],
+                    "options": [],
+                    "args": [],
+                }
+            )
+            return
+
+        operation = []
+        _options = []
+        options = []
+        args = []
+        valid_operations = [op[2:] for op in self.OPERATIONS.keys()]
+        for arg in sys.argv[1:]:
+            if arg[:2] == "--":
+                if arg in self.OPERATIONS.keys():
+                    operation.append(arg)
+                else:
+                    _options.append(arg)
+            elif arg[0] == "-":
+                for flag in arg[1:]:
+                    if flag.isupper():
+                        if flag.lower() not in [op[0] for op in valid_operations]:
+                            try:
+                                raise InvalidOperation(
+                                    f"error: invalid option -- {flag}"
+                                )
+                            except InvalidOperation as err:
+                                print(err)
+                                quit()
+                        else:
+                            for op in valid_operations:
+                                if flag.lower() == op[0]:
+                                    operation.append(f"--{op}")
+                    else:
+                        _options.append(f"-{flag}")
+            else:
+                args.append(arg)
 
         try:
             if len(operation) > 1:
-                raise ConflictingOperations(
-                    "error: only one operation may be used at a time"
-                )
-            elif len(operation) == 1:
-                operation = operation[0]
-            else:
-                operation = ""
-
-            if operation not in self.OPERATIONS.keys():
-                raise InvalidOperation(f"nay: invalid option -- {operation}")
-
-            if self.OPERATIONS[operation]["pure_wrapper"] == False:
-                for opt in options:
-                    if opt not in self.OPERATIONS[operation]["options"].keys():
-                        raise InvalidOption(f"nay: invalid option '-{opt}'")
-                    elif any(
-                        _ in options
-                        for _ in self.OPERATIONS[operation]["options"][opt]["conflicts"]
-                    ):
-                        raise ConflictingOptions(f"error: conflicting options")
-
-        except ArgumentError as err:
+                try:
+                    raise ConflictingOperations(
+                        f"error: only one operation may be used at a time"
+                    )
+                except ConflictingOperations as err:
+                    print(err)
+                    quit()
+        except ConflictingOperations as err:
             print(err)
             quit()
+
+        operation = operation[0]
+
+        valid_opts = {}
+        if self.OPERATIONS[operation]["pure_wrapper"] == False:
+            for long_opt in self.OPERATIONS[operation]["options"].keys():
+                short_opt = self.OPERATIONS[operation]["options"][long_opt]["short"]
+                valid_opts[long_opt] = short_opt
+                valid_opts[short_opt] = long_opt
+
+            for opt in _options:
+                if opt not in valid_opts.keys():
+                    try:
+                        raise InvalidOption(f"error: invalid option '{opt}'")
+                    except InvalidOption as err:
+                        print(err)
+                        quit()
+                else:
+                    if opt[:2] == "--":
+                        options.append(opt)
+                    else:
+                        options.append(valid_opts[opt])
+
+            for opt in options:
+                other = list(filter(lambda x: x != opt, options))
+                conflicts = self.OPERATIONS[operation]["options"][opt]["conflicts"]
+                for _opt in other:
+                    if _opt in conflicts:
+                        try:
+                            raise ConflictingOptions(
+                                f"error: invalid option {opt} and {_opt} may not be used together"
+                            )
+                        except ConflictingOptions as err:
+                            print(err)
+                            quit()
+
+        else:
+            options = _options
 
         super().__init__(
             {
