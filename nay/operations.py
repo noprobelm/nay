@@ -82,7 +82,6 @@ class Sync(Operation):
     def __init__(self, options: list[str], args: list[str]) -> None:
         self.key = {
             "--refresh": self.refresh,
-            "--refresh --refresh": self.force_refresh,
             "--sysupgrade": self.upgrade,
             "--downloadonly": self.download,
             "--clean": self.clean,
@@ -90,14 +89,23 @@ class Sync(Operation):
             "--info": self.info,
         }
 
+        flags = {
+            "--refresh": {"force": False},
+            "--nodeps": {"nodeps_version": False, "nodeps_all": False},
+        }
+
         if options.count("--refresh") > 1:
-            options.append("--refresh --refresh")
-            options = list(filter(lambda opt: opt != "--refresh", options))
-        elif options.count("--nodeps") > 1:
-            options.append("--nodeps --nodeps")
-            options = list(filter(lambda opt: opt != "--nodeps", options))
+            flags["--refresh"]["force"] = True
+        elif options.count("--nodeps") > 0:
+            if options.count("--nodeps") == 1:
+                flags["--nodeps"]["nodeps_version"] = True
+            else:
+                flags["--nodeps"]["nodeps_all"] = True
+
+        self.flags = flags
 
         options = list(set(options))
+        options = list(filter(lambda x: x in self.key.keys(), options))
         options = list(sorted(options, key=lambda x: list(self.key.keys()).index(x)))
         super().__init__(options, args, self.run)
 
@@ -123,18 +131,10 @@ class Sync(Operation):
     def install(self) -> None:
         targets = utils.get_packages(*self.args)
         if targets:
-            if self.options.count("--nodeps") == 0:
-                utils.install(*targets)
-            elif self.options.count("--nopdeps") == 1:
-                utils.install(*targets, nodeps=True)
-            else:
-                utils.install(*targets, nodeps_recursive=True)
-
-    def force_refresh(self):
-        utils.force_refresh()
+            utils.install(*targets, **self.flags["--nodeps"])
 
     def refresh(self):
-        utils.refresh()
+        utils.refresh(**self.flags["--refresh"])
 
     def upgrade(self) -> None:
         utils.upgrade()
