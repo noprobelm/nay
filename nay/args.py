@@ -58,7 +58,7 @@ class Args(dict):
         "U": {"operation": operations.Upgrade, "options": {}, "pure_wrapper": True},
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         if len(sys.argv) == 1:
             args = []
             operation = "N"
