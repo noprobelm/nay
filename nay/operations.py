@@ -128,7 +128,7 @@ class GetPKGBUILD(Operation):
     def run(self):
         succeeded = []
         failed = []
-        packages = utils.get_packages(self.args)
+        packages = utils.get_packages(*self.args)
         for pkg in packages:
             if pkg.name in self.args:
                 succeeded.append(pkg)
