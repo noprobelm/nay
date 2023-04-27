@@ -26,7 +26,7 @@ for num, db in enumerate(DATABASES):
 SORT_PRIORITIES["db"]["aur"] = max([num for num in SORT_PRIORITIES["db"].values()])
 
 
-def refresh(force: Optional[bool] = False):
+def refresh(force: Optional[bool] = False) -> None:
     """Refresh the sync databases"""
 
     if force:
@@ -35,12 +35,12 @@ def refresh(force: Optional[bool] = False):
         subprocess.run(shlex.split(f"sudo pacman -Sy"))
 
 
-def upgrade(force_refresh: Optional[bool] = False):
+def upgrade() -> None:
     """Upgrade all system packages"""
     subprocess.run(shlex.split("sudo pacman -Su"))
 
 
-def clean():
+def clean() -> None:
     """Clean up unused package cache data"""
     subprocess.run(shlex.split(f"sudo pacman -Sc"))
     response = console.input(
@@ -70,7 +70,7 @@ def clean():
     os.chdir(SRCDIR)
 
 
-def query_local(query: Optional[str] = ""):
+def query_local(query: Optional[str] = "") -> None:
     subprocess.run(shlex.split(f"pacman -Qs {query}"))
 
 
