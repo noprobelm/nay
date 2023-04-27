@@ -49,7 +49,7 @@ class Package:
         :return: A boolean indicating whether the package is installed
         :rtype: bool
         """
-        return True if self.name in INSTALLED else False
+        return True if self.name in INSTALLED.keys() else False
 
     def __lt__(self, other) -> bool:
         """
@@ -351,6 +351,20 @@ class AURPackage(Package):
         :rtype: str
         """
         return os.path.join(CACHEDIR, f"{self.name}/.SRCINFO")
+
+    @property
+    def is_updated(self) -> bool:
+        """
+        Check if the AURPackage version matches the localdb version. If not, return False
+
+        :return: bool: True if self.version matches .SRCINFO meta data, otherwise False
+        :rtype: bool
+        """
+
+        if self.version == INSTALLED[self.name]:
+            return True
+        else:
+            return False
 
     @property
     def pkgbuild_exists(self) -> bool:

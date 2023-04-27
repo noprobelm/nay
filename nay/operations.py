@@ -82,7 +82,6 @@ class Sync(Operation):
     def __init__(self, options: list[str], args: list[str]) -> None:
         self.key = {
             "--refresh": self.refresh,
-            "--refresh --refresh": self.force_refresh,
             "--sysupgrade": self.upgrade,
             "--downloadonly": self.download,
             "--clean": self.clean,
@@ -90,10 +89,23 @@ class Sync(Operation):
             "--info": self.info,
         }
 
+        flags = {
+            "--refresh": {"force": False},
+            "--nodeps": {"skip_verchecks": False, "skip_depchecks": False},
+        }
+
         if options.count("--refresh") > 1:
-            options.append("--refresh --refresh")
-            options = list(filter(lambda opt: opt != "--refresh", options))
+            flags["--refresh"]["force"] = True
+        elif options.count("--nodeps") > 0:
+            if options.count("--nodeps") == 1:
+                flags["--nodeps"]["skip_verchecks"] = True
+            else:
+                flags["--nodeps"]["skip_depchecks"] = True
+
+        self.flags = flags
+
         options = list(set(options))
+        options = list(filter(lambda x: x in self.key.keys(), options))
         options = list(sorted(options, key=lambda x: list(self.key.keys()).index(x)))
         super().__init__(options, args, self.run)
 
@@ -119,13 +131,10 @@ class Sync(Operation):
     def install(self) -> None:
         targets = utils.get_packages(*self.args)
         if targets:
-            utils.install(*targets)
-
-    def force_refresh(self):
-        utils.force_refresh()
+            utils.install(*targets, **self.flags["--nodeps"])
 
     def refresh(self):
-        utils.refresh()
+        utils.refresh(**self.flags["--refresh"])
 
     def upgrade(self) -> None:
         utils.upgrade()

@@ -4,7 +4,7 @@ import re
 import shlex
 import shutil
 import subprocess
-from typing import Optional
+from typing import Optional, Union
 
 import networkx as nx
 import requests
@@ -14,7 +14,7 @@ from rich.text import Text
 
 from .config import CACHEDIR
 from .console import console
-from .db import DATABASES, INSTALLED, SYNC_PACKAGES
+from .db import DATABASES, SYNC_PACKAGES
 from .package import AURPackage, Package, SyncPackage
 
 SORT_PRIORITIES = {"db": {"core": 0, "extra": 1, "community": 2, "multilib": 4}}
@@ -25,18 +25,17 @@ for num, db in enumerate(DATABASES):
 SORT_PRIORITIES["db"]["aur"] = max([num for num in SORT_PRIORITIES["db"].values()])
 
 
-def refresh() -> None:
+def refresh(force: Optional[bool] = False) -> None:
     """
     Refresh the sync database. This is a pure pacman wrapper
-    """
-    subprocess.run(shlex.split("sudo pacman -Sy"))
 
-
-def force_refresh() -> None:
+    :param force: Flag to force a refresh of the sync database (not recommended)
+    :type force: bool
     """
-    Force refresh the sync database. This is a pure pacman wrapper.
-    """
-    subprocess.run(shlex.split("sudo pacman -Syy"))
+    if force is True:
+        subprocess.run(shlex.split("sudo pacman -Syy"))
+    else:
+        subprocess.run(shlex.split("sudo pacman -Sy"))
 
 
 def upgrade() -> None:
@@ -117,7 +116,13 @@ def makepkg(pkg: Package, pkgdir, flags: str) -> None:
 
     """
     os.chdir(f"{pkgdir}/{pkg.name}")
-    subprocess.run(shlex.split(f"makepkg -{flags}"))
+    return_code = subprocess.run(shlex.split(f"makepkg -{flags}")).returncode
+    if return_code != 0:
+        console.print(f"[red] -> error making: {pkg.name}-exit status {return_code}")
+        console.print(
+            f"[red] Failed to install {pkg.name}. Manual intervention is required"
+        )
+        quit()
 
     if clean is True:
         os.chdir("../")
@@ -167,7 +172,7 @@ def get_aur_tree(
     return tree
 
 
-def install(*packages: Package) -> None:
+def install(*packages: Package, skip_verchecks=False, skip_depchecks=False) -> None:
     """
     Get the AUR tree for a package or series of packages
 
@@ -210,14 +215,19 @@ def install(*packages: Package) -> None:
 
         aur_depends = []
         for pkg, dep in aur_tree.edges:
-            if dep.name not in INSTALLED and aur_tree.get_edge_data(pkg, dep)[
-                "dtype"
-            ] in [
-                "check",
-                "make",
-                "depends",
-            ]:
-                aur_depends.append(dep)
+            if (
+                dep.name
+                in aur_tree.get_edge_data(pkg, dep)["dtype"]
+                in [
+                    "check",
+                    "make",
+                    "depends",
+                ]
+            ):
+                if not dep.is_installed:
+                    aur_depends.append(dep)
+                elif skip_verchecks is False and not dep.is_updated:
+                    aur_depends.append(dep)
 
         return aur_depends
 
@@ -238,14 +248,11 @@ def install(*packages: Package) -> None:
                 depends = getattr(pkg, dep_type)
                 if isinstance(depends, list):
                     sync_depends.extend(
-                        [
-                            dep
-                            for dep in depends
-                            if dep not in INSTALLED and dep in SYNC_PACKAGES
-                        ]
+                        [dep for dep in depends if dep in SYNC_PACKAGES]
                     )
 
         sync_depends = get_packages(*sync_depends)
+        sync_depends = [dep for dep in sync_depends if not dep.is_installed]
         return sync_depends
 
     def preview_job(
@@ -391,7 +398,10 @@ def install(*packages: Package) -> None:
         for layer in layers:
             targets = []
             for pkg in layer:
-                makepkg(pkg, CACHEDIR, "fsc")
+                if skip_depchecks is True:
+                    makepkg(pkg, CACHEDIR, "fscd")
+                else:
+                    makepkg(pkg, CACHEDIR, "fsc")
                 pattern = f"{pkg.name}-{pkg.version}-"
                 for obj in os.listdir(os.path.join(CACHEDIR, pkg.name)):
                     if pattern in obj and obj.endswith("zst"):
@@ -401,12 +411,44 @@ def install(*packages: Package) -> None:
 
     def install_sync() -> None:
         """Install explicit sync packages"""
-        subprocess.run(
-            shlex.split(f"sudo pacman -S {[pkg.name for pkg in sync_explicit]}")
-        )
+        if skip_verchecks is True:
+            subprocess.run(
+                shlex.split(
+                    f"sudo pacman -Sd {' '.join([pkg.name for pkg in sync_explicit])}"
+                )
+            )
+        elif skip_depchecks is True:
+            subprocess.run(
+                shlex.split(
+                    f"sudo pacman -Sdd {' '.join([pkg.name for pkg in sync_explicit])}"
+                )
+            )
+        else:
+            subprocess.run(
+                shlex.split(
+                    f"sudo pacman -S {' '.join([pkg.name for pkg in sync_explicit])}"
+                )
+            )
 
     sync_explicit = get_sync_explicit()
     aur_explicit = get_aur_explicit()
+
+    if skip_depchecks is True:
+        preview_job(sync_explicit=sync_explicit, aur_explicit=aur_explicit)
+        get_missing_pkgbuild(*aur_explicit, verbose=True)
+        preview_install(*aur_explicit)
+        prompt_proceed()
+
+        if aur_explicit:
+            aur_tree = nx.DiGraph()
+            for pkg in aur_explicit:
+                aur_tree.add_node(pkg)
+            install_aur(aur_tree)
+
+        if sync_explicit:
+            install_sync()
+        quit()
+
     aur_tree = get_aur_tree(*aur_explicit, recursive=False)
     aur_depends = get_aur_depends(aur_tree)
     sync_depends = get_sync_depends(*aur_explicit)
@@ -474,7 +516,7 @@ def search(query: str, sortby: Optional[str] = "db") -> dict[int, Package]:
     return packages
 
 
-def get_packages(*pkg_names: str) -> list[Package]:
+def get_packages(*pkg_names: str) -> list[Union[SyncPackage, AURPackage]]:
     """
     Get packages based on passed string or strings. Invalid results are ignored/dropped from return result.
 
