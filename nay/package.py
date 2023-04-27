@@ -49,7 +49,7 @@ class Package:
         :return: A boolean indicating whether the package is installed
         :rtype: bool
         """
-        return True if self.name in INSTALLED else False
+        return True if self.name in INSTALLED.keys() else False
 
     def __lt__(self, other) -> bool:
         """
@@ -355,18 +355,14 @@ class AURPackage(Package):
     @property
     def is_updated(self) -> bool:
         """
-        Check if the AURPackage version matches the local .SRCINFO. If not, return False
+        Check if the AURPackage version matches the localdb version. If not, return False
 
         :return: bool: True if self.version matches .SRCINFO meta data, otherwise False
         :rtype: bool
         """
 
-        if os.path.exists(self.SRCINFO) and os.path.isfile(self.SRCINFO):
-            with open(self.SRCINFO, "r") as f:
-                if re.search(r"pkgver=(.*)", f.read()) != self.version:
-                    return True
-                else:
-                    return False
+        if self.version == INSTALLED[self.name]:
+            return True
         else:
             return False
 
@@ -379,8 +375,15 @@ class AURPackage(Package):
         :rtype: bool
         """
 
-        if os.path.exists(self.PKGBUILD) and os.path.isfile(self.PKGBUILD):
-            return True
+        if os.path.exists(self.PKGBUILD):
+            try:
+                with open(self.SRCINFO, "r") as f:
+                    if re.search(r"pkgver=(.*)", f.read()) != self.version:
+                        return True
+                    else:
+                        return False
+            except FileNotFoundError:
+                return False
         else:
             return False
 

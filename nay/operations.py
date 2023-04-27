@@ -91,16 +91,16 @@ class Sync(Operation):
 
         flags = {
             "--refresh": {"force": False},
-            "--nodeps": {"nodeps_version": False, "nodeps_all": False},
+            "--nodeps": {"skip_verchecks": False, "skip_depchecks": False},
         }
 
         if options.count("--refresh") > 1:
             flags["--refresh"]["force"] = True
         elif options.count("--nodeps") > 0:
             if options.count("--nodeps") == 1:
-                flags["--nodeps"]["nodeps_version"] = True
+                flags["--nodeps"]["skip_verchecks"] = True
             else:
-                flags["--nodeps"]["nodeps_all"] = True
+                flags["--nodeps"]["skip_depchecks"] = True
 
         self.flags = flags
 
