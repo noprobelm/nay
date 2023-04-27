@@ -392,16 +392,25 @@ def select_packages(packages):
     )
     selections = console.input("[bright_green]==>[/bright_green] ")
 
-    matches = re.findall(r"\d+(?:-\d+)?", selections)
+    matches = re.findall(r"\^?\d+(?:-\d+)?", selections)
     selections = set()
     for match in matches:
         if "-" in match:
             start, end = match.split("-")
-            for num in range(int(start), int(end) + 1):
-                selections.add(num)
+            if match.startswith("^"):
+                start = start.strip("^")
+                for num in range(int(start), int(end) + 1):
+                    selections.discard(num)
+            else:
+                for num in range(int(start), int(end) + 1):
+                    selections.add(num)
+        elif match.startswith("^"):
+            match = match.strip("^")
+            selections.discard(int(match))
         else:
             selections.add(int(match))
-
+    print(selections)
+    quit()
     selected = []
     for num in selections:
         try:
