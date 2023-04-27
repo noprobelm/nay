@@ -61,59 +61,134 @@ class Args(dict):
     """
 
     OPERATIONS = {
-        "S": {
+        "sync": {
+            "short": "S",
             "operation": operations.Sync,
             "options": {
-                "y": {"conflicts": []},
-                "u": {"conflicts": ["s"]},
-                "s": {"conflicts": ["u", "w"]},
-                "w": {"conflicts": ["i", "s"]},
-                "i": {"conflicts": ["w", "s"]},
-                "c": {"conflicts": []},
+                "y": {"conflicts": [], "long": "refresh", "stacks": 2},
+                "u": {"conflicts": ["s"], "long": "sysupgrade", "stacks": 1},
+                "s": {"conflicts": ["u", "w"], "long": "search", "stacks": 1},
+                "w": {"conflicts": ["i", "s"], "long": "downloadonly", "stacks": 1},
+                "i": {"conflicts": ["w", "s"], "long": "info", "stacks": 1},
+                "c": {"conflicts": [], "long": "clean", "stacks": 1},
             },
             "pure_wrapper": False,
         },
-        "G": {
+        "getpkgbuild": {
+            "short": "G",
             "operation": operations.GetPKGBUILD,
             "options": {},
             "pure_wrapper": False,
         },
-        "N": {"operation": operations.Nay, "options": {}, "pure_wrapper": False},
-        "R": {"operation": operations.Remove, "options": {}, "pure_wrapper": True},
-        "Q": {"operation": operations.Query, "options": {}, "pure_wrapper": True},
-        "U": {"operation": operations.Upgrade, "options": {}, "pure_wrapper": True},
+        "nay": {
+            "short": "N",
+            "operation": operations.Nay,
+            "options": {},
+            "pure_wrapper": False,
+        },
+        "remove": {
+            "short": "R",
+            "operation": operations.Remove,
+            "options": {},
+            "pure_wrapper": True,
+        },
+        "query": {
+            "short": "Q",
+            "operation": operations.Query,
+            "options": {},
+            "pure_wrapper": True,
+        },
+        "upgrade": {
+            "short": "U",
+            "operation": operations.Upgrade,
+            "options": {},
+            "pure_wrapper": True,
+        },
     }
 
     def __init__(self) -> None:
         if len(sys.argv) == 1:
-            super().__init__({"operation": "N", "options": [], "args": []})
-            return
-        elif sys.argv[1].startswith("-"):
-            args = sys.argv[2:]
-            operation = [opt for opt in sys.argv[1] if opt.isupper()]
-            options = [opt for opt in sys.argv[1] if opt.islower()]
-        else:
-            super().__init__({"operation": "N", "options": [], "args": sys.argv[1:]})
+            super().__init__(
+                {
+                    "operation": self.OPERATIONS["nay"]["operation"],
+                    "options": [],
+                    "args": [],
+                }
+            )
             return
 
+        else:
+            short_operations = [
+                operation[0].upper() for operation in self.OPERATIONS.keys()
+            ]
+            args = []
+            operations = []
+            options = []
+            for arg in sys.argv[1:]:
+                if arg.startswith("--"):
+                    arg = arg[2:]
+                    if arg in self.OPERATIONS.keys():
+                        operations.append(arg)
+                    else:
+                        options.append(arg)
+                elif arg.startswith("-"):
+                    arg = arg[1:]
+                    for char in arg:
+                        if char.isupper():
+                            operations.append(char)
+                        else:
+                            options.append(char)
+                else:
+                    args.append(arg)
+
         try:
-            if len(operation) > 1:
+            if len(operations) > 1:
                 raise ConflictingOperations(
                     "error: only one operation may be used at a time"
                 )
-            elif len(operation) == 1:
-                operation = operation[0]
+            elif len(operations) == 0:
+                operation = "nay"
             else:
-                operation = ""
+                operation = operations[0]
 
-            if operation not in self.OPERATIONS.keys():
+            if (
+                operation not in short_operations
+                and operation not in self.OPERATIONS.keys()
+            ):
+
                 raise InvalidOperation(f"nay: invalid option -- {operation}")
 
+            for valid in self.OPERATIONS.keys():
+                if operation.lower() == valid[0]:
+                    operation = valid
+                    break
+
             if self.OPERATIONS[operation]["pure_wrapper"] == False:
-                for opt in options:
-                    if opt not in self.OPERATIONS[operation]["options"].keys():
+                valid_options = {}
+                for short_opt in self.OPERATIONS[operation]["options"]:
+                    valid_options[short_opt] = self.OPERATIONS[operation]["options"][
+                        short_opt
+                    ]["long"]
+                for num, opt in enumerate(options):
+                    if (
+                        opt not in valid_options.keys()
+                        and opt not in valid_options.values()
+                    ):
                         raise InvalidOption(f"nay: invalid option '-{opt}'")
-                    elif any(
+                    else:
+                        options.pop(num)
+                        if opt in valid_options.keys():
+                            options.append(opt)
+                        else:
+                            _valid_options = {
+                                long_opt: short_opt
+                                for short_opt, long_opt in valid_options.items()
+                            }
+
+                            options.append(_valid_options[opt])
+
+                for opt in options:
+                    if any(
                         _ in options
                         for _ in self.OPERATIONS[operation]["options"][opt]["conflicts"]
                     ):
