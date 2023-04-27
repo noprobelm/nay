@@ -11,7 +11,20 @@ from .package import AURPackage
 
 @dataclass
 class Operation:
-    """Boilerplate class for Nay operations"""
+    """
+    Boilerplate class for nay operations
+
+    :param options: The options for the operation (e.g. ['u', 'y'])
+    :type options: list[str]
+    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type args: list[str]
+    :param run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
+    :type run: Callable
+
+    :ivar options: The options for the operation (e.g. ['u', 'y'])
+    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :ivar run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
+    """
 
     options: list[str]
     args: list[str]
@@ -19,7 +32,20 @@ class Operation:
 
 
 class Nay(Operation):
-    """Pyaura-specific operations"""
+    """
+    Pyaura-specific operations
+
+    :param options: The options for the operation (e.g. ['u', 'y'])
+    :type options: list[str]
+    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type args: list[str]
+    :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    :type run: Callable
+
+    :ivar options: The options for the operation (e.g. ['u', 'y'])
+    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    """
 
     def __init__(self, options: list[str], args: list[str]) -> None:
         super().__init__(options, args, self.run)
@@ -39,7 +65,19 @@ class Nay(Operation):
 
 
 class Sync(Operation):
-    """Sync operations"""
+    """Sync operations
+
+    :param options: The options for the operation (e.g. ['u', 'y'])
+    :type options: list[str]
+    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type args: list[str]
+    :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    :type run: Callable
+
+    :ivar options: The options for the operation (e.g. ['u', 'y'])
+    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    """
 
     def __init__(self, options: list[str], args: list[str]) -> None:
         self.key = {
@@ -108,7 +146,20 @@ class Sync(Operation):
 
 
 class Query(Operation):
-    """Query the local/sync databases. Purely pacman"""
+    """
+    Query the local/sync databases. Purely a pacman wrapper
+
+    :param options: The options for the operation (e.g. ['u', 'y'])
+    :type options: list[str]
+    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type args: list[str]
+    :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    :type run: Callable
+
+    :ivar options: The options for the operation (e.g. ['u', 'y'])
+    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    """
 
     def __init__(self, options: list[str], args: list[str]) -> None:
         super().__init__(options, args, self.run)
@@ -120,7 +171,20 @@ class Query(Operation):
 
 
 class GetPKGBUILD(Operation):
-    """Get PKGBUILD from specified args"""
+    """
+    Get PKGBUILD from specified args
+
+    :param options: The options for the operation (e.g. ['u', 'y'])
+    :type options: list[str]
+    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type args: list[str]
+    :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    :type run: Callable
+
+    :ivar options: The options for the operation (e.g. ['u', 'y'])
+    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    """
 
     def __init__(self, options: list[str], args: list[str]) -> None:
         super().__init__(options, args, self.run)
@@ -155,7 +219,20 @@ class GetPKGBUILD(Operation):
 
 
 class Remove(Operation):
-    """Remove packages from the system"""
+    """
+    Remove packages from the system. Purely a pacman wrapper
+
+    :param options: The options for the operation (e.g. ['u', 'y'])
+    :type options: list[str]
+    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type args: list[str]
+    :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    :type run: Callable
+
+    :ivar options: The options for the operation (e.g. ['u', 'y'])
+    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    """
 
     def __init__(self, options: list[str], args: list[str]) -> None:
         super().__init__(options, args, self.run)
@@ -167,6 +244,21 @@ class Remove(Operation):
 
 
 class Upgrade(Operation):
+    """
+    Upgrade specified targets. Purely a pacman wrapper.
+
+    :param options: The options for the operation (e.g. ['u', 'y'])
+    :type options: list[str]
+    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type args: list[str]
+    :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    :type run: Callable
+
+    :ivar options: The options for the operation (e.g. ['u', 'y'])
+    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    """
+
     def __init__(self, options: list[str], args: list[str]) -> None:
         super().__init__(options, args, self.run)
 

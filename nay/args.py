@@ -10,30 +10,56 @@ class ArgumentError(Exception):
 
 
 class ConflictingOperations(ArgumentError):
-    """Conflicting operations were passed as command line arguments"""
+    """
+    Exception raised when conflicting operations are passed as command line arguments.
+
+    :param message: Explanation of the error
+    :type message: str
+    """
 
     pass
 
 
 class ConflictingOptions(ArgumentError):
-    """Conflicting operations were passed as command line arguments"""
+    """
+    Exception raised when conflicting options are passed as command line arguments.
+
+    :param message: Explanation of the error
+    :type message: str
+    """
 
     pass
 
 
 class InvalidOperation(ArgumentError):
-    "An invalid operation was passed as a command line argument"
+    """
+    Exception raised when an invalid operation is passed as a command line argument.
+
+    :param message: Explanation of the error
+    :type message: str
+    """
 
     pass
 
 
 class InvalidOption(ArgumentError):
-    """Invalid options were passed as command line arguments"""
+    """
+    Exception raised when invalid options are passed as command line arguments.
+
+    :param message: Explanation of the error
+    :type message: str
+    """
 
     pass
 
 
 class Args(dict):
+    """
+    Class to parse sys.argsv arguments
+
+    :cvar OPERATIONS: A dict mapper of valid operations to their respective operations.Operation subclass and acceptable options
+    """
+
     OPERATIONS = {
         "S": {
             "operation": operations.Sync,
