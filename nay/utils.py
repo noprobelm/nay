@@ -26,7 +26,13 @@ SORT_PRIORITIES["db"]["aur"] = max([num for num in SORT_PRIORITIES["db"].values(
 
 
 def refresh(force: Optional[bool] = False) -> None:
-    """Refresh the sync databases"""
+    """
+    Refresh the sync database. This is a pure pacman wrapper
+
+    :param force: Optional parameter indicating whether the sync database should be refreshed even if it's flagged as up-to-date (not generally recommended). Default is False
+    :type force: Optional[bool]
+
+    """
 
     if force:
         subprocess.run(shlex.split(f"sudo pacman -Syy"))
@@ -68,12 +74,27 @@ def clean() -> None:
 
 
 def query_local(query: Optional[str] = "") -> None:
-    """Query locally installed packages using pacman"""
+    """
+    Query the local sync database. This is a pure pacman wrapper
+
+    :param force: Optional parameter indicating whether the sync database should be refreshed even if it's flagged as up-to-date (not generally recommended). Default is False
+    :type force: Optional[bool]
+
+    """
     subprocess.run(shlex.split(f"pacman -Qs {query}"))
 
 
 def get_pkgbuild(pkg: Package, pkgdir: Optional[str] = None) -> None:
-    """Get the PKGBUILD file from package.Package data"""
+    """
+    Get the PKGBUILD file from package.Package data
+
+    :param pkg: The package.Package object to get the PKGBUILD for
+    :type pkg: package.Package
+    :param pkgdir: Optional directory to clone the PKGBUILD to. Default is 'None'
+    :type pkgdir: Optional[str]
+
+    """
+
     if not pkgdir:
         pkgdir = os.getcwd()
     subprocess.run(
@@ -84,9 +105,19 @@ def get_pkgbuild(pkg: Package, pkgdir: Optional[str] = None) -> None:
     )
 
 
-def makepkg(pkg: Package, clonedir, flags: str) -> None:
-    """Run makepkg on a PKGBUILD"""
-    os.chdir(f"{clonedir}/{pkg.name}")
+def makepkg(pkg: Package, pkgdir, flags: str) -> None:
+    """
+    Make a package using 'makepkg'. This is a pure pacman wrapper.
+
+    :param pkg: The package.Package object to make the package from
+    :type pkg: package.Package
+    :param pkgdir: The full path (exclusive of the package path itself)
+    :type pkgdir: str
+    :param flags: The flags to pass to 'makepkg' (exlusive of the leading '-')
+    :type flags: str
+
+    """
+    os.chdir(f"{pkgdir}/{pkg.name}")
     subprocess.run(shlex.split(f"makepkg -{flags}"))
 
     if clean == True:
@@ -97,6 +128,17 @@ def makepkg(pkg: Package, clonedir, flags: str) -> None:
 def get_aur_tree(
     *packages: Package, multithread: bool = True, recursive: bool = True
 ) -> nx.DiGraph:
+    """
+    Get the AUR tree for a package or series of packages
+
+    :param multithread: Optional parameter indicating whether this function should be multithreaded. Default is True
+    :type multithread: Optional[bool]
+    :param recursive: Optional parameter indicating whether this function should run recursively. If 'False', only immediate dependencies will be returned. Defaults is True
+    :type recursive: Optional[bool]
+
+    :return: A dependency tree of all packages passed to the function
+    :rtype: nx.DiGraph
+    """
     tree = nx.DiGraph()
 
     if multithread:
@@ -127,17 +169,46 @@ def get_aur_tree(
 
 
 def install(*packages: Package) -> None:
-    """Install a package based on package.Package data"""
+    """
+    Get the AUR tree for a package or series of packages
+
+    :param packages: A package or series of package objects to install
+    :type packages: package.Package
+
+    """
 
     def get_sync_explicit() -> list[SyncPackage]:
+        """
+        Get the sync explicit targets
+
+        :return: A list of the sync explicit packages
+        :rtype: list[SyncPackage]
+        """
         sync_explicit = [pkg for pkg in packages if isinstance(pkg, SyncPackage)]
         return sync_explicit
 
     def get_aur_explicit() -> list[AURPackage]:
+        """
+        Get the aur explicit targets
+
+        :return: A list of the aur explicit packages
+        :rtype: list[AurPackage]
+        """
+
         aur_explicit = [pkg for pkg in packages if isinstance(pkg, AURPackage)]
         return aur_explicit
 
-    def get_aur_depends(aur_tree) -> list[AURPackage]:
+    def get_aur_depends(aur_tree: nx.DiGraph) -> list[AURPackage]:
+        """
+        Get the aur dependencies from installation targets
+
+        :param aur_tree: The dependency tree of the AUR explicit packages
+        :type aur_tree: nx.DiGraph
+
+        :return: A list of the aur dependencies
+        :rtype: list[AurPackage]
+        """
+
         aur_depends = []
         for pkg, dep in aur_tree.edges:
             if dep.name not in INSTALLED and aur_tree.get_edge_data(pkg, dep)[
@@ -152,6 +223,16 @@ def install(*packages: Package) -> None:
         return aur_depends
 
     def get_sync_depends(*aur_explicit) -> list[SyncPackage]:
+        """
+        Get the sync dependencies from AUR explicit targets
+
+        :param aur_explicit: An AURPackage or series of AURPackage objects
+        :type aur_tree: package.AURPackage
+
+        :return: A list of the aur dependencies
+        :rtype: list[AurPackage]
+        """
+
         sync_depends = []
         for pkg in aur_explicit:
             for dep_type in ["check_depends", "make_depends", "depends"]:
@@ -174,6 +255,20 @@ def install(*packages: Package) -> None:
         aur_explicit: Optional[list[AURPackage]] = None,
         aur_depends: Optional[list[AURPackage]] = None,
     ) -> None:
+
+        """
+        Print a list of packages to be installed to the terminal
+
+        :param sync_explicit: A list of SyncPackage objects to be explicitly installed
+        :type sync_explicit: list[SyncPackage]
+        :param sync_depends: A list of SyncPackage dependencies to be installed
+        :type sync_depends: list[SyncPackage]
+        :param aur_explicit: An list of AURPackage objects to be explicitly installed
+        :type aur_explicit: list[AURPackage]
+        :param aur_depends: A list of AURPackage dependencies to be installed
+        :type aur_depends: list[AURPackage]
+        """
+
         if sync_explicit:
             output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in sync_explicit]
             console.print(
@@ -197,7 +292,14 @@ def install(*packages: Package) -> None:
                 f"Sync Dependency ({len(sync_depends)}): {', '.join([out for out in output])}"
             )
 
-    def preview_install(*packages: Package) -> None:
+    def preview_install(*packages: AURPackage) -> None:
+        """
+        Print an overview of the explicit and depends AUR packages to be installed
+
+        :param packages: A package or series of AURPackage objects to be explicitly installed
+        :type packages: package.AURPackage
+        """
+
         install_preview = Table.grid(
             Column("num", justify="right"),
             Column("pkgname", width=35, justify="left"),
@@ -216,6 +318,7 @@ def install(*packages: Package) -> None:
         console.print(install_preview)
 
     def prompt_proceed() -> None:
+        """Present prompt to proceed with installation"""
         prompt = console.input(
             "[bright_green]==>[/bright_green] Install packages? [Y/n] "
         )
@@ -223,12 +326,31 @@ def install(*packages: Package) -> None:
             quit()
 
     def resolve_dependencies(aur_tree: nx.DiGraph) -> nx.DiGraph:
+        """
+        Recursively resolve dependencies using nx.DiGraph as starting point
+
+        :param aur_tree: A shallow (i.e. consisting only of explicit AUR targets and their immediate dependencies) networkx DiGraph to be recursively filled out
+        :type aur_tree: nx.DiGraph
+
+        :returns: A dependency tree of AUR explicit targets and all descendent dependencies
+        :rtype: nx.DiGraph
+        """
         aur_tree = nx.compose(aur_tree, get_aur_tree(*aur_depends))
         return aur_tree
 
     def get_missing_pkgbuild(
         *packages: AURPackage, multithread=True, verbose=False
     ) -> None:
+        """
+        Get missing PKGBUILD files
+
+        :param packages: An AURPackage or series of AURPackage objects to get PKGBUILD data for
+        :type packages: AURPackage
+        :param multithread: Optional parameter indicating whether this function should be multithreaded. Default is True
+        :type multithread: Optional[bool]
+        :param verbose: Optional parameter indicating whether success/failure messages should be verbose. Default is False
+        :type verbose: Optional[bool]
+        """
         missing = []
         for pkg in packages:
             if not pkg.pkgbuild_exists:
@@ -256,6 +378,16 @@ def install(*packages: Package) -> None:
                     )
 
     def install_aur(aur_tree: nx.DiGraph) -> None:
+        """
+        Install AUR targets according to their location in the hierarchy:
+
+        - A breadth-first layer search is conducted and reversed to separate the ordered 'tiers' `makepkg` and `pacman -U` need to be executed in in order to result in successful makepkg for successors
+        - Each layer is iterated through. For each package in a layer:
+          - makepkg 'f' (force makepkg in the event package data already exists) 's' (install missing sync dependencies) 'c' (clean up unecessary data after makepkg finishes)
+          - Match the filename pattern for the resulting package's tarball archive (i.e. '<pkgname>-<pkgver>-<architecture>.pkg.tar.zst) and append full path to installation targets
+        - After all packages in a layer have been iterated and operated on, batch install using pacman -U
+        - Repeat for each layer until all packages have been installed
+        """
         layers = [layer for layer in nx.bfs_layers(aur_tree, aur_explicit)][::-1]
         for layer in layers:
             targets = []
@@ -269,6 +401,7 @@ def install(*packages: Package) -> None:
             subprocess.run(shlex.split(f"sudo pacman -U {' '.join(targets)}"))
 
     def install_sync() -> None:
+        """Install explicit sync packages"""
         subprocess.run(
             shlex.split(f"sudo pacman -S {[pkg.name for pkg in sync_explicit]}")
         )
@@ -300,8 +433,17 @@ def install(*packages: Package) -> None:
         install_sync()
 
 
-def search(query: str, sortby: Optional[str] = "db"):
-    """Query the sync databases and AUR"""
+def search(query: str, sortby: Optional[str] = "db") -> dict[int, Package]:
+    """
+    Query the sync databases and AUR. Exact matches will always be presented first despite specified sort order
+
+    :param query: The search query to use
+    :type query: str
+    :param sortby: The package.Package attribute to sort results by
+
+    :returns: A dictionary of integers representing index to package results
+    :rtype: dict[int, Package]
+    """
     packages = []
 
     for database in DATABASES:
@@ -333,7 +475,16 @@ def search(query: str, sortby: Optional[str] = "db"):
     return packages
 
 
-def get_packages(*pkg_names):
+def get_packages(*pkg_names: str) -> list[Package]:
+    """
+    Get packages based on passed string or strings. Invalid results are ignored/dropped from return result.
+
+    :param pkg_names: A string or series of strings for which SyncPackage or AURPackage objects will be fetched
+    :type pkg_names: str
+
+    :returns: Package list based on input
+    :rtype: list[Package]
+    """
     pkg_names = set(pkg_names)
     packages = []
     aur_search = []
@@ -362,7 +513,18 @@ def get_packages(*pkg_names):
     return packages
 
 
-def print_pkglist(packages, include_num: Optional[bool] = False):
+def print_pkglist(
+    packages: dict[int, Package], include_num: Optional[bool] = False
+) -> None:
+    """
+    Print a sequence of passed packages
+
+    :param packages: A dictionary of integers representing index to package results
+    :type packages: dict[int, Package]
+    :param include_num: Optional bool to indicate whether a package's index should be included in the print result or not. Default is False
+    :type include_num: Optional[bool]
+
+    """
     render_result = []
     if include_num == True:
         for num in packages:
@@ -378,7 +540,13 @@ def print_pkglist(packages, include_num: Optional[bool] = False):
     console.print(render_result)
 
 
-def print_pkginfo(packages):
+def print_pkginfo(*packages: Package):
+    """
+    Print a package's meta data according to pacman (sync packages) or AURweb RPC interface info request (AUR packages)
+
+    :param packages: A package.Package or series of package.Package objects for which to retrieve info
+    :type packages: package.Package
+    """
     aur = []
     sync = []
     for pkg in packages:
