@@ -68,6 +68,7 @@ def clean() -> None:
 
 
 def query_local(query: Optional[str] = "") -> None:
+    """Query locally installed packages using pacman"""
     subprocess.run(shlex.split(f"pacman -Qs {query}"))
 
 
