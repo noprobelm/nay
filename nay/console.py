@@ -10,7 +10,8 @@ default = Theme(
         "multilib": "bright_cyan",
         "other_db": "bright_yellow",
         "notify": "bright_cyan",
-    }
+    },
+    inherit=False,
 )
 
 console = Console(theme=default)

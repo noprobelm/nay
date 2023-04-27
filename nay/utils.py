@@ -244,7 +244,7 @@ def install(*packages: Package) -> None:
                     executor.submit(get_pkgbuild, pkg, CACHEDIR)
                     if verbose:
                         console.print(
-                            f"[notify]::[/notify] {num+1}/{len(missing)} Downloaded PKGBUILD: [notify]{pkg.name}"
+                            f"[notify]::[/notify] ({num+1}/{len(missing)}) Downloaded PKGBUILD: [notify]{pkg.name}"
                         )
         else:
             for num, pkg in enumerate(missing):
