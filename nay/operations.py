@@ -21,10 +21,10 @@ class Operation:
 class Nay(Operation):
     """Pyaura-specific operations"""
 
-    def __init__(self, options: list[str], args: list[str]):
+    def __init__(self, options: list[str], args: list[str]) -> None:
         super().__init__(options, args, self.run)
 
-    def run(self):
+    def run(self) -> None:
         if not self.args:
             utils.refresh()
             utils.upgrade()
@@ -38,10 +38,10 @@ class Nay(Operation):
             utils.install(*packages)
 
 
-class SyncPackage(Operation):
+class Sync(Operation):
     """Sync operations"""
 
-    def __init__(self, options: list[str], args: list[str]):
+    def __init__(self, options: list[str], args: list[str]) -> None:
         self.key = {
             "y": self.refresh,
             "u": self.upgrade,
