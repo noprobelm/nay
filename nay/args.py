@@ -93,9 +93,8 @@ class Args(dict):
             operation = [opt for opt in sys.argv[1] if opt.isupper()]
             options = [opt for opt in sys.argv[1] if opt.islower()]
         else:
-            args = sys.argv[1:]
-            operation = "N"
-            options = []
+            super().__init__({"operation": "N", "options": [], "args": sys.argv[1:]})
+            return
 
         try:
             if len(operation) > 1:
