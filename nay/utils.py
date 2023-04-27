@@ -29,14 +29,14 @@ def refresh() -> None:
     """
     Refresh the sync database. This is a pure pacman wrapper
     """
-    subprocess.run(shlex.split(f"sudo pacman -Sy"))
+    subprocess.run(shlex.split("sudo pacman -Sy"))
 
 
 def force_refresh() -> None:
     """
     Force refresh the sync database. This is a pure pacman wrapper.
     """
-    subprocess.run(shlex.split(f"sudo pacman -Syy"))
+    subprocess.run(shlex.split("sudo pacman -Syy"))
 
 
 def upgrade() -> None:
@@ -46,7 +46,7 @@ def upgrade() -> None:
 
 def clean() -> None:
     """Clean up unused package cache data"""
-    subprocess.run(shlex.split(f"sudo pacman -Sc"))
+    subprocess.run(shlex.split("sudo pacman -Sc"))
     response = console.input(
         "\n[bright_blue]::[/bright_blue] Do you want to remove all other AUR packages from cache? [Y/n] "
     )
