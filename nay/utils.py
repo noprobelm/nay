@@ -1,3 +1,4 @@
+import concurrent.futures
 import os
 import re
 import shlex
@@ -5,7 +6,6 @@ import shutil
 import subprocess
 from typing import Optional
 
-import concurrent.futures
 import networkx as nx
 import requests
 from rich.console import Group
@@ -14,8 +14,8 @@ from rich.text import Text
 
 from .config import CACHEDIR
 from .console import console
-from .db import DATABASES, SYNC_PACKAGES, INSTALLED
-from .package import Package, AURPackage, SyncPackage
+from .db import DATABASES, INSTALLED, SYNC_PACKAGES
+from .package import AURPackage, Package, SyncPackage
 
 SORT_PRIORITIES = {"db": {"core": 0, "extra": 1, "community": 2, "multilib": 4}}
 for num, db in enumerate(DATABASES):
