@@ -141,8 +141,8 @@ class Sync(Operation):
         utils.clean()
 
     def info(self) -> None:
-        packages = utils.get_packages(self.args)
-        utils.print_pkginfo(packages)
+        packages = utils.get_packages(*self.args)
+        utils.print_pkginfo(*packages)
 
 
 class Query(Operation):
