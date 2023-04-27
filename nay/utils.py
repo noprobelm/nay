@@ -409,8 +409,6 @@ def select_packages(packages):
             selections.discard(int(match))
         else:
             selections.add(int(match))
-    print(selections)
-    quit()
     selected = []
     for num in selections:
         try:
