@@ -135,11 +135,11 @@ def install(*packages: Package) -> None:
         sync_explicit = [pkg for pkg in packages if isinstance(pkg, SyncPackage)]
         return sync_explicit
 
-    def get_aur_explicit():
+    def get_aur_explicit() -> list[AURPackage]:
         aur_explicit = [pkg for pkg in packages if isinstance(pkg, AURPackage)]
         return aur_explicit
 
-    def get_aur_depends(aur_tree):
+    def get_aur_depends(aur_tree) -> list[AURPackage]:
         aur_depends = []
         for pkg, dep in aur_tree.edges:
             if dep.name not in INSTALLED and aur_tree.get_edge_data(pkg, dep)[
@@ -153,7 +153,7 @@ def install(*packages: Package) -> None:
 
         return aur_depends
 
-    def get_sync_depends(aur_explicit):
+    def get_sync_depends(aur_explicit) -> list[SyncPackage]:
         sync_depends = []
         for pkg in aur_explicit:
             for dep_type in ["check_depends", "make_depends", "depends"]:
