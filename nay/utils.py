@@ -565,8 +565,21 @@ def print_pkginfo(*packages: Package) -> None:
     console.print(aur)
 
 
-def select_packages(packages):
-    """Selects a package or packages based on user promopt to TTY"""
+def select_packages(packages: dict[int, Package]) -> list[Package]:
+    """
+    Select packages based on user input. Inputs can be separated by spaces
+
+    Valid selections (any number of any combination of the below) * Must be separated by space characters:
+      - int: A single selection (i.e. '1 3 5')
+      - inclusive series of int: A range of selections to include (i.e. '1-3 6-9')
+      - exclusive series of int: A range of selections to exclude (i.e. '^1-3 ^6-9')
+
+    :param packages: A dictionary of integers representing index to package results
+    :type packages: dict[int, Package]
+
+    :returns: list of packages
+    :rtype: list[Package]
+    """
 
     # TODO: Add functionality for excluding packages (e.g. ^4)
 
@@ -605,6 +618,10 @@ def select_packages(packages):
         f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join([pkg.name for pkg in selected])}"
     ).json()
 
-    selected = [AURPackage.from_info_query(result) for result in aur_query["results"]]
+    # Replace AUR packages generated from search query with AUR info query
+    for result in aur_query["results"]:
+        pkg = AURPackage.from_info_query(result)
+        selected.pop(selected.index(pkg))
+        selected.append(pkg)
 
     return selected
