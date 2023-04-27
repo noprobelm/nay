@@ -167,7 +167,7 @@ class Remove(Operation):
 
 
 class Upgrade(Operation):
-    def __init__(self, options: list[str], args: list[str]):
+    def __init__(self, options: list[str], args: list[str]) -> None:
         super().__init__(options, args, self.run)
 
     def run(self) -> None:
