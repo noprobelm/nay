@@ -52,7 +52,7 @@ class Sync(Operation):
         }
         super().__init__(options, args, self.run)
 
-    def run(self):
+    def run(self) -> None:
         if not self.options:
             # Add error handling for missing args here
             self.install()
@@ -65,22 +65,22 @@ class Sync(Operation):
             if self.args:
                 self.install()
 
-    def query(self):
+    def query(self) -> None:
         packages = utils.search(" ".join(self.args))
         utils.print_pkglist(packages)
 
-    def install(self):
+    def install(self) -> None:
         targets = utils.get_packages(*self.args)
         if targets:
             utils.install(*targets)
 
-    def refresh(self, force: Optional[bool] = False):
+    def refresh(self, force: Optional[bool] = False) -> None:
         utils.refresh(force=force)
 
-    def upgrade(self):
+    def upgrade(self) -> None:
         utils.upgrade()
 
-    def download(self):
+    def download(self) -> None:
         targets = {"aur": [], "sync": []}
         packages = utils.get_packages(self.args)
         for pkg in packages:
@@ -99,10 +99,10 @@ class Sync(Operation):
                 )
             )
 
-    def clean(self):
+    def clean(self) -> None:
         utils.clean()
 
-    def info(self):
+    def info(self) -> None:
         packages = utils.get_packages(self.args)
         utils.print_pkginfo(packages)
 
@@ -110,10 +110,10 @@ class Sync(Operation):
 class Query(Operation):
     """Query the local/sync databases. Purely pacman"""
 
-    def __init__(self, options: list[str], args: list[str]):
+    def __init__(self, options: list[str], args: list[str]) -> None:
         super().__init__(options, args, self.run)
 
-    def run(self):
+    def run(self) -> None:
         subprocess.run(
             shlex.split(f"sudo pacman -Q{''.join(self.options)} {' '.join(self.args)}")
         )
@@ -122,10 +122,10 @@ class Query(Operation):
 class GetPKGBUILD(Operation):
     """Get PKGBUILD from specified args"""
 
-    def __init__(self, options: list[str], args: list[str]):
+    def __init__(self, options: list[str], args: list[str]) -> None:
         super().__init__(options, args, self.run)
 
-    def run(self):
+    def run(self) -> None:
         succeeded = []
         failed = []
         packages = utils.get_packages(*self.args)
@@ -157,10 +157,10 @@ class GetPKGBUILD(Operation):
 class Remove(Operation):
     """Remove packages from the system"""
 
-    def __init__(self, options: list[str], args: list[str]):
+    def __init__(self, options: list[str], args: list[str]) -> None:
         super().__init__(options, args, self.run)
 
-    def run(self):
+    def run(self) -> None:
         subprocess.run(
             shlex.split(f"sudo pacman -R{''.join(self.options)} {' '.join(self.args)}")
         )
@@ -170,7 +170,7 @@ class Upgrade(Operation):
     def __init__(self, options: list[str], args: list[str]):
         super().__init__(options, args, self.run)
 
-    def run(self):
+    def run(self) -> None:
         subprocess.run(
             shlex.split(f"sudo pacman -U {''.join(self.options)} {' '.join(self.args)}")
         )
