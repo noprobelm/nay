@@ -3,7 +3,6 @@ import re
 import shlex
 import shutil
 import subprocess
-from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
 import concurrent.futures
