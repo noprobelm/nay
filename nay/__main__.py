@@ -1,7 +1,7 @@
 from .args import Args
 
 
-def main():
+def main() -> None:
     args = Args()
     operation = args["operation"](options=args["options"], args=args["args"])
     try:

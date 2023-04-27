@@ -27,7 +27,7 @@ class Package:
     def is_installed(self) -> bool:
         return True if self.name in INSTALLED else False
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         if isinstance(other, Package):
             if self.db < other.db:
                 return True
@@ -35,10 +35,10 @@ class Package:
                 if self.name < other.name:
                     return True
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.name, self.version))
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if not isinstance(other, Package):
             return False
 
@@ -51,12 +51,12 @@ class SyncPackage(Package):
     size: int
     isize: int
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.size = self.format_bytes(self.size)
         self.isize = self.format_bytes(self.isize)
 
     @classmethod
-    def from_pyalpm(cls, pkg: pyalpm.Package):
+    def from_pyalpm(cls, pkg: pyalpm.Package) -> "SyncPackage":
         kwargs = {
             "name": pkg.name,
             "version": pkg.version,
@@ -68,7 +68,7 @@ class SyncPackage(Package):
         return cls(**kwargs)
 
     @staticmethod
-    def format_bytes(size):
+    def format_bytes(size) -> str:
         # TODO: Fix calculations for Kebi/Mebi vs KB/MB. These are not the same.
         power = 2**10
         n = 0
@@ -114,13 +114,13 @@ class AURPackage(Package):
     opt_depends: Optional[list[str]] = None
     info_query: Optional[dict] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.flag_date = (
             datetime.fromtimestamp(self.flag_date) if self.flag_date else None
         )
 
     @classmethod
-    def from_search_query(cls, result: dict):
+    def from_search_query(cls, result: dict) -> "AURPackage":
         kwargs = {
             "db": "aur",
             "name": result["Name"],
@@ -134,7 +134,7 @@ class AURPackage(Package):
         return cls(**kwargs)
 
     @classmethod
-    def from_info_query(cls, result: dict):
+    def from_info_query(cls, result: dict) -> "AURPackage":
         kwargs = {
             "db": "aur",
             "name": result["Name"],
@@ -160,20 +160,22 @@ class AURPackage(Package):
         return cls(**kwargs)
 
     @property
-    def PKGBUILD(self):
+    def PKGBUILD(self) -> str:
         return os.path.join(CACHEDIR, f"{self.name}/PKGBUILD")
 
     @property
-    def SRCINFO(self):
+    def SRCINFO(self) -> str:
         return os.path.join(CACHEDIR, f"{self.name}/.SRCINFO")
 
     @property
-    def pkgbuild_exists(self):
+    def pkgbuild_exists(self) -> bool:
         if os.path.exists(self.PKGBUILD):
             try:
                 with open(self.SRCINFO, "r") as f:
                     if re.search(r"pkgver=(.*)", f.read()) != self.version:
                         return True
+                    else:
+                        return False
             except FileNotFoundError:
                 return False
         else:
@@ -206,7 +208,7 @@ class AURPackage(Package):
         renderable = Text("\n    ").join([renderable, Text(self.desc)])
         return renderable
 
-    def get_aur_dependency_tree(self):
+    def get_aur_dependency_tree(self) -> nx.DiGraph:
         tree = nx.DiGraph()
         tree.add_node(self)
         dtypes = ["check_depends", "make_depends", "depends"]
@@ -229,7 +231,7 @@ class AURPackage(Package):
         return tree
 
     @property
-    def info(self):
+    def info(self) -> Table:
         if not self.info_query:
             query = requests.get(
                 f"https://aur.archlinux.org/rpc/?v=5&type=search&arg={self.name}"
