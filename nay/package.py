@@ -353,6 +353,24 @@ class AURPackage(Package):
         return os.path.join(CACHEDIR, f"{self.name}/.SRCINFO")
 
     @property
+    def is_updated(self) -> bool:
+        """
+        Check if the AURPackage version matches the local .SRCINFO. If not, return False
+
+        :return: bool: True if self.version matches .SRCINFO meta data, otherwise False
+        :rtype: bool
+        """
+
+        if os.path.exists(self.SRCINFO) and os.path.isfile(self.SRCINFO):
+            with open(self.SRCINFO, "r") as f:
+                if re.search(r"pkgver=(.*)", f.read()) != self.version:
+                    return True
+                else:
+                    return False
+        else:
+            return False
+
+    @property
     def pkgbuild_exists(self) -> bool:
         """
         Check if the PKGBUILD file exists. This will return 'False' if the PKGBUILD exists but is mismatched with the class instance's version
@@ -361,15 +379,8 @@ class AURPackage(Package):
         :rtype: bool
         """
 
-        if os.path.exists(self.PKGBUILD):
-            try:
-                with open(self.SRCINFO, "r") as f:
-                    if re.search(r"pkgver=(.*)", f.read()) != self.version:
-                        return True
-                    else:
-                        return False
-            except FileNotFoundError:
-                return False
+        if os.path.exists(self.PKGBUILD) and os.path.isfile(self.PKGBUILD):
+            return True
         else:
             return False
 
