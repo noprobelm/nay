@@ -97,6 +97,8 @@ class Sync(Operation):
         elif any(opt in ["c", "s", "i"] for opt in self.options):
             for opt in set(self.options):
                 self.key[opt]()
+        elif "w" in self.options:
+            self.download()
         else:
             for opt in set(self.options):
                 self.key[opt]()
@@ -120,7 +122,7 @@ class Sync(Operation):
 
     def download(self) -> None:
         targets = {"aur": [], "sync": []}
-        packages = utils.get_packages(self.args)
+        packages = utils.get_packages(*self.args)
         for pkg in packages:
             if isinstance(pkg, AURPackage):
                 targets["aur"].append(pkg)
@@ -133,7 +135,7 @@ class Sync(Operation):
         if targets["sync"]:
             subprocess.run(
                 shlex.split(
-                    f"sudo pacman -Sw {' '.join([pkg.name for pkg in packages['sync']])}"
+                    f"sudo pacman -Sw {' '.join([pkg.name for pkg in targets['sync']])}"
                 )
             )
 
