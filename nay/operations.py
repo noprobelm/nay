@@ -95,7 +95,7 @@ class Sync(Operation):
             options = list(filter(lambda opt: opt != "--refresh", options))
         elif options.count("--nodeps") > 1:
             options.append("--nodeps --nodeps")
-            options = list(filter(lambda opt: opt != "--refresh", options))
+            options = list(filter(lambda opt: opt != "--nodeps", options))
 
         options = list(set(options))
         options = list(sorted(options, key=lambda x: list(self.key.keys()).index(x)))
@@ -123,7 +123,12 @@ class Sync(Operation):
     def install(self) -> None:
         targets = utils.get_packages(*self.args)
         if targets:
-            utils.install(*targets)
+            if self.options.count("--nodeps") == 0:
+                utils.install(*targets)
+            elif self.options.count("--nopdeps") == 1:
+                utils.install(*targets, nodeps=True)
+            else:
+                utils.install(*targets, nodeps_recursive=True)
 
     def force_refresh(self):
         utils.force_refresh()
