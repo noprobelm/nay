@@ -540,7 +540,7 @@ def print_pkglist(
     console.print(render_result)
 
 
-def print_pkginfo(*packages: Package):
+def print_pkginfo(*packages: Package) -> None:
     """
     Print a package's meta data according to pacman (sync packages) or AURweb RPC interface info request (AUR packages)
 
@@ -550,7 +550,7 @@ def print_pkginfo(*packages: Package):
     aur = []
     sync = []
     for pkg in packages:
-        if pkg.db == "aur":
+        if isinstance(pkg, AURPackage):
             aur.append(pkg.info)
         else:
             sync.append(pkg)
