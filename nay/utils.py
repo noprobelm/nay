@@ -17,7 +17,6 @@ from .console import console
 from .db import DATABASES, SYNC_PACKAGES, INSTALLED
 from .package import Package, AURPackage, SyncPackage
 
-SRCDIR = os.getcwd()
 SORT_PRIORITIES = {"db": {"core": 0, "extra": 1, "community": 2, "multilib": 4}}
 for num, db in enumerate(DATABASES):
     num += max([num for num in SORT_PRIORITIES["db"].values()])
@@ -66,8 +65,6 @@ def clean() -> None:
                     if _.endswith(".tar.zst"):
                         os.remove(_)
                 os.chdir("../")
-
-    os.chdir(SRCDIR)
 
 
 def query_local(query: Optional[str] = "") -> None:
