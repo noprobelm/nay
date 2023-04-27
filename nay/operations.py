@@ -90,7 +90,7 @@ class SyncPackage(Operation):
                 targets["sync"].append(pkg)
 
         for target in targets["aur"]:
-            utils.get_pkgbuild(target, clonedir=CACHEDIR)
+            utils.get_pkgbuild(target, pkgdir=CACHEDIR)
 
         if targets["sync"]:
             subprocess.run(
