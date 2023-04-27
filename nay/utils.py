@@ -153,7 +153,7 @@ def install(*packages: Package) -> None:
 
         return aur_depends
 
-    def get_sync_depends(aur_explicit) -> list[SyncPackage]:
+    def get_sync_depends(*aur_explicit) -> list[SyncPackage]:
         sync_depends = []
         for pkg in aur_explicit:
             for dep_type in ["check_depends", "make_depends", "depends"]:
@@ -274,7 +274,7 @@ def install(*packages: Package) -> None:
     aur_explicit = get_aur_explicit()
     aur_tree = get_aur_tree(*aur_explicit, recursive=False)
     aur_depends = get_aur_depends(aur_tree)
-    sync_depends = get_sync_depends(aur_explicit)
+    sync_depends = get_sync_depends(*aur_explicit)
     aur = aur_explicit + aur_depends
 
     preview_job(
