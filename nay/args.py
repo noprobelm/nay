@@ -86,9 +86,8 @@ class Args(dict):
 
     def __init__(self) -> None:
         if len(sys.argv) == 1:
-            args = []
-            operation = "N"
-            options = []
+            super().__init__({"operation": "N", "options": [], "args": []})
+            return
         elif sys.argv[1].startswith("-"):
             args = sys.argv[2:]
             operation = [opt for opt in sys.argv[1] if opt.isupper()]
