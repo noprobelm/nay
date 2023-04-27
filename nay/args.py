@@ -66,10 +66,13 @@ class Args(dict):
             "operation": operations.Sync,
             "options": {
                 "--refresh": {"conflicts": [], "short": "-y"},
-                "--sysupgrade": {"conflicts": ["s"], "short": "-u"},
-                "--search": {"conflicts": ["u", "w"], "short": "-s"},
-                "--downloadonly": {"conflicts": ["i", "s"], "short": "-w"},
-                "--info": {"conflicts": ["w", "s"], "short": "-i"},
+                "--sysupgrade": {"conflicts": ["--search"], "short": "-u"},
+                "--search": {
+                    "conflicts": ["--sysupgrade", "--downloadonly"],
+                    "short": "-s",
+                },
+                "--downloadonly": {"conflicts": ["--info", "--search"], "short": "-w"},
+                "--info": {"conflicts": ["--downloadonly", "--search"], "short": "-i"},
                 "--clean": {"conflicts": [], "short": "-c"},
             },
             "pure_wrapper": False,
@@ -132,22 +135,31 @@ class Args(dict):
                 for flag in arg[1:]:
                     if flag.isupper():
                         if flag.lower() not in [op[0] for op in valid_operations]:
-                            raise InvalidOperation(f"error: invalid option -- {flag}")
+                            try:
+                                raise InvalidOperation(
+                                    f"error: invalid option -- {flag}"
+                                )
+                            except InvalidOperation as err:
+                                print(err)
+                                quit()
                         else:
                             for op in valid_operations:
                                 if flag.lower() == op[0]:
                                     operation.append(f"--{op}")
                     else:
                         _options.append(f"-{flag}")
-
             else:
                 args.append(arg)
 
         try:
             if len(operation) > 1:
-                raise ConflictingOperations(
-                    f"error: only one operation may be used at a time"
-                )
+                try:
+                    raise ConflictingOperations(
+                        f"error: only one operation may be used at a time"
+                    )
+                except ConflictingOperations as err:
+                    print(err)
+                    quit()
         except ConflictingOperations as err:
             print(err)
             quit()
@@ -163,12 +175,30 @@ class Args(dict):
 
             for opt in _options:
                 if opt not in valid_opts.keys():
-                    raise InvalidOption(f"error: invalid option '{opt}'")
+                    try:
+                        raise InvalidOption(f"error: invalid option '{opt}'")
+                    except InvalidOption as err:
+                        print(err)
+                        quit()
                 else:
                     if opt[:2] == "--":
                         options.append(opt)
                     else:
                         options.append(valid_opts[opt])
+
+            for opt in options:
+                other = list(filter(lambda x: x != opt, options))
+                conflicts = self.OPERATIONS[operation]["options"][opt]["conflicts"]
+                for _opt in other:
+                    if _opt in conflicts:
+                        try:
+                            raise ConflictingOptions(
+                                f"error: invalid option {opt} and {_opt} may not be used together"
+                            )
+                        except ConflictingOptions as err:
+                            print(err)
+                            quit()
+
         else:
             options = _options
 
