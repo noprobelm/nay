@@ -168,7 +168,7 @@ class Query(Operation):
 
     def run(self) -> None:
         subprocess.run(
-            shlex.split(f"sudo pacman -Q{''.join(self.options)} {' '.join(self.args)}")
+            shlex.split(f"pacman -Q{''.join(self.options)} {' '.join(self.args)}")
         )
 
 
