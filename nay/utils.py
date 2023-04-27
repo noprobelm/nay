@@ -167,7 +167,7 @@ def get_aur_tree(
     return tree
 
 
-def install(*packages: Package) -> None:
+def install(*packages: Package, nodeps=False, nodeps_recursive=False) -> None:
     """
     Get the AUR tree for a package or series of packages
 
@@ -388,10 +388,15 @@ def install(*packages: Package) -> None:
         - Repeat for each layer until all packages have been installed
         """
         layers = [layer for layer in nx.bfs_layers(aur_tree, aur_explicit)][::-1]
-        for layer in layers:
+        for num, layer in enumerate(layers):
             targets = []
             for pkg in layer:
-                makepkg(pkg, CACHEDIR, "fsc")
+                if nodeps_recursive is True:
+                    makepkg(pkg, CACHEDIR, "fscd")
+                elif nodeps is True and num + 1 == len(layers):
+                    makepkg(pkg, CACHEDIR, "fscd")
+                else:
+                    makepkg(pkg, CACHEDIR, "fsc")
                 pattern = f"{pkg.name}-{pkg.version}-"
                 for obj in os.listdir(os.path.join(CACHEDIR, pkg.name)):
                     if pattern in obj and obj.endswith("zst"):
