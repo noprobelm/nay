@@ -15,7 +15,7 @@ from rich.text import Text
 from .config import CACHEDIR
 from .console import console
 from .db import DATABASES, SYNC_PACKAGES, INSTALLED
-from .package import AURPackage, SyncPackage
+from .package import Package, AURPackage, SyncPackage
 
 SRCDIR = os.getcwd()
 SORT_PRIORITIES = {"db": {"core": 0, "extra": 1, "community": 2, "multilib": 4}}
@@ -74,7 +74,7 @@ def query_local(query: Optional[str] = "") -> None:
     subprocess.run(shlex.split(f"pacman -Qs {query}"))
 
 
-def get_pkgbuild(pkg, clonedir: Optional[str] = None) -> None:
+def get_pkgbuild(pkg: Package, clonedir: Optional[str] = None) -> None:
     """Get the PKGBUILD file from package.Package data"""
     if not clonedir:
         clonedir = os.getcwd()
@@ -86,7 +86,7 @@ def get_pkgbuild(pkg, clonedir: Optional[str] = None) -> None:
     )
 
 
-def makepkg(pkg, clonedir, flags: str, clean: Optional[bool] = False):
+def makepkg(pkg: Package, clonedir, flags: str) -> None:
     """Run makepkg on a PKGBUILD"""
     os.chdir(f"{clonedir}/{pkg.name}")
     subprocess.run(shlex.split(f"makepkg -{flags}"))
@@ -96,7 +96,9 @@ def makepkg(pkg, clonedir, flags: str, clean: Optional[bool] = False):
         shutil.rmtree(f"{os.getcwd()}/{pkg.name}", ignore_errors=True)
 
 
-def get_aur_tree(*packages, multithread=True, recursive=True):
+def get_aur_tree(
+    *packages: Package, multithread: bool = True, recursive: bool = True
+) -> None:
     tree = nx.DiGraph()
 
     if multithread:
@@ -119,16 +121,17 @@ def get_aur_tree(*packages, multithread=True, recursive=True):
     if len(layers) > 1:
         dependencies = layers[0]
         tree = nx.compose(tree, get_aur_tree(*dependencies))
+
     else:
         return tree
 
     return tree
 
 
-def install(*packages):
+def install(*packages: Package) -> None:
     """Install a package based on package.Package data"""
 
-    def get_sync_explicit():
+    def get_sync_explicit() -> list[SyncPackage]:
         sync_explicit = [pkg for pkg in packages if isinstance(pkg, SyncPackage)]
         return sync_explicit
 
