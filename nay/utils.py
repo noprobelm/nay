@@ -116,7 +116,13 @@ def makepkg(pkg: Package, pkgdir, flags: str) -> None:
 
     """
     os.chdir(f"{pkgdir}/{pkg.name}")
-    subprocess.run(shlex.split(f"makepkg -{flags}"))
+    return_code = subprocess.run(shlex.split(f"makepkg -{flags}")).returncode
+    if return_code != 0:
+        console.print(f"[red] -> error making: {pkg.name}-exit status {return_code}")
+        console.print(
+            f"[red] Failed to install {pkg.name}. Manual intervention is required"
+        )
+        quit()
 
     if clean is True:
         os.chdir("../")
@@ -166,7 +172,7 @@ def get_aur_tree(
     return tree
 
 
-def install(*packages: Package, nodeps=False, nodeps_recursive=False) -> None:
+def install(*packages: Package, nodeps_version=False, nodeps_all=False) -> None:
     """
     Get the AUR tree for a package or series of packages
 
@@ -387,12 +393,10 @@ def install(*packages: Package, nodeps=False, nodeps_recursive=False) -> None:
         - Repeat for each layer until all packages have been installed
         """
         layers = [layer for layer in nx.bfs_layers(aur_tree, aur_explicit)][::-1]
-        for num, layer in enumerate(layers):
+        for layer in layers:
             targets = []
             for pkg in layer:
-                if nodeps_recursive is True:
-                    makepkg(pkg, CACHEDIR, "fscd")
-                elif nodeps is True and num + 1 == len(layers):
+                if nodeps_all is True:
                     makepkg(pkg, CACHEDIR, "fscd")
                 else:
                     makepkg(pkg, CACHEDIR, "fsc")
@@ -411,6 +415,23 @@ def install(*packages: Package, nodeps=False, nodeps_recursive=False) -> None:
 
     sync_explicit = get_sync_explicit()
     aur_explicit = get_aur_explicit()
+    if nodeps_all is True:
+        preview_job(sync_explicit=sync_explicit, aur_explicit=aur_explicit)
+        get_missing_pkgbuild(*aur_explicit, verbose=True)
+        preview_install(*aur_explicit)
+        prompt_proceed()
+
+        if aur_explicit:
+            aur_tree = nx.DiGraph()
+            for pkg in aur_explicit:
+                aur_tree.add_node(pkg)
+            install_aur(aur_tree)
+
+        if sync_explicit:
+            install_sync()
+
+        return
+
     aur_tree = get_aur_tree(*aur_explicit, recursive=False)
     aur_depends = get_aur_depends(aur_tree)
     sync_depends = get_sync_depends(*aur_explicit)
