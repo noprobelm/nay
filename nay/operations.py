@@ -81,23 +81,28 @@ class Sync(Operation):
 
     def __init__(self, options: list[str], args: list[str]) -> None:
         self.key = {
-            "y": self.refresh,
-            "u": self.upgrade,
-            "w": self.download,
-            "c": self.clean,
-            "s": self.query,
-            "i": self.info,
+            "--refresh": self.refresh,
+            "--sysupgrade": self.upgrade,
+            "--downloadonly": self.download,
+            "--clean": self.clean,
+            "--search": self.search,
+            "--info": self.info,
         }
+
+        if options.count("--refresh") > 1:
+            options.append("--refresh --refresh")
+            options = list(filter(lambda opt: opt != "--refresh", options))
+        options = list(set(options))
         super().__init__(options, args, self.run)
 
     def run(self) -> None:
         if not self.options:
-            # Add error handling for missing args here
+            # TODO: Add error handling for missing args here
             self.install()
-        elif any(opt in ["c", "s", "i"] for opt in self.options):
-            for opt in set(self.options):
+        elif any(opt in ["--clean", "--search", "--info"] for opt in self.options):
+            for opt in self.options:
                 self.key[opt]()
-        elif "w" in self.options:
+        elif "--downloadonly" in self.options:
             self.download()
         else:
             for opt in set(self.options):
@@ -105,7 +110,7 @@ class Sync(Operation):
             if self.args:
                 self.install()
 
-    def query(self) -> None:
+    def search(self) -> None:
         packages = utils.search(" ".join(self.args))
         utils.print_pkglist(packages)
 
@@ -168,7 +173,7 @@ class Query(Operation):
 
     def run(self) -> None:
         subprocess.run(
-            shlex.split(f"pacman -Q{''.join(self.options)} {' '.join(self.args)}")
+            shlex.split(f"pacman -Q {' '.join(self.options)} {' '.join(self.args)}")
         )
 
 
@@ -241,7 +246,9 @@ class Remove(Operation):
 
     def run(self) -> None:
         subprocess.run(
-            shlex.split(f"sudo pacman -R{''.join(self.options)} {' '.join(self.args)}")
+            shlex.split(
+                f"sudo pacman -R {' '.join(self.options)} {' '.join(self.args)}"
+            )
         )
 
 
@@ -266,5 +273,7 @@ class Upgrade(Operation):
 
     def run(self) -> None:
         subprocess.run(
-            shlex.split(f"sudo pacman -U {''.join(self.options)} {' '.join(self.args)}")
+            shlex.split(
+                f"sudo pacman -U {' '.join(self.options)} {' '.join(self.args)}"
+            )
         )
