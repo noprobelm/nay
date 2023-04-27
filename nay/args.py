@@ -74,6 +74,7 @@ class Args(dict):
                 "--downloadonly": {"conflicts": ["--info", "--search"], "short": "-w"},
                 "--info": {"conflicts": ["--downloadonly", "--search"], "short": "-i"},
                 "--clean": {"conflicts": [], "short": "-c"},
+                "--nodeps": {"conflicts": [], "short": "-d"},
             },
             "pure_wrapper": False,
         },
