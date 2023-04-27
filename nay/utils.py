@@ -98,7 +98,7 @@ def makepkg(pkg: Package, clonedir, flags: str) -> None:
 
 def get_aur_tree(
     *packages: Package, multithread: bool = True, recursive: bool = True
-) -> None:
+) -> nx.DiGraph:
     tree = nx.DiGraph()
 
     if multithread:
@@ -111,7 +111,7 @@ def get_aur_tree(
             tree = nx.compose(tree, future.result())
     else:
         for pkg in packages:
-            pkg_tree = pkg.aur_dependency_tree
+            pkg_tree = pkg.get_aur_dependency_tree
             tree = nx.compose(tree, pkg_tree)
 
     if recursive == False:
@@ -171,8 +171,11 @@ def install(*packages: Package) -> None:
         return sync_depends
 
     def preview_job(
-        sync_explicit=None, sync_depends=None, aur_explicit=None, aur_depends=None
-    ):
+        sync_explicit: Optional[list[SyncPackage]] = None,
+        sync_depends: Optional[list[SyncPackage]] = None,
+        aur_explicit: Optional[list[AURPackage]] = None,
+        aur_depends: Optional[list[AURPackage]] = None,
+    ) -> None:
         if sync_explicit:
             output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in sync_explicit]
             console.print(
@@ -196,7 +199,7 @@ def install(*packages: Package) -> None:
                 f"Sync Dependency ({len(sync_depends)}): {', '.join([out for out in output])}"
             )
 
-    def preview_install(*packages):
+    def preview_install(*packages: Package) -> None:
         install_preview = Table.grid(
             Column("num", justify="right"),
             Column("pkgname", width=35, justify="left"),
@@ -214,18 +217,20 @@ def install(*packages: Package) -> None:
 
         console.print(install_preview)
 
-    def prompt_proceed():
+    def prompt_proceed() -> None:
         prompt = console.input(
             "[bright_green]==>[/bright_green] Install packages? [Y/n] "
         )
         if not prompt.lower().startswith("y"):
             quit()
 
-    def resolve_dependencies(aur_tree):
+    def resolve_dependencies(aur_tree: nx.DiGraph) -> nx.DiGraph:
         aur_tree = nx.compose(aur_tree, get_aur_tree(*aur_depends))
         return aur_tree
 
-    def get_missing_pkgbuild(*packages, multithread=True, verbose=False):
+    def get_missing_pkgbuild(
+        *packages: AURPackage, multithread=True, verbose=False
+    ) -> None:
         missing = []
         for pkg in packages:
             if not pkg.pkgbuild_exists:
@@ -252,7 +257,7 @@ def install(*packages: Package) -> None:
                         f"[notify]::[/notify] {num+1}/{len(missing)} Downloaded PKGBUILD: [notify]{pkg.name}"
                     )
 
-    def install_aur(aur_tree):
+    def install_aur(aur_tree: nx.DiGraph) -> None:
         layers = [layer for layer in nx.bfs_layers(aur_tree, aur_explicit)][::-1]
         for layer in layers:
             targets = []
@@ -265,7 +270,7 @@ def install(*packages: Package) -> None:
 
             subprocess.run(shlex.split(f"sudo pacman -U {' '.join(targets)}"))
 
-    def install_sync():
+    def install_sync() -> None:
         subprocess.run(
             shlex.split(f"sudo pacman -S {[pkg.name for pkg in sync_explicit]}")
         )
