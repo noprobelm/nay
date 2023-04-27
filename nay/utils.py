@@ -71,13 +71,13 @@ def query_local(query: Optional[str] = "") -> None:
     subprocess.run(shlex.split(f"pacman -Qs {query}"))
 
 
-def get_pkgbuild(pkg: Package, clonedir: Optional[str] = None) -> None:
+def get_pkgbuild(pkg: Package, pkgdir: Optional[str] = None) -> None:
     """Get the PKGBUILD file from package.Package data"""
-    if not clonedir:
-        clonedir = os.getcwd()
+    if not pkgdir:
+        pkgdir = os.getcwd()
     subprocess.run(
         shlex.split(
-            f"git clone https://aur.archlinux.org/{pkg.name}.git {clonedir}/{pkg.name}"
+            f"git clone https://aur.archlinux.org/{pkg.name}.git {pkgdir}/{pkg.name}"
         ),
         capture_output=True,
     )
