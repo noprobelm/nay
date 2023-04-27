@@ -155,7 +155,7 @@ class Args(dict):
             if len(operation) > 1:
                 try:
                     raise ConflictingOperations(
-                        f"error: only one operation may be used at a time"
+                        "error: only one operation may be used at a time"
                     )
                 except ConflictingOperations as err:
                     print(err)
