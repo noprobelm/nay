@@ -244,6 +244,13 @@ def install(*packages: Package) -> None:
                         console.print(
                             f"[notify]::[/notify] {num+1}/{len(missing)} Downloaded PKGBUILD: [notify]{pkg.name}"
                         )
+        else:
+            for num, pkg in enumerate(missing):
+                get_pkgbuild(pkg, CACHEDIR)
+                if verbose:
+                    console.print(
+                        f"[notify]::[/notify] {num+1}/{len(missing)} Downloaded PKGBUILD: [notify]{pkg.name}"
+                    )
 
     def install_aur(aur_tree):
         layers = [layer for layer in nx.bfs_layers(aur_tree, aur_explicit)][::-1]
