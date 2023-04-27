@@ -9,6 +9,7 @@ default = Theme(
         "core": "bright_yellow",
         "multilib": "bright_cyan",
         "other_db": "bright_yellow",
+        "notify": "bright_cyan",
     }
 )
 

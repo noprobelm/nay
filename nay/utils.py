@@ -171,24 +171,24 @@ def install(*packages):
         sync_explicit=None, sync_depends=None, aur_explicit=None, aur_depends=None
     ):
         if sync_explicit:
-            output = [f"{pkg.name}-{pkg.version}" for pkg in sync_explicit]
+            output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in sync_explicit]
             console.print(
                 f"Sync Explicit {len(sync_explicit)}: {', '.join([pkg for pkg in output])}"
             )
         if aur_explicit:
-            output = [f"{pkg.name}-{pkg.version}" for pkg in aur_explicit]
+            output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in aur_explicit]
             console.print(
                 f"AUR Explicit ({len(aur_explicit)}): {', '.join([pkg for pkg in output])}"
             )
 
         if aur_depends:
-            output = [f"{pkg.name}-{pkg.version}" for pkg in aur_depends]
+            output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in aur_depends]
             console.print(
                 f"AUR Dependency ({len(aur_depends)}): {', '.join([out for out in output])}"
             )
 
         if sync_depends:
-            output = [f"{pkg.name}-{pkg.version}" for pkg in sync_depends]
+            output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in sync_depends]
             console.print(
                 f"Sync Dependency ({len(sync_depends)}): {', '.join([out for out in output])}"
             )
@@ -196,7 +196,7 @@ def install(*packages):
     def preview_install(*packages):
         install_preview = Table.grid(
             Column("num", justify="right"),
-            Column("pkgname", width=50, justify="left"),
+            Column("pkgname", width=35, justify="left"),
             Column("pkgbuild_exists"),
             padding=(0, 1, 0, 1),
         )
@@ -204,7 +204,9 @@ def install(*packages):
         for num, pkg in enumerate(packages):
             # TODO: Fix hardcoded "Build Files Exist" -- I'm not how we'd encounter a scenario where we got here and they don't already exist
             install_preview.add_row(
-                str(len(packages) - num), pkg.name, "Build Files Exist"
+                f"[magenta]{len(packages) - num}[/magenta]",
+                pkg.name,
+                "[bright_green](Build Files Exist)",
             )
 
         console.print(install_preview)
@@ -228,7 +230,7 @@ def install(*packages):
             else:
                 if verbose:
                     console.print(
-                        f":: PKGBUILD up to date, skipping download: {pkg.name}"
+                        f"[notify]::[/notify] PKGBUILD up to date, skipping download: [notify]{pkg.name}"
                     )
 
         if multithread:
@@ -237,7 +239,7 @@ def install(*packages):
                     executor.submit(get_pkgbuild, pkg, CACHEDIR)
                     if verbose:
                         console.print(
-                            f":: {num+1}/{len(missing)} Downloaded PKGBUILD: {pkg.name}"
+                            f"[notify]::[/notify] {num+1}/{len(missing)} Downloaded PKGBUILD: [notify]{pkg.name}"
                         )
 
     def install_aur(aur_tree):
