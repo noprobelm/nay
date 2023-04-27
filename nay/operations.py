@@ -93,6 +93,10 @@ class Sync(Operation):
         if options.count("--refresh") > 1:
             options.append("--refresh --refresh")
             options = list(filter(lambda opt: opt != "--refresh", options))
+        elif options.count("--nodeps") > 1:
+            options.append("--nodeps --nodeps")
+            options = list(filter(lambda opt: opt != "--refresh", options))
+
         options = list(set(options))
         options = list(sorted(options, key=lambda x: list(self.key.keys()).index(x)))
         super().__init__(options, args, self.run)
