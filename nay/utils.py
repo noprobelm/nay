@@ -29,14 +29,14 @@ def refresh() -> None:
     """
     Refresh the sync database. This is a pure pacman wrapper
     """
-    subprocess.run(shlex.split(f"sudo pacman -Sy"))
+    subprocess.run(shlex.split("sudo pacman -Sy"))
 
 
 def force_refresh() -> None:
     """
     Force refresh the sync database. This is a pure pacman wrapper.
     """
-    subprocess.run(shlex.split(f"sudo pacman -Syy"))
+    subprocess.run(shlex.split("sudo pacman -Syy"))
 
 
 def upgrade() -> None:
@@ -46,7 +46,7 @@ def upgrade() -> None:
 
 def clean() -> None:
     """Clean up unused package cache data"""
-    subprocess.run(shlex.split(f"sudo pacman -Sc"))
+    subprocess.run(shlex.split("sudo pacman -Sc"))
     response = console.input(
         "\n[bright_blue]::[/bright_blue] Do you want to remove all other AUR packages from cache? [Y/n] "
     )
@@ -119,7 +119,7 @@ def makepkg(pkg: Package, pkgdir, flags: str) -> None:
     os.chdir(f"{pkgdir}/{pkg.name}")
     subprocess.run(shlex.split(f"makepkg -{flags}"))
 
-    if clean == True:
+    if clean is True:
         os.chdir("../")
         shutil.rmtree(f"{os.getcwd()}/{pkg.name}", ignore_errors=True)
 
@@ -153,7 +153,7 @@ def get_aur_tree(
             pkg_tree = pkg.get_aur_dependency_tree
             tree = nx.compose(tree, pkg_tree)
 
-    if recursive == False:
+    if recursive is False:
         return tree
 
     layers = [layer for layer in nx.bfs_layers(tree, packages)]
@@ -525,7 +525,7 @@ def print_pkglist(
 
     """
     render_result = []
-    if include_num == True:
+    if include_num is True:
         for num in packages:
             renderable = Text(f"{num} ")
             renderable.stylize("magenta", 0, len(renderable))

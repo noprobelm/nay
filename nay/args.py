@@ -155,7 +155,7 @@ class Args(dict):
             if len(operation) > 1:
                 try:
                     raise ConflictingOperations(
-                        f"error: only one operation may be used at a time"
+                        "error: only one operation may be used at a time"
                     )
                 except ConflictingOperations as err:
                     print(err)
@@ -167,7 +167,7 @@ class Args(dict):
         operation = operation[0]
 
         valid_opts = {}
-        if self.OPERATIONS[operation]["pure_wrapper"] == False:
+        if self.OPERATIONS[operation]["pure_wrapper"] is False:
             for long_opt in self.OPERATIONS[operation]["options"].keys():
                 short_opt = self.OPERATIONS[operation]["options"][long_opt]["short"]
                 valid_opts[long_opt] = short_opt
