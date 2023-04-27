@@ -195,7 +195,7 @@ class SyncPackage(Package):
             (Text(f"{self.name} ")),
             (Text(f"{self.version} ", style="cyan")),
             (Text(f"({self.size} {self.isize}) ")),
-            (Text(f"(Installed)" if self.is_installed else "", style="bright_green")),
+            (Text("(Installed)" if self.is_installed else "", style="bright_green")),
         )
         renderable = Text("\n    ").join([renderable, Text(self.desc)])
         return renderable
@@ -394,8 +394,8 @@ class AURPackage(Package):
             (Text(f"{self.name} ")),
             (Text(f"{self.version} ", style="cyan")),
             (Text(f"(+{self.votes} {popularity}) ")),
-            (Text(f"(Installed) " if self.is_installed else "", style="bright_green")),
-            (Text(f"(Orphaned) " if self.orphaned else "", style="bright_red")),
+            (Text("(Installed) " if self.is_installed else "", style="bright_green")),
+            (Text("(Orphaned) " if self.orphaned else "", style="bright_red")),
             (
                 Text(
                     f"(Out-of-date: {flag_date})" if flag_date else flag_date,
@@ -451,7 +451,7 @@ class AURPackage(Package):
             self.info_query = query["results"][0]
 
         grid = Table.grid(Column("field", width=30), Column("value"))
-        grid.add_row("Repository", f": aur")
+        grid.add_row("Repository", ": aur")
         grid.add_row("Name", f": {self.info_query['Name']}")
         grid.add_row(
             "Keywords",
@@ -462,7 +462,7 @@ class AURPackage(Package):
         grid.add_row("URL", f": {self.info_query['URL']}")
         grid.add_row("AUR URL", f": https://aur.archlinux.org/packages/{self.name}")
         # TODO: Fix hardcoded 'None'
-        grid.add_row("Groups", f": None")
+        grid.add_row("Groups", ": None")
         grid.add_row(
             "License", f": {'  '.join([_ for _ in self.info_query['License']])}"
         )
