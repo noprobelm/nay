@@ -110,7 +110,6 @@ class Package:
             return hash(self) == hash(other)
 
 
-@dataclass(eq=False)
 class SyncPackage(Package):
     """
     A representation of an Arch package sourced from a synchronization database
@@ -137,16 +136,22 @@ class SyncPackage(Package):
 
     """
 
-    size: int
-    isize: int
-
-    def __post_init__(self) -> None:
-        """
-        post-init method to represent package sizes in human-readable format. This data is used when printing package info to the terminal.
-
-        :return: None
-        :rtype: None
-        """
+    def __init__(
+        self,
+        db: str,
+        name: str,
+        version: str,
+        desc: str,
+        check_depends: Optional[list[str]],
+        make_depends: Optional[list[str]],
+        depends: Optional[list[str]],
+        opt_depends: Optional[list[str]],
+        size: int,
+        isize: int,
+    ) -> None:
+        super().__init__(
+            db, name, version, desc, check_depends, make_depends, depends, opt_depends
+        )
         self.size = self.format_bytes(self.size)
         self.isize = self.format_bytes(self.isize)
 
