@@ -172,12 +172,20 @@ def get_aur_tree(
     return tree
 
 
-def install(*packages: Package, skip_verchecks=False, skip_depchecks=False) -> None:
+def install(
+    *packages: Package,
+    skip_verchecks: Optional[bool] = False,
+    skip_depchecks: Optional[bool] = False,
+) -> None:
     """
     Get the AUR tree for a package or series of packages
 
     :param packages: A package or series of package objects to install
     :type packages: package.Package
+    :param skip_verchecks: Optional option to skip version checks for dependencies. Default is False
+    :type skip_verchecks: Optinoal[bool]=False
+    :param skip_depchecks: Optional option to skip all dependency checks. Default is False
+    :type skip_depchecks: Optinoal[bool]=False
 
     """
 
