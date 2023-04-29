@@ -344,7 +344,12 @@ class AURBasic(Package):
             (Text(f"{self.name} ")),
             (Text(f"{self.version} ", style="cyan")),
             (Text(f"(+{self.votes} {popularity}) ")),
-            (Text("(Installed) " if self.is_installed else "", style="bright_green")),
+            (
+                Text(
+                    "(Installed) " if self.name in INSTALLED else "",
+                    style="bright_green",
+                )
+            ),
             (Text("(Orphaned) " if self.orphaned else "", style="bright_red")),
             (
                 Text(
