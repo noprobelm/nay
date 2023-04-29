@@ -12,10 +12,10 @@ from rich.console import Group
 from rich.table import Column, Table
 from rich.text import Text
 
+from .console import console, default
+from .package import AURBasic, AURPackage, Package, SyncPackage
+from nay import INSTALLED, DATABASES, INSTALLED
 from .config import CACHEDIR
-from .console import console
-from .db import DATABASES, INSTALLED
-from .package import AURPackage, Package, SyncPackage
 
 SORT_PRIORITIES = {"db": {"core": 0, "extra": 1, "community": 2, "multilib": 4}}
 for num, db in enumerate(DATABASES):
@@ -504,7 +504,7 @@ def search(query: str, sortby: Optional[str] = "db") -> dict[int, Package]:
     ).json()
 
     packages.extend(
-        AURPackage.from_search_query(result) for result in aur_query["results"]
+        AURBasic.from_search_query(result) for result in aur_query["results"]
     )
     packages = list(
         reversed(
@@ -573,15 +573,74 @@ def print_pkglist(
     :type include_num: Optional[bool]
 
     """
+
+    def get_size(pkg):
+        return Text(f"{pkg.size}")
+
+    def get_isize(pkg):
+        return Text(f"{pkg.isize}")
+
+    def get_votes(pkg):
+        return Text(f"{pkg.votes}")
+
+    def get_popularity(pkg):
+        return Text("{:.2f}".format(pkg.popularity))
+
+    def get_orphan(pkg):
+        return Text(f"(Orphaned) ", style="bright_red") if pkg.orphaned else Text("")
+
+    def get_flag_date(pkg):
+        return (
+            Text(f"(Out-of-date): {pkg.flag_date.strftime('%Y-%m-%d')}")
+            if pkg.flag_date
+            else Text("")
+        )
+
     render_result = []
-    if include_num is True:
-        for num in packages:
-            renderable = Text(f"{num} ")
-            renderable.stylize("magenta", 0, len(renderable))
-            renderable.append_text(packages[num].renderable)
-            render_result.append(renderable)
-    else:
-        render_result = [packages[pkg].renderable for pkg in packages]
+
+    for num in packages:
+        pkg = packages[num]
+
+        renderable = Text.assemble(
+            Text(
+                pkg.db,
+                style=pkg.db if pkg.db in default.styles.keys() else "other_db",
+            ),
+            Text("/"),
+            Text(f"{pkg.name} "),
+            Text(f"{pkg.version} ", style="cyan"),
+        )
+
+        if isinstance(pkg, SyncPackage):
+            renderable.append_text(Text(f"({get_size(pkg)} "))
+            renderable.append_text(Text(f"{get_isize(pkg)})"))
+            renderable.append_text(
+                Text(
+                    f"(Installed): {pkg.version} " if pkg in INSTALLED.keys() else "",
+                    style="bright_green",
+                )
+            )
+
+        elif isinstance(pkg, AURBasic):
+            renderable.append_text(Text(f"(+{get_votes(pkg)} {get_popularity(pkg)}) "))
+            renderable.append_text(
+                Text(
+                    f"(Installed): {pkg.version} "
+                    if pkg.name in INSTALLED.keys()
+                    else "",
+                    style="bright_green",
+                )
+            )
+            renderable.append_text(get_orphan(pkg))
+            renderable.append_text(get_flag_date(pkg))
+
+        if include_num is True:
+            num = Text(f"{num} ", style="magenta")
+            num.append_text(renderable)
+            renderable = num
+
+        renderable = Text("\n    ").join([renderable, Text(pkg.desc)])
+        render_result.append(renderable)
 
     render_result = Group(*render_result)
 
