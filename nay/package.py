@@ -12,6 +12,11 @@ from rich.text import Text
 
 from .config import CACHEDIR
 from .console import default
+import pyalpm
+from pyalpm import Handle
+
+handle = Handle("/", "/var/lib/pacman")
+INSTALLED = [pkg for pkg in handle.get_localdb().pkgcache]
 
 
 class Package:
@@ -206,7 +211,12 @@ class SyncPackage(Package):
             (Text(f"{self.name} ")),
             (Text(f"{self.version} ", style="cyan")),
             (Text(f"({self.size} {self.isize}) ")),
-            (Text("(Installed)" if self.is_installed else "", style="bright_green")),
+            (
+                Text(
+                    "(Installed)" if self.name in INSTALLED else "",
+                    style="bright_green",
+                )
+            ),
         )
         renderable = Text("\n    ").join([renderable, Text(self.desc)])
         return renderable
