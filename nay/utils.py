@@ -410,7 +410,7 @@ def install(
                     makepkg(pkg, CACHEDIR, "fscd")
                 else:
                     makepkg(pkg, CACHEDIR, "fsc")
-                pattern = f"{pkg.name}-{pkg.version}-"
+                pattern = f"{pkg.name}-"
                 for obj in os.listdir(os.path.join(CACHEDIR, pkg.name)):
                     if pattern in obj and obj.endswith("zst"):
                         targets.append(os.path.join(CACHEDIR, pkg.name, obj))
