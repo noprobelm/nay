@@ -14,7 +14,7 @@ from rich.text import Text
 
 from .config import CACHEDIR
 from .console import console
-from .db import DATABASES, SYNC_PACKAGES
+from .db import DATABASES, INSTALLED
 from .package import AURPackage, Package, SyncPackage
 
 SORT_PRIORITIES = {"db": {"core": 0, "extra": 1, "community": 2, "multilib": 4}}
@@ -149,13 +149,13 @@ def get_aur_tree(
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             futures = []
             for pkg in packages:
-                future = executor.submit(pkg.get_aur_dependency_tree)
+                future = executor.submit(pkg.get_dependency_tree)
                 futures.append(future)
         for future in futures:
             tree = nx.compose(tree, future.result())
     else:
         for pkg in packages:
-            pkg_tree = pkg.get_aur_dependency_tree
+            pkg_tree = pkg.get_dependency_tree()
             tree = nx.compose(tree, pkg_tree)
 
     if recursive is False:
@@ -232,10 +232,11 @@ def install(
                     "depends",
                 ]
             ):
-                if not dep.is_installed:
+                if dep not in INSTALLED:
                     aur_depends.append(dep)
-                elif skip_verchecks is False and not dep.is_updated:
-                    aur_depends.append(dep)
+                elif skip_verchecks is False:
+                    if INSTALLED[INSTALLED.index(dep)] != dep:
+                        aur_depends.append(dep)
 
         return aur_depends
 
@@ -255,12 +256,10 @@ def install(
             for dep_type in ["check_depends", "make_depends", "depends"]:
                 depends = getattr(pkg, dep_type)
                 if isinstance(depends, list):
-                    sync_depends.extend(
-                        [dep for dep in depends if dep in SYNC_PACKAGES]
-                    )
+                    sync_depends.extend([dep for dep in depends if dep in SYNC_PKGLIST])
 
         sync_depends = get_packages(*sync_depends)
-        sync_depends = [dep for dep in sync_depends if not dep.is_installed]
+        sync_depends = [dep for dep in sync_depends if dep not in INSTALLED]
         return sync_depends
 
     def preview_job(
@@ -538,7 +537,7 @@ def get_packages(*pkg_names: str) -> list[Union[SyncPackage, AURPackage]]:
     packages = []
     aur_search = []
     for name in pkg_names:
-        if name in SYNC_PACKAGES:
+        if name in SYNC_PKGLIST:
             for database in DATABASES:
                 pkg = DATABASES[database].get_pkg(name)
                 if pkg:
