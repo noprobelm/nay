@@ -53,16 +53,6 @@ class Package:
         self.depends = depends
         self.opt_depends = opt_depends
 
-    @property
-    def is_updated(self) -> bool:
-        """
-        Check if the AURPackage version matches the localdb version. If not, return False
-
-        :return: bool: True if self.version matches .SRCINFO meta data, otherwise False
-        :rtype: bool
-        """
-        pass
-
     def __lt__(self, other) -> bool:
         """
         Compare two `Package` instances for alphabetical sorting purposes
@@ -76,9 +66,8 @@ class Package:
         if isinstance(other, Package):
             if self.db < other.db:
                 return True
-            elif self.db == other.db:
-                if self.name < other.name:
-                    return True
+            elif self.db == other.db and self.name < other.name:
+                return True
 
         return False
 
