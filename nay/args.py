@@ -111,10 +111,10 @@ class Args(dict):
     }
 
     def __init__(self) -> None:
-        if len(sys.argv) == 1:
+        if len(sys.argv) == 0:
             super().__init__(
                 {
-                    "operation": self.OPERATIONS["nay"]["operation"],
+                    "operation": self.OPERATIONS["--nay"]["operation"],
                     "options": [],
                     "args": [],
                 }
@@ -165,6 +165,16 @@ class Args(dict):
             print(err)
             quit()
 
+        if len(operation) == 0:
+            super().__init__(
+                {
+                    "operation": self.OPERATIONS["--nay"]["operation"],
+                    "options": [],
+                    "args": args,
+                }
+            )
+
+            return
         operation = operation[0]
 
         valid_opts = {}
