@@ -19,7 +19,3 @@ def refresh(force: Optional[bool] = False) -> None:
 def upgrade() -> None:
     """Upgrade all system packages"""
     subprocess.run(shlex.split("sudo pacman -Su"))
-
-
-def clean_pacman_pkgcache():
-    subprocess.run(shlex.split("sudo pacman -Sc"))

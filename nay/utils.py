@@ -16,7 +16,9 @@ from .console import console, default
 from .package import AURBasic, AURPackage, Package, SyncPackage
 from nay import INSTALLED, DATABASES, INSTALLED
 from .config import CACHEDIR
-from .wrapper_funcs import refresh, upgrade, clean_pacman_pkgcache
+
+from .wrapper_funcs import refresh, upgrade
+from .clean import clean
 
 SORT_PRIORITIES = {"db": {"core": 0, "extra": 1, "community": 2, "multilib": 4}}
 for num, db in enumerate(DATABASES):
@@ -24,44 +26,6 @@ for num, db in enumerate(DATABASES):
     if db not in SORT_PRIORITIES["db"].keys():
         SORT_PRIORITIES["db"][db] = num
 SORT_PRIORITIES["db"]["aur"] = max([num for num in SORT_PRIORITIES["db"].values()])
-
-
-def clean() -> None:
-    """Clean up unused package cache data"""
-    response = console.input(
-        "\n[bright_blue]::[/bright_blue] Do you want to remove all other AUR packages from cache? [Y/n] "
-    )
-
-    if response.lower() == "y":
-        console.print("removing AUR packages from cache...")
-        os.chdir(CACHEDIR)
-        for obj in os.listdir():
-            shutil.rmtree(obj, ignore_errors=True)
-    response = console.input(
-        "\n[bright_blue]::[/bright_blue] Do you want to remove ALL untracked AUR files? [Y/n] "
-    )
-
-    if response.lower() == "y":
-        console.print("removing untracked AUR files from cache...")
-        os.chdir(CACHEDIR)
-        for obj in os.listdir():
-            if os.path.isdir(os.path.join(os.getcwd(), obj)):
-                os.chdir(os.path.join(os.getcwd(), obj))
-                for _ in os.listdir():
-                    if _.endswith(".tar.zst"):
-                        os.remove(_)
-                os.chdir("../")
-
-
-def query_local(query: Optional[str] = "") -> None:
-    """
-    Query the local sync database. This is a pure pacman wrapper
-
-    :param force: Optional parameter indicating whether the sync database should be refreshed even if it's flagged as up-to-date (not generally recommended). Default is False
-    :type force: Optional[bool]
-
-    """
-    subprocess.run(shlex.split(f"pacman -Qs {query}"))
 
 
 def get_pkgbuild(pkg: Package, pkgdir: Optional[str] = None) -> None:
