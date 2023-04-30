@@ -16,6 +16,7 @@ from .console import console, default
 from .package import AURBasic, AURPackage, Package, SyncPackage
 from nay import INSTALLED, DATABASES, INSTALLED
 from .config import CACHEDIR
+from .wrapper_funcs import refresh, upgrade, clean_pacman_pkgcache
 
 SORT_PRIORITIES = {"db": {"core": 0, "extra": 1, "community": 2, "multilib": 4}}
 for num, db in enumerate(DATABASES):
@@ -25,27 +26,8 @@ for num, db in enumerate(DATABASES):
 SORT_PRIORITIES["db"]["aur"] = max([num for num in SORT_PRIORITIES["db"].values()])
 
 
-def refresh(force: Optional[bool] = False) -> None:
-    """
-    Refresh the sync database. This is a pure pacman wrapper
-
-    :param force: Flag to force a refresh of the sync database (not recommended)
-    :type force: bool
-    """
-    if force is True:
-        subprocess.run(shlex.split("sudo pacman -Syy"))
-    else:
-        subprocess.run(shlex.split("sudo pacman -Sy"))
-
-
-def upgrade() -> None:
-    """Upgrade all system packages"""
-    subprocess.run(shlex.split("sudo pacman -Su"))
-
-
 def clean() -> None:
     """Clean up unused package cache data"""
-    subprocess.run(shlex.split("sudo pacman -Sc"))
     response = console.input(
         "\n[bright_blue]::[/bright_blue] Do you want to remove all other AUR packages from cache? [Y/n] "
     )
