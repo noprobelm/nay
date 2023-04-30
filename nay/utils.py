@@ -613,29 +613,30 @@ def print_pkglist(
 
         if isinstance(pkg, SyncPackage):
             renderable.append_text(Text(f"({get_size(pkg)} "))
-            renderable.append_text(Text(f"{get_isize(pkg)})"))
-            renderable.append_text(
-                Text(
-                    f"(Installed): {pkg.version} " if pkg in INSTALLED.keys() else "",
-                    style="bright_green",
+            renderable.append_text(Text(f"{get_isize(pkg)}) "))
+            if pkg.name in INSTALLED.keys():
+                renderable.append_text(
+                    Text(
+                        f"(Installed: {INSTALLED[pkg.name].version}) ",
+                        style="bright_green",
+                    )
                 )
-            )
 
         elif isinstance(pkg, AURBasic):
             renderable.append_text(Text(f"(+{get_votes(pkg)} {get_popularity(pkg)}) "))
-            renderable.append_text(
-                Text(
-                    f"(Installed): {pkg.version} "
-                    if pkg.name in INSTALLED.keys()
-                    else "",
-                    style="bright_green",
+            if pkg.name in INSTALLED.keys():
+                renderable.append_text(
+                    Text(
+                        f"(Installed: {INSTALLED[pkg.name].version}) ",
+                        style="bright_green",
+                    )
                 )
-            )
             renderable.append_text(get_orphan(pkg))
             renderable.append_text(get_flag_date(pkg))
 
         if include_num is True:
-            num = Text(f"{num} ", style="magenta")
+            num = Text(f"{num} ")
+            num.stylize("magenta", 0, len(num))
             num.append_text(renderable)
             renderable = num
 

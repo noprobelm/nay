@@ -6,34 +6,8 @@ from typing import Optional
 import networkx as nx
 import pyalpm
 import requests
-from rich.console import Console, ConsoleOptions, RenderResult
 from rich.table import Column, Table
-from rich.text import Text
-
 from .config import CACHEDIR
-from .console import default
-import pyalpm
-from pyalpm import Handle
-
-import configparser
-
-import pyalpm
-from pyalpm import Handle
-from .package import SyncPackage
-
-parser = configparser.ConfigParser(allow_no_value=True)
-parser.read("/etc/pacman.conf")
-
-handle = Handle("/", "/var/lib/pacman")
-DATABASES = {
-    db: handle.register_syncdb(db, pyalpm.SIG_DATABASE_OPTIONAL)
-    for db in parser.sections()[1:]
-}
-
-SYNC_PACKAGES = []
-for db in DATABASES:
-    SYNC_PACKAGES.extend([pkg.name for pkg in DATABASES[db].pkgcache])
-INSTALLED = [pkg for pkg in handle.get_localdb().pkgcache]
 
 
 class Package:
@@ -209,43 +183,6 @@ class SyncPackage(Package):
             n += 1
         return f"{round(size, 1)} {power_labels[n]}"
 
-    @property
-    def renderable(self) -> Text:
-        """
-        Get a rich.text.Text renderable representation of the package
-
-        :return: A rich.text.Text renderable representation of the package
-        :rtype: rich.text.Text
-        """
-        renderable = Text.assemble(
-            (
-                Text(
-                    self.db,
-                    style=self.db if self.db in default.styles.keys() else "other_db",
-                )
-            ),
-            (Text("/")),
-            (Text(f"{self.name} ")),
-            (Text(f"{self.version} ", style="cyan")),
-            (Text(f"({self.size} {self.isize}) ")),
-            (
-                Text(
-                    "(Installed)" if self.name in INSTALLED else "",
-                    style="bright_green",
-                )
-            ),
-        )
-        renderable = Text("\n    ").join([renderable, Text(self.desc)])
-        return renderable
-
-    def __rich_console__(
-        self, console: Console, options: ConsoleOptions
-    ) -> RenderResult:
-        """
-        Protocol for rich.console.Console to render the package to the terminal
-        """
-        yield self.renderable
-
 
 class AURBasic(Package):
     def __init__(
@@ -339,44 +276,6 @@ class AURBasic(Package):
                 return False
         else:
             return False
-
-    @property
-    def renderable(self) -> Text:
-        """
-        Get a rich.text.Text renderable representation of the package
-
-        :return: A rich.text.Text renderable representation of the package
-        :rtype: rich.text.Text
-        """
-        flag_date = self.flag_date.strftime("%Y-%m-%d") if self.flag_date else ""
-        popularity = "{:.2f}".format(self.popularity)
-        renderable = Text.assemble(
-            (
-                Text(
-                    self.db,
-                    style=self.db if self.db in default.styles.keys() else "other_db",
-                )
-            ),
-            (Text("/")),
-            (Text(f"{self.name} ")),
-            (Text(f"{self.version} ", style="cyan")),
-            (Text(f"(+{self.votes} {popularity}) ")),
-            (
-                Text(
-                    "(Installed) " if self.name in INSTALLED else "",
-                    style="bright_green",
-                )
-            ),
-            (Text("(Orphaned) " if self.orphaned else "", style="bright_red")),
-            (
-                Text(
-                    f"(Out-of-date: {flag_date})" if flag_date else flag_date,
-                    style="bright_red",
-                )
-            ),
-        )
-        renderable = Text("\n    ").join([renderable, Text(self.desc)])
-        return renderable
 
 
 class AURPackage(AURBasic):
@@ -599,11 +498,3 @@ class AURPackage(AURBasic):
         )
 
         return grid
-
-    def __rich_console__(
-        self, console: Console, options: ConsoleOptions
-    ) -> RenderResult:
-        """
-        Protocol for rich.console.Console to render the package to the terminal
-        """
-        yield self.renderable
