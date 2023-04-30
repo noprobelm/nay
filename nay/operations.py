@@ -1,3 +1,4 @@
+import os
 import shlex
 import subprocess
 from dataclasses import dataclass
@@ -142,21 +143,6 @@ class Sync(Operation):
     def download(self) -> None:
         targets = {"aur": [], "sync": []}
         packages = utils.get_packages(*self.args)
-        for pkg in packages:
-            if isinstance(pkg, AURPackage):
-                targets["aur"].append(pkg)
-            else:
-                targets["sync"].append(pkg)
-
-        for target in targets["aur"]:
-            utils.get_pkgbuild(target, pkgdir=CACHEDIR)
-
-        if targets["sync"]:
-            subprocess.run(
-                shlex.split(
-                    f"sudo pacman -Sw {' '.join([pkg.name for pkg in targets['sync']])}"
-                )
-            )
 
     def clean(self) -> None:
         utils.clean()
@@ -223,7 +209,7 @@ class GetPKGBUILD(Operation):
         if succeeded:
             for idx, pkg in enumerate(succeeded):
                 idx += 1
-                utils.get_pkgbuild(pkg)
+                utils.get_pkgbuild(pkg, os.getcwd())
                 if pkg.db == "aur":
                     console.print(
                         f"[bright_blue]::[/bright_blue] ({idx}/{len(succeeded)}) Downloaded PKGBIULD: {pkg.name}"
@@ -235,7 +221,7 @@ class GetPKGBUILD(Operation):
 
         if failed:
             console.print(
-                f"[bright_yellow] ->[/bright_yellow] Unable to find the following packages: {', '.join([arg for arg in failed])}"
+                f"[bright_red] ->[/bright_yellow] Unable to find the following packages: {', '.join([arg for arg in failed])}"
             )
 
 

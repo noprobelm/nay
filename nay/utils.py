@@ -19,6 +19,7 @@ from .config import CACHEDIR
 
 from .wrapper_funcs import refresh, upgrade
 from .clean import clean
+from .download import get_pkgbuild, download
 
 SORT_PRIORITIES = {"db": {"core": 0, "extra": 1, "community": 2, "multilib": 4}}
 for num, db in enumerate(DATABASES):
@@ -26,27 +27,6 @@ for num, db in enumerate(DATABASES):
     if db not in SORT_PRIORITIES["db"].keys():
         SORT_PRIORITIES["db"][db] = num
 SORT_PRIORITIES["db"]["aur"] = max([num for num in SORT_PRIORITIES["db"].values()])
-
-
-def get_pkgbuild(pkg: Package, pkgdir: Optional[str] = None) -> None:
-    """
-    Get the PKGBUILD file from package.Package data
-
-    :param pkg: The package.Package object to get the PKGBUILD for
-    :type pkg: package.Package
-    :param pkgdir: Optional directory to clone the PKGBUILD to. Default is 'None'
-    :type pkgdir: Optional[str]
-
-    """
-
-    if not pkgdir:
-        pkgdir = os.getcwd()
-    subprocess.run(
-        shlex.split(
-            f"git clone https://aur.archlinux.org/{pkg.name}.git {pkgdir}/{pkg.name}"
-        ),
-        capture_output=True,
-    )
 
 
 def makepkg(pkg: Package, pkgdir, flags: str) -> None:
