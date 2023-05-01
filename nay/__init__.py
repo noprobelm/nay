@@ -1,9 +1,9 @@
-from .package import SyncPackage
-
 import configparser
 
 import pyalpm
 from pyalpm import Handle
+
+from .package import SyncPackage
 
 parser = configparser.ConfigParser(allow_no_value=True)
 parser.read("/etc/pacman.conf")

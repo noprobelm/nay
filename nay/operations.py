@@ -4,9 +4,8 @@ import subprocess
 from dataclasses import dataclass
 from typing import Callable
 
-from .console import console
-
 from . import utils
+from .console import console
 
 
 @dataclass

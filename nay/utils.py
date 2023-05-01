@@ -1,21 +1,22 @@
-from typing import Optional, Union
-import subprocess
-import shlex
-import os
-from .config import CACHEDIR
-import shutil
-
 import concurrent.futures
-from .package import Package, SyncPackage, AURBasic, AURPackage
-from nay import DATABASES, INSTALLED, SYNC_PACKAGES
-import requests
+import os
 import re
-from rich.text import Text
-from .console import console, default
-from rich.console import Group
-import networkx as nx
-from rich.table import Table, Column
+import shlex
+import shutil
+import subprocess
+from typing import Optional, Union
 
+import networkx as nx
+import requests
+from rich.console import Group
+from rich.table import Column, Table
+from rich.text import Text
+
+from nay import DATABASES, INSTALLED, SYNC_PACKAGES
+
+from .config import CACHEDIR
+from .console import console, default
+from .package import AURBasic, AURPackage, Package, SyncPackage
 
 SORT_PRIORITIES = {"db": {"core": 0, "extra": 1, "community": 2, "multilib": 4}}
 for num, db in enumerate(DATABASES):

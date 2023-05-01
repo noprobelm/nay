@@ -7,9 +7,8 @@ import networkx as nx
 import pyalpm
 import requests
 from rich.table import Column, Table
+
 from .config import CACHEDIR
-import networkx as nx
-import requests
 
 
 class Package:
