@@ -40,6 +40,11 @@ class Package:
     :ivar name: The name of the package
     :ivar version: The version number of the package
     :ivar desc: The description of the package
+    :ivar make_depends: An optional list of strings representing the make dependencies of the package
+    :ivar check_depends: An optional list of strings representing the check dependencies of the package
+    :ivar depends: An optional list of strings representing the runtime dependencies of the package
+    :ivar opt_depends: An optional list of strings representing the optional dependencies of the package
+    :ivar info_query: An optional dictionary containing the package's info query from the Aurweb RPC interface (read: https://wiki.archlinux.org/title/Aurweb_RPC_interface)
     """
 
     def __init__(
@@ -61,24 +66,6 @@ class Package:
         self.make_depends = make_depends
         self.depends = depends
         self.opt_depends = opt_depends
-
-    def __lt__(self, other) -> bool:
-        """
-        Compare two `Package` instances for alphabetical sorting purposes
-
-        :param other: The `Package` object to compare for sorting
-        :type other: Package
-
-        :return: A boolean indicating where the db var falls alphabetically
-        :rtype: bool
-        """
-        if isinstance(other, Package):
-            if self.db < other.db:
-                return True
-            elif self.db == other.db and self.name < other.name:
-                return True
-
-        return False
 
     def __hash__(self) -> int:
         """
