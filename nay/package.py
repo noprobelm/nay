@@ -126,10 +126,10 @@ class SyncPackage(Package):
         name: str,
         version: str,
         desc: str,
-        check_depends: Optional[list[str]],
-        make_depends: Optional[list[str]],
-        depends: Optional[list[str]],
-        opt_depends: Optional[list[str]],
+        check_depends: list[str],
+        make_depends: list[str],
+        depends: list[str],
+        opt_depends: list[str],
         size: int,
         isize: int,
     ) -> None:
@@ -215,7 +215,7 @@ class AURBasic(Package):
         self.search_query = search_query
 
     @classmethod
-    def from_search_query(cls, result: dict) -> "AURSearch":
+    def from_search_query(cls, result: dict) -> "AURBasic":
         """
         Create a `AURPackage` instance from a __search__ AURweb RPC interface HTTP request (read: https://wiki.archlinux.org/title/Aurweb_RPC_interface)
 
@@ -236,6 +236,8 @@ class AURBasic(Package):
             "votes": result["NumVotes"],
             "popularity": result["Popularity"],
         }
+
+        kwargs["search_query"] = result
         return cls(**kwargs)
 
     @property
@@ -267,14 +269,26 @@ class AURBasic(Package):
         :rtype: bool
         """
 
+        print(f"{self.name.upper()}")
         if os.path.exists(self.PKGBUILD):
             try:
                 with open(self.SRCINFO, "r") as f:
-                    if re.search(r"pkgver=(.*)", f.read()) != self.version:
-                        return True
-                    else:
-                        return False
-            except FileNotFoundError:
+                    data = f.read()
+                pkgver = re.search(r"pkgver = (.*)", data).group(1)
+                pkgrel = re.search(r"pkgrel = (.*)", data).group(1)
+                epoch = re.search(r"epoch = (.*)", data)
+                if epoch:
+                    epoch = epoch.group(1)
+                    srcinfo_ver = f"{epoch}:{pkgver}-{pkgrel}"
+                else:
+                    srcinfo_ver = f"{pkgver}-{pkgrel}"
+                print(srcinfo_ver)
+                print(self.version)
+                if self.version != srcinfo_ver:
+                    return False
+
+                return True
+            except (FileNotFoundError, AttributeError):
                 return False
         else:
             return False
@@ -399,7 +413,7 @@ class AURPackage(AURBasic):
             if dtype in result.keys():
                 kwargs[dep_types[dtype]] = result[dtype]
             else:
-                kwargs[dep_types[dtype]] = None
+                kwargs[dep_types[dtype]] = []
 
         return cls(**kwargs)
 
