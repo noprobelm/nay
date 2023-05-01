@@ -52,7 +52,7 @@ class Package:
         db: str,
         name: str,
         version: str,
-        desc: str,
+        desc: Optional[str] = None,
         check_depends: Optional[list[str]] = [],
         make_depends: Optional[list[str]] = [],
         depends: Optional[list[str]] = [],
@@ -69,7 +69,7 @@ class Package:
 
     def __hash__(self) -> int:
         """
-        Generate a hash value for this `Package` instance. This is primarily used for locating Package instances among an nx.DiGraph object.
+        Generate a hash value for this `Package` instance.
 
         :return: A hash value of the package name and version
         :rtype: int
