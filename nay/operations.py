@@ -6,7 +6,7 @@ from typing import Callable
 
 from .console import console
 
-import utils
+from . import utils
 
 
 @dataclass
@@ -130,10 +130,10 @@ class Sync(Operation):
     def install(self) -> None:
         targets = utils.get_packages(*self.args)
         if targets:
-            utils.install(*targets, **self.flags["--nodeps"])
+            utils.install(*targets, **self.flags["install_flags"])
 
     def refresh(self):
-        utils.refresh(**self.flags["--refresh"])
+        utils.refresh(**self.flags["refresh_flags"])
 
     def upgrade(self) -> None:
         utils.upgrade()
