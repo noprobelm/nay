@@ -24,6 +24,17 @@ class Package:
     :type version: str
     :param desc: The description of the package
     :type desc: str
+    :param check_depends: An optional list of strings representing the check dependencies of the package
+    :type check_depends: Optional[List[str]]
+    :param make_depends: An optional list of strings representing the make dependencies of the package
+    :type make_depends: Optional[List[str]]
+    :param depends: An optional list of strings representing the runtime dependencies of the package
+    :type depends: Optional[List[str]]
+    :param opt_depends: An optional list of strings representing the optional dependencies of the package
+    :type opt_depends: Optional[List[str]]
+    :param info_query: An optional dictionary containing the package's info query from the Aurweb RPC interface (read: https://wiki.archlinux.org/title/Aurweb_RPC_interface)
+    :type info_query: Optional[dict]
+
 
     :ivar db: The database name where the package is located
     :ivar name: The name of the package
