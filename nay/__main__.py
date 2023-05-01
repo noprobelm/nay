@@ -3,7 +3,7 @@ from .args import Args
 
 def main() -> None:
     args = Args()
-    operation = args["operation"](options=args["options"], args=args["args"])
+    operation = args["operation"](options=args["options"], targets=args["targets"])
     try:
         operation.run()
     except KeyboardInterrupt:

@@ -2,7 +2,7 @@ import os
 import shlex
 import subprocess
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Optional
 
 from . import utils
 from .console import console
@@ -26,7 +26,7 @@ class Operation:
     """
 
     options: list[str]
-    args: list[str]
+    targets: list[str]
     run: Callable
 
 
@@ -46,15 +46,15 @@ class Nay(Operation):
     :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
     """
 
-    def __init__(self, options: list[str], args: list[str]) -> None:
-        super().__init__(options, args, self.run)
+    def __init__(self, options: list[str], targets: list[str]) -> None:
+        super().__init__(options, targets, self.run)
 
     def run(self) -> None:
-        if not self.args:
+        if not self.targets:
             utils.refresh()
             utils.upgrade()
         else:
-            results = utils.search(" ".join(self.args))
+            results = utils.search(" ".join(self.targets))
             if not results:
                 quit()
             utils.print_pkglist(results, include_num=True)
@@ -78,7 +78,7 @@ class Sync(Operation):
     :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
     """
 
-    def __init__(self, options: list[str], args: list[str]) -> None:
+    def __init__(self, options: list[str], targets: list[str]) -> None:
         self.key = {
             "--refresh": self.refresh,
             "--sysupgrade": self.upgrade,
@@ -110,7 +110,7 @@ class Sync(Operation):
         options = list(set(options))
         options = list(filter(lambda x: x in self.key.keys(), options))
         options = list(sorted(options, key=lambda x: list(self.key.keys()).index(x)))
-        super().__init__(options, args, self.run)
+        super().__init__(options, targets, self.run)
 
     def run(self) -> None:
         if not self.options:
@@ -122,15 +122,15 @@ class Sync(Operation):
         else:
             for opt in set(self.options):
                 self.key[opt]()
-            if self.args:
+            if self.targets:
                 self.install()
 
     def search(self) -> None:
-        packages = utils.search(" ".join(self.args))
+        packages = utils.search(" ".join(self.targets))
         utils.print_pkglist(packages)
 
     def install(self) -> None:
-        targets = utils.get_packages(*self.args)
+        targets = utils.get_packages(*self.targets)
         if targets:
             utils.install(*targets, **self.flags["install_flags"])
 
@@ -142,7 +142,7 @@ class Sync(Operation):
 
     def download(self) -> None:
         targets = {"aur": [], "sync": []}
-        packages = utils.get_packages(*self.args)
+        packages = utils.get_packages(*self.targets)
         utils.download(*packages)
 
     def clean(self) -> None:
@@ -165,33 +165,8 @@ class Sync(Operation):
             utils.clean_untracked()
 
     def info(self) -> None:
-        packages = utils.get_packages(*self.args)
+        packages = utils.get_packages(*self.targets)
         utils.print_pkginfo(*packages)
-
-
-class Query(Operation):
-    """
-    Query the local/sync databases. Purely a pacman wrapper
-
-    :param options: The options for the operation (e.g. ['u', 'y'])
-    :type options: list[str]
-    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :type args: list[str]
-    :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
-    :type run: Callable
-
-    :ivar options: The options for the operation (e.g. ['u', 'y'])
-    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
-    """
-
-    def __init__(self, options: list[str], args: list[str]) -> None:
-        super().__init__(options, args, self.run)
-
-    def run(self) -> None:
-        subprocess.run(
-            shlex.split(f"pacman -Q {' '.join(self.options)} {' '.join(self.args)}")
-        )
 
 
 class GetPKGBUILD(Operation):
@@ -210,15 +185,15 @@ class GetPKGBUILD(Operation):
     :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
     """
 
-    def __init__(self, options: list[str], args: list[str]) -> None:
-        super().__init__(options, args, self.run)
+    def __init__(self, options: list[str], targets: list[str]) -> None:
+        super().__init__(options, targets, self.run)
 
     def run(self) -> None:
         succeeded = []
         failed = []
-        packages = utils.get_packages(*self.args)
+        packages = utils.get_packages(*self.targets)
         for pkg in packages:
-            if pkg.name in self.args:
+            if pkg.name in self.targets:
                 succeeded.append(pkg)
             else:
                 failed.append(pkg)
@@ -242,55 +217,36 @@ class GetPKGBUILD(Operation):
             )
 
 
-class Remove(Operation):
-    """
-    Remove packages from the system. Purely a pacman wrapper
+class Wrapper(Operation):
+    def __init__(
+        self,
+        operation: str,
+        options: list[str],
+        targets: list[str],
+        sudo: Optional[bool] = False,
+    ) -> None:
+        self.operation = operation
+        self.sudo = sudo
+        super().__init__(options, targets, self.run)
 
-    :param options: The options for the operation (e.g. ['u', 'y'])
-    :type options: list[str]
-    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :type args: list[str]
-    :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
-    :type run: Callable
+    def run(self):
+        command = f"pacman {self.operation} {' '.join(opt for opt in self.options)} {' '.join(target for target in self.targets)}"
+        if self.sudo is True:
+            command = f"sudo {command}"
 
-    :ivar options: The options for the operation (e.g. ['u', 'y'])
-    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
-    """
-
-    def __init__(self, options: list[str], args: list[str]) -> None:
-        super().__init__(options, args, self.run)
-
-    def run(self) -> None:
-        subprocess.run(
-            shlex.split(
-                f"sudo pacman -R {' '.join(self.options)} {' '.join(self.args)}"
-            )
-        )
+        subprocess.run(shlex.split(command))
 
 
-class Upgrade(Operation):
-    """
-    Upgrade specified targets. Purely a pacman wrapper.
+class Upgrade(Wrapper):
+    def __init__(self, options: list[str], targets: list[str]):
+        super().__init__("-U", options, targets, True)
 
-    :param options: The options for the operation (e.g. ['u', 'y'])
-    :type options: list[str]
-    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :type args: list[str]
-    :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
-    :type run: Callable
 
-    :ivar options: The options for the operation (e.g. ['u', 'y'])
-    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
-    """
+class Remove(Wrapper):
+    def __init__(self, options: list[str], targets: list[str]):
+        super().__init__("-R", options, targets, True)
 
-    def __init__(self, options: list[str], args: list[str]) -> None:
-        super().__init__(options, args, self.run)
 
-    def run(self) -> None:
-        subprocess.run(
-            shlex.split(
-                f"sudo pacman -U {' '.join(self.options)} {' '.join(self.args)}"
-            )
-        )
+class Query(Wrapper):
+    def __init__(self, options: list[str], targets: list[str]):
+        super().__init__("-Q", options, targets)

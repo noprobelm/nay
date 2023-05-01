@@ -67,6 +67,12 @@ class Args(dict):
         "-G": operations.GetPKGBUILD,
         "--sync": operations.Sync,
         "-S": operations.Sync,
+        "--upgrade": operations.Upgrade,
+        "-U": operations.Upgrade,
+        "--query": operations.Query,
+        "-Q": operations.Query,
+        "--remove": operations.Remove,
+        "-R": operations.Remove,
     }
 
     def __init__(self) -> None:
@@ -88,11 +94,10 @@ class Args(dict):
                     options.append(arg)
             elif arg.startswith("-"):
                 for switch in arg[1:]:
-                    options.append(f"-{switch}")
                     if switch.islower():
                         options.append(f"-{switch}")
                     elif switch.isupper():
-                        if f"-{switch}" in self.OPERATIONS:
+                        if f"-{switch}" in self.OPERATIONS.keys():
                             operation.append(f"-{switch}")
                         else:
                             options.append(f"-{switch}")
