@@ -282,8 +282,6 @@ class AURBasic(Package):
                     srcinfo_ver = f"{epoch}:{pkgver}-{pkgrel}"
                 else:
                     srcinfo_ver = f"{pkgver}-{pkgrel}"
-                print(srcinfo_ver)
-                print(self.version)
                 if self.version != srcinfo_ver:
                     return False
 
