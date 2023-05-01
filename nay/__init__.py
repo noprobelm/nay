@@ -14,9 +14,11 @@ DATABASES = {
     for db in parser.sections()[1:]
 }
 
-SYNC_PACKAGES = []
+SYNC_PACKAGES = {}
 for db in DATABASES:
-    SYNC_PACKAGES.extend([pkg.name for pkg in DATABASES[db].pkgcache])
+    SYNC_PACKAGES.update(
+        {pkg.name: SyncPackage.from_pyalpm(pkg) for pkg in DATABASES[db].pkgcache}
+    )
 
 INSTALLED = {
     pkg.name: SyncPackage.from_pyalpm(pkg) for pkg in handle.get_localdb().pkgcache

@@ -8,6 +8,8 @@ import pyalpm
 import requests
 from rich.table import Column, Table
 from .config import CACHEDIR
+import networkx as nx
+import requests
 
 
 class Package:
@@ -48,14 +50,6 @@ class Package:
         self.make_depends = make_depends
         self.depends = depends
         self.opt_depends = opt_depends
-
-    @property
-    def dependencies(self):
-        dependencies = []
-        for dtype in ["check_depends, make_depence, depends", "opt_depends"]:
-            dependencies.extend(getattr(self, dtype))
-
-        return dependencies
 
     def __lt__(self, other) -> bool:
         """

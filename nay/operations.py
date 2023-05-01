@@ -6,11 +6,7 @@ from typing import Callable
 
 from .console import console
 
-from . import wrapper_funcs
-from . import get
-from . import download
-from . import clean
-from . import install
+import utils
 
 
 @dataclass
@@ -59,13 +55,13 @@ class Nay(Operation):
             utils.refresh()
             utils.upgrade()
         else:
-            results = get.search(" ".join(self.args))
+            results = utils.search(" ".join(self.args))
             if not results:
                 quit()
-            get.print_pkglist(results, include_num=True)
-            packages = get.select_packages(results)
-            wrapper_funcs.refresh()
-            install.install(*packages)
+            utils.print_pkglist(results, include_num=True)
+            packages = utils.select_packages(results)
+            utils.refresh()
+            utils.install(*packages)
 
 
 class Sync(Operation):
