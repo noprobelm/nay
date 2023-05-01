@@ -82,7 +82,6 @@ class Sync(Operation):
         self.key = {
             "--refresh": self.refresh,
             "--sysupgrade": self.upgrade,
-            "--downloadonly": self.download,
             "--clean": self.clean,
             "--search": self.search,
             "--info": self.info,
@@ -90,15 +89,21 @@ class Sync(Operation):
 
         flags = {
             "refresh_flags": {"force": False},
-            "install_flags": {"skip_verchecks": False, "skip_depchecks": False},
+            "install_flags": {
+                "skip_verchecks": False,
+                "skip_depchecks": False,
+                "download_only": False,
+            },
         }
 
         if options.count("--refresh") > 1:
             flags["refresh_flags"]["force"] = True
         if options.count("--nodeps") == 1:
-            flags["--nodeps"]["skip_verchecks"] = True
-        elif options.count("--nodeps") == 2:
-            flags["--nodeps"]["skip_depchecks"] = True
+            flags["install_flags"]["skip_verchecks"] = True
+        elif options.count("--nodeps") > 1:
+            flags["install_flags"]["skip_depchecks"] = True
+        if options.count("--downloadonly") == 1:
+            flags["install_flags"]["download_only"] = True
 
         self.flags = flags
 
@@ -114,8 +119,6 @@ class Sync(Operation):
         elif any(opt in ["--clean", "--search", "--info"] for opt in self.options):
             for opt in self.options:
                 self.key[opt]()
-        elif "--downloadonly" in self.options:
-            self.download()
         else:
             for opt in set(self.options):
                 self.key[opt]()

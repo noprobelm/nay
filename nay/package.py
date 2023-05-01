@@ -266,7 +266,6 @@ class AURBasic(Package):
         :rtype: bool
         """
 
-        print(f"{self.name.upper()}")
         if os.path.exists(self.PKGBUILD):
             try:
                 with open(self.SRCINFO, "r") as f:

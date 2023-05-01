@@ -425,6 +425,7 @@ def install(
     *packages: Package,
     skip_verchecks: Optional[bool] = False,
     skip_depchecks: Optional[bool] = False,
+    download_only: Optional[bool] = False,
 ) -> None:
     """
     Get the AUR tree for a package or series of packages
@@ -622,28 +623,38 @@ def install(
                     if pattern in obj and obj.endswith("zst"):
                         targets.append(os.path.join(CACHEDIR, pkg.name, obj))
 
-            subprocess.run(shlex.split(f"sudo pacman -U {' '.join(targets)}"))
+            if download_only is False:
+                subprocess.run(shlex.split(f"sudo pacman -U {' '.join(targets)}"))
+            else:
+                console.print(
+                    f"-> nothing to install for {' '.join([target for target in targets])}"
+                )
 
     def install_sync() -> None:
         """Install explicit sync packages"""
+        flags = ""
         if skip_verchecks is True:
+            flags = f"{flags}d"
             subprocess.run(
                 shlex.split(
                     f"sudo pacman -Sd {' '.join([pkg.name for pkg in sync_explicit])}"
                 )
             )
         elif skip_depchecks is True:
+            flags = f"{flags}dd"
             subprocess.run(
                 shlex.split(
                     f"sudo pacman -Sdd {' '.join([pkg.name for pkg in sync_explicit])}"
                 )
             )
-        else:
-            subprocess.run(
-                shlex.split(
-                    f"sudo pacman -S {' '.join([pkg.name for pkg in sync_explicit])}"
-                )
+        if download_only is True:
+            flags = f"{flags}w"
+
+        subprocess.run(
+            shlex.split(
+                f"sudo pacman -S{flags} {' '.join([pkg.name for pkg in sync_explicit])}"
             )
+        )
 
     sync_explicit = [pkg for pkg in packages if isinstance(pkg, SyncPackage)]
     aur_explicit = [pkg for pkg in packages if isinstance(pkg, AURPackage)]
