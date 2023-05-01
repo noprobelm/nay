@@ -9,6 +9,17 @@ class ArgumentError(Exception):
     pass
 
 
+class MissingOperation(ArgumentError):
+    """
+    Exception raised when options are passed with no operation
+
+    :param message: Explanation of the error
+    :type message: str
+    """
+
+    pass
+
+
 class ConflictingOperations(ArgumentError):
     """
     Exception raised when conflicting operations are passed as command line arguments.
@@ -106,9 +117,25 @@ class Args(dict):
             else:
                 targets.append(arg)
 
+        if len(operation) > 1:
+            try:
+                raise ConflictingOperations(
+                    f"error: only one operation may be used at a time"
+                )
+            except ConflictingOperations as err:
+                print(err)
+
+        if len(operation) == 0:
+            try:
+                raise MissingOperation(f"error: no operation specified")
+            except MissingOperation as err:
+                print(err)
+
+        operation = operation[0]
+
         super().__init__(
             {
-                "operation": operation,
+                "operation": self.OPERATIONS[operation],
                 "options": options,
                 "targets": targets,
             }
