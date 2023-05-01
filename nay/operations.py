@@ -4,10 +4,13 @@ import subprocess
 from dataclasses import dataclass
 from typing import Callable
 
-from . import utils
-from .config import CACHEDIR
 from .console import console
-from .package import AURPackage
+
+from . import wrapper_funcs
+from . import get
+from . import download
+from . import clean
+from . import install
 
 
 @dataclass
@@ -56,13 +59,13 @@ class Nay(Operation):
             utils.refresh()
             utils.upgrade()
         else:
-            results = utils.search(" ".join(self.args))
+            results = get.search(" ".join(self.args))
             if not results:
                 quit()
-            utils.print_pkglist(results, include_num=True)
-            packages = utils.select_packages(results)
-            utils.refresh()
-            utils.install(*packages)
+            get.print_pkglist(results, include_num=True)
+            packages = get.select_packages(results)
+            wrapper_funcs.refresh()
+            install.install(*packages)
 
 
 class Sync(Operation):
@@ -91,17 +94,16 @@ class Sync(Operation):
         }
 
         flags = {
-            "--refresh": {"force": False},
-            "--nodeps": {"skip_verchecks": False, "skip_depchecks": False},
+            "refresh_flags": {"force": False},
+            "install_flags": {"skip_verchecks": False, "skip_depchecks": False},
         }
 
         if options.count("--refresh") > 1:
-            flags["--refresh"]["force"] = True
-        elif options.count("--nodeps") > 0:
-            if options.count("--nodeps") == 1:
-                flags["--nodeps"]["skip_verchecks"] = True
-            else:
-                flags["--nodeps"]["skip_depchecks"] = True
+            flags["refresh_flags"]["force"] = True
+        if options.count("--nodeps") == 1:
+            flags["--nodeps"]["skip_verchecks"] = True
+        elif options.count("--nodeps") == 2:
+            flags["--nodeps"]["skip_depchecks"] = True
 
         self.flags = flags
 
@@ -143,9 +145,26 @@ class Sync(Operation):
     def download(self) -> None:
         targets = {"aur": [], "sync": []}
         packages = utils.get_packages(*self.args)
+        utils.download(*packages)
 
     def clean(self) -> None:
-        utils.clean()
+        utils.clean_pacman()
+
+        response = console.input(
+            "\n[bright_blue]::[/bright_blue] Do you want to remove all other AUR packages from cache? [Y/n] "
+        )
+
+        if response.lower() == "y":
+            console.print("removing AUR packages from cache...")
+            utils.clean_cachedir()
+
+        response = console.input(
+            "\n[bright_blue]::[/bright_blue] Do you want to remove ALL untracked AUR files? [Y/n] "
+        )
+
+        if response.lower() == "y":
+            console.print("removing untracked AUR files from cache...")
+            utils.clean_untracked()
 
     def info(self) -> None:
         packages = utils.get_packages(*self.args)

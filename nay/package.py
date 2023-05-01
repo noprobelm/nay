@@ -35,10 +35,10 @@ class Package:
         name: str,
         version: str,
         desc: str,
-        check_depends: Optional[list[str]] = None,
-        make_depends: Optional[list[str]] = None,
-        depends: Optional[list[str]] = None,
-        opt_depends: Optional[list[str]] = None,
+        check_depends: Optional[list[str]] = [],
+        make_depends: Optional[list[str]] = [],
+        depends: Optional[list[str]] = [],
+        opt_depends: Optional[list[str]] = [],
     ) -> None:
         self.db = db
         self.name = name
@@ -48,6 +48,14 @@ class Package:
         self.make_depends = make_depends
         self.depends = depends
         self.opt_depends = opt_depends
+
+    @property
+    def dependencies(self):
+        dependencies = []
+        for dtype in ["check_depends, make_depence, depends", "opt_depends"]:
+            dependencies.extend(getattr(self, dtype))
+
+        return dependencies
 
     def __lt__(self, other) -> bool:
         """
@@ -196,10 +204,10 @@ class AURBasic(Package):
         flag_date: Optional[int] = None,
         orphaned: Optional[int] = False,
         search_query: Optional[dict] = None,
-        check_depends: Optional[list[str]] = None,
-        make_depends: Optional[list[str]] = None,
-        depends: Optional[list[str]] = None,
-        opt_depends: Optional[list[str]] = None,
+        check_depends: Optional[list[str]] = [],
+        make_depends: Optional[list[str]] = [],
+        depends: Optional[list[str]] = [],
+        opt_depends: Optional[list[str]] = [],
     ) -> None:
         super().__init__(
             db, name, version, desc, check_depends, make_depends, depends, opt_depends

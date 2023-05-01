@@ -71,9 +71,15 @@ class Args(dict):
                     "conflicts": ["--sysupgrade", "--downloadonly"],
                     "short": "-s",
                 },
-                "--downloadonly": {"conflicts": ["--info", "--search"], "short": "-w"},
-                "--info": {"conflicts": ["--downloadonly", "--search"], "short": "-i"},
-                "--clean": {"conflicts": [], "short": "-c"},
+                "--downloadonly": {
+                    "conflicts": ["--info", "--search", "clean"],
+                    "short": "-w",
+                },
+                "--info": {
+                    "conflicts": ["--downloadonly", "--search", "clean"],
+                    "short": "-i",
+                },
+                "--clean": {"conflicts": ["--downloadonly", "info"], "short": "-c"},
                 "--nodeps": {"conflicts": [], "short": "-d"},
             },
             "pure_wrapper": False,
