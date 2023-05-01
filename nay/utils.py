@@ -143,7 +143,7 @@ def search(query: str, sortby: Optional[str] = "db") -> dict[int, Package]:
     return packages
 
 
-def get_packages(*pkg_names: str) -> list[Union[SyncPackage, AURPackage]]:
+def get_packages(*pkg_names: str, verbose=True) -> list[Union[SyncPackage, AURPackage]]:
     """
     Get packages based on passed string or strings. Invalid results are ignored/dropped from return result.
 
@@ -158,11 +158,7 @@ def get_packages(*pkg_names: str) -> list[Union[SyncPackage, AURPackage]]:
     aur_search = []
     for name in pkg_names:
         if name in SYNC_PACKAGES.keys():
-            for database in DATABASES:
-                pkg = DATABASES[database].get_pkg(name)
-                if pkg:
-                    pkg = SyncPackage.from_pyalpm(pkg)
-                    packages.append(pkg)
+            packages.append(SYNC_PACKAGES[name])
         else:
             aur_search.append(name)
 
@@ -408,7 +404,7 @@ def get_dependency_tree(
                         aur_query.append(dep)
                         aur_deps[pkg][dep] = {"dtype": dtype}
 
-    aur_info = get_packages(*set(list(aur_query)))
+    aur_info = get_packages(*set(list(aur_query)), verbose=False)
     for pkg in aur_deps:
         for dep in aur_info:
             if dep.name in aur_deps[pkg].keys():
@@ -441,27 +437,6 @@ def install(
 
     """
 
-    def get_sync_explicit() -> list[SyncPackage]:
-        """
-        Get the sync explicit targets
-
-        :return: A list of the sync explicit packages
-        :rtype: list[SyncPackage]
-        """
-        sync_explicit = [pkg for pkg in packages if isinstance(pkg, SyncPackage)]
-        return sync_explicit
-
-    def get_aur_explicit() -> list[AURPackage]:
-        """
-        Get the aur explicit targets
-
-        :return: A list of the aur explicit packages
-        :rtype: list[AurPackage]
-        """
-
-        aur_explicit = [pkg for pkg in packages if isinstance(pkg, AURPackage)]
-        return aur_explicit
-
     def get_aur_depends(aur_tree: nx.DiGraph) -> list[AURPackage]:
         """
         Get the aur dependencies from installation targets
@@ -475,11 +450,12 @@ def install(
 
         aur_depends = []
         for pkg, dep in aur_tree.edges:
-            if dep.name not in INSTALLED.keys():
-                aur_depends.append(dep)
-            elif skip_verchecks is False:
-                if INSTALLED[dep.name] != dep:
+            if aur_tree.get_edge_data(pkg, dep)["dtype"] != "opt_depends":
+                if dep.name not in INSTALLED.keys():
                     aur_depends.append(dep)
+                elif skip_verchecks is False:
+                    if INSTALLED[dep.name] != dep:
+                        aur_depends.append(dep)
 
         return aur_depends
 
@@ -502,7 +478,7 @@ def install(
                     [dep for dep in depends if dep in SYNC_PACKAGES.keys()]
                 )
 
-        sync_depends = get_packages(*sync_depends)
+        sync_depends = get_packages(*sync_depends, verbose=False)
         sync_depends = [dep for dep in sync_depends if dep.name not in INSTALLED.keys()]
         return sync_depends
 
