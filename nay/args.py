@@ -113,7 +113,10 @@ class Args(dict):
             except ConflictingOperations as err:
                 print(err)
 
-        operation = operation[0]
+        if len(operation) == 0:
+            operation = "--nay"
+        else:
+            operation = operation[0]
 
         super().__init__(
             {
