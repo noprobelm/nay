@@ -40,6 +40,16 @@ def install_aur(
     skip_depchecks: Optional[bool] = False,
     download_only: Optional[bool] = False,
 ):
+    """
+    Install passed AURPackage objects
+
+    :param packages: Package or series of packages to install
+    :type packages: AURPackage
+    :param skip_depchecks: Flag to skip dependency checks. Default is False
+    :type skip_depchecks: bool
+    :param download_only: Flag download only (makepkg will still occur, packages will not be installed)
+    :type download_only bool
+    """
     targets = []
     for pkg in packages:
         if skip_depchecks is True:
@@ -61,6 +71,14 @@ def install_aur(
 
 
 def install_sync(*packages: SyncPackage, pacman_flags: list[str]):
+    """
+    Install passed SyncPackage objects
+
+    :param packages: Package or series of packages to install
+    :type packages: SyncPackage
+    :param pacman_flags: pacman flags to pass to pacman -S
+    :type pacman_flags: list[str]
+    """
     subprocess.run(
         shlex.split(
             f"sudo pacman -S{' '.join(flag for flag in pacman_flags)} {' '.join([pkg.name for pkg in packages])}"
