@@ -210,9 +210,9 @@ class Nay(Sync):
             if not results:
                 return
             db.print_pkglist(results, include_num=True)
-            targets = db.select_packages(results)
+            self.targets = db.select_packages(results)
             subprocess.run(shlex.split("sudo pacman -Sy"))
-            self.install(*targets)
+            self.install()
 
 
 class GetPKGBUILD(Operation):
