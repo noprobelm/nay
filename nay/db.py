@@ -1,4 +1,3 @@
-import concurrent.futures
 import configparser
 import re
 import os
@@ -205,53 +204,11 @@ def get_sync_depends(*aur_explicit) -> list[SyncPackage]:
     for pkg in aur_explicit:
         for dep_type in ["check_depends", "make_depends", "depends"]:
             depends = getattr(pkg, dep_type)
-            sync_depends.extend([dep for dep in depends if dep in SYNC_PACKAGES.keys()])
+            sync_depends.extend(
+                [SYNC_PACKAGES[dep] for dep in depends if dep in SYNC_PACKAGES.keys()]
+            )
 
     return sync_depends
-
-
-def preview_job(
-    sync_explicit: Optional[list[SyncPackage]] = None,
-    sync_depends: Optional[list[SyncPackage]] = None,
-    aur_explicit: Optional[list[AURPackage]] = None,
-    aur_depends: Optional[list[AURPackage]] = None,
-) -> None:
-
-    """
-    Print a list of packages to be installed to the terminal
-
-    :param sync_explicit: A list of SyncPackage objects to be explicitly installed
-    :type sync_explicit: list[SyncPackage]
-    :param sync_depends: A list of SyncPackage dependencies to be installed
-    :type sync_depends: list[SyncPackage]
-    :param aur_explicit: An list of AURPackage objects to be explicitly installed
-    :type aur_explicit: list[AURPackage]
-    :param aur_depends: A list of AURPackage dependencies to be installed
-    :type aur_depends: list[AURPackage]
-    """
-
-    if sync_explicit:
-        output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in sync_explicit]
-        console.print(
-            f"Sync Explicit {len(sync_explicit)}: {', '.join([pkg for pkg in output])}"
-        )
-    if aur_explicit:
-        output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in aur_explicit]
-        console.print(
-            f"AUR Explicit ({len(aur_explicit)}): {', '.join([pkg for pkg in output])}"
-        )
-
-    if aur_depends:
-        output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in aur_depends]
-        console.print(
-            f"AUR Dependency ({len(aur_depends)}): {', '.join([out for out in output])}"
-        )
-
-    if sync_depends:
-        output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in sync_depends]
-        console.print(
-            f"Sync Dependency ({len(sync_depends)}): {', '.join([out for out in output])}"
-        )
 
 
 def install(
@@ -348,45 +305,6 @@ def install(
         if not prompt.lower().startswith("y"):
             quit()
 
-    def get_missing_pkgbuild(
-        *packages: AURPackage, multithread=True, verbose=False
-    ) -> None:
-        """
-        Get missing PKGBUILD files
-
-        :param packages: An AURPackage or series of AURPackage objects to get PKGBUILD data for
-        :type packages: AURPackage
-        :param multithread: Optional parameter indicating whether this function should be multithreaded. Default is True
-        :type multithread: Optional[bool]
-        :param verbose: Optional parameter indicating whether success/failure messages should be verbose. Default is False
-        :type verbose: Optional[bool]
-        """
-        missing = []
-        for pkg in packages:
-            if not pkg.pkgbuild_exists:
-                missing.append(pkg)
-            else:
-                if verbose:
-                    console.print(
-                        f"[notify]::[/notify] PKGBUILD up to date, skipping download: [notify]{pkg.name}"
-                    )
-
-        if multithread:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-                for num, pkg in enumerate(missing):
-                    executor.submit(get_pkgbuild, pkg, force=True)
-                    if verbose:
-                        console.print(
-                            f"[notify]::[/notify] ({num+1}/{len(missing)}) Downloaded PKGBUILD: [notify]{pkg.name}"
-                        )
-        else:
-            for num, pkg in enumerate(missing):
-                get_pkgbuild(pkg, force=True)
-                if verbose:
-                    console.print(
-                        f"[notify]::[/notify] {num+1}/{len(missing)} Downloaded PKGBUILD: [notify]{pkg.name}"
-                    )
-
     def install_aur(aur_tree: nx.DiGraph) -> None:
         """
         Install AUR targets according to their location in the hierarchy:
@@ -449,7 +367,7 @@ def install(
 
     if skip_depchecks is True:
         preview_job(sync_explicit=sync_explicit, aur_explicit=aur_explicit)
-        get_missing_pkgbuild(*aur_explicit, verbose=True)
+        utils.get_missing_pkgbuild(*aur_explicit, verbose=True)
         if aur_explicit:
             preview_aur(*aur_explicit)
             prompt_proceed()
@@ -660,34 +578,3 @@ def select_packages(packages: dict[int, Package]) -> list[Package]:
         selected.append(pkg)
 
     return selected
-
-
-def install_aur(
-    *packages: AURPackage,
-    skip_depchecks: Optional[bool] = False,
-    download_only: Optional[bool] = False,
-):
-    targets = []
-    for pkg in packages:
-        if skip_depchecks is True:
-            makepkg(pkg, CACHEDIR, "fscd")
-        else:
-            makepkg(pkg, CACHEDIR, "fsc")
-
-        pattern = f"{pkg.name}-"
-        for obj in os.listdir(os.path.join(CACHEDIR, pkg.name)):
-            if pattern in obj and obj.endswith("zst"):
-                targets.append(os.path.join(CACHEDIR, pkg.name, obj))
-
-    if download_only is False:
-        subprocess.run(shlex.split(f"sudo pacman -U {' '.join(targets)}"))
-    else:
-        console.print(
-            f"-> nothing to install for {' '.join([target for target in targets])}"
-        )
-
-
-def install_sync(*packages: SyncPackage, pacman_flags: list[str]):
-    subprocess.run(
-        shlex.split(f"sudo pacman -S{' '.join(flag for flag in pacman_flags)}")
-    )

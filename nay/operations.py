@@ -57,7 +57,7 @@ class Sync(Operation):
             "-c": "--clean",
             "-s": "--search",
             "-i": "--info",
-            "-u": "--upgrade",
+            "-u": "--sysupgrade",
             "-w": "--downloadonly",
             "-y": "--refresh",
         }
@@ -70,11 +70,12 @@ class Sync(Operation):
             "--clean": ["--refresh", "search", "--sysupgrade"],
             "--search": ["--sysupgrade", "--info", "--clean"],
             "--info": ["--search"],
-            "--sysupgrade": ["--search, --clean"],
+            "--sysupgrade": ["--search, --clean", "--info"],
             "--nodeps": [],
             "--downloadonly": [],
-            "--refresh": [],
+            "--refresh": ["--clean"],
         }
+
         for option in options:
             for other in options:
                 try:
@@ -96,12 +97,10 @@ class Sync(Operation):
 
     def run(self):
         if "--refresh" in self.options:
-            subprocess.run(
-                shlex.split(
-                    f"sudo pacman -S {' '.join([option for option in self.options if option == '--refresh'])}"
-                )
-            )
-            self.options = list(filter(lambda x: x != "--refresh", self.options))
+            self.refresh()
+
+        if "--sysupgrade" in self.options:
+            self.sysupgrade()
 
         if "--clean" in self.options:
             self.clean()
@@ -116,38 +115,44 @@ class Sync(Operation):
             return
 
         if not self.targets:
-            quit()
+            return
 
         self.install()
 
+    def refresh(self):
+        subprocess.run(
+            shlex.split(
+                f"sudo pacman -S {' '.join([option for option in self.options if option == '--refresh'])}"
+            )
+        )
+
+    def sysupgrade(self):
+        subprocess.run(shlex.split(f"sudo pacman -Su"))
+
     def clean(self) -> None:
+        subprocess.run(
+            shlex.split(
+                f"sudo pacman -S {' '.join([option for option in self.options if option == '--clean'])}"
+            )
+        )
         from . import utils
 
-        utils.clean_pacman()
-
-        response = console.input(
-            "\n[bright_blue]::[/bright_blue] Do you want to remove all other AUR packages from cache? [Y/n] "
-        )
-
-        if response.lower() == "y":
-            console.print("removing AUR packages from cache...")
-            utils.clean_cachedir()
-
-        response = console.input(
-            "\n[bright_blue]::[/bright_blue] Do you want to remove ALL untracked AUR files? [Y/n] "
-        )
-
-        if response.lower() == "y":
-            console.print("removing untracked AUR files from cache...")
-            utils.clean_untracked()
+        utils.clean_cachedir()
+        utils.clean_untracked()
 
     def search(self) -> None:
+        if not self.targets:
+            subprocess.run(shlex.split("pacman -Ss"))
+            return
+
         from . import db
 
         packages = db.search(" ".join(self.targets))
         db.print_pkglist(packages)
 
     def print_pkg_info(self) -> None:
+        if not self.targets:
+            subprocess.run(shlex.split("pacman -Si"))
         from . import db
 
         packages = db.get_packages(*self.targets)
@@ -214,7 +219,7 @@ class Nay(Sync):
             db.print_pkglist(results, include_num=True)
             targets = db.select_packages(results)
             subprocess.run(shlex.split("sudo pacman -Sy"))
-            self.install(targets)
+            self.install()
 
 
 class GetPKGBUILD(Operation):

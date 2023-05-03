@@ -2,24 +2,39 @@ import os
 import shlex
 import shutil
 import subprocess
-from typing import Optional
+from typing import Optional, Union
 from .package import Package, AURBasic, AURPackage, SyncPackage
 from .console import console
-
+import concurrent.futures
 from .config import CACHEDIR
-
-
-def clean_pacman() -> None:
-    subprocess.run(shlex.split("sudo pacman -Sc"))
+from rich.table import Table, Column
 
 
 def clean_cachedir() -> None:
+    response = console.input(
+        "\n[bright_blue]::[/bright_blue] Do you want to remove all other AUR packages from cache? [Y/n] "
+    )
+
+    if response.lower() == "y":
+        console.print("removing AUR packages from cache...")
+    else:
+        return
+
     os.chdir(CACHEDIR)
     for obj in os.listdir():
         shutil.rmtree(obj, ignore_errors=True)
 
 
 def clean_untracked() -> None:
+    response = console.input(
+        "\n[bright_blue]::[/bright_blue] Do you want to remove ALL untracked AUR files? [Y/n] "
+    )
+
+    if response.lower() == "y":
+        console.print("removing untracked AUR files from cache...")
+    else:
+        return
+
     os.chdir(CACHEDIR)
     for obj in os.listdir():
         if os.path.isdir(os.path.join(os.getcwd(), obj)):
@@ -54,19 +69,6 @@ def get_pkgbuild(pkg: Package, clonedir: Optional[str] = CACHEDIR, force=False) 
     )
 
 
-def download(*packages):
-    sync = []
-    for pkg in packages:
-        if isinstance(pkg, AURBasic):
-            get_pkgbuild(pkg, CACHEDIR)
-        else:
-            sync.append(pkg)
-
-    subprocess.run(
-        shlex.split(f"sudo pacman -Sw {' '.join([pkg.name for pkg in sync])}")
-    )
-
-
 def makepkg(pkg: Package, pkgdir, flags: str) -> None:
     """
     Make a package using 'makepkg'. This is a pure pacman wrapper.
@@ -87,34 +89,3 @@ def makepkg(pkg: Package, pkgdir, flags: str) -> None:
             f"[red] Failed to install {pkg.name}. Manual intervention is required"
         )
         quit()
-
-
-def install_aur(
-    *packages: AURPackage,
-    skip_depchecks: Optional[bool] = False,
-    download_only: Optional[bool] = False,
-):
-    targets = []
-    for pkg in packages:
-        if skip_depchecks is True:
-            makepkg(pkg, CACHEDIR, "fscd")
-        else:
-            makepkg(pkg, CACHEDIR, "fsc")
-
-        pattern = f"{pkg.name}-"
-        for obj in os.listdir(os.path.join(CACHEDIR, pkg.name)):
-            if pattern in obj and obj.endswith("zst"):
-                targets.append(os.path.join(CACHEDIR, pkg.name, obj))
-
-    if download_only is False:
-        subprocess.run(shlex.split(f"sudo pacman -U {' '.join(targets)}"))
-    else:
-        console.print(
-            f"-> nothing to install for {' '.join([target for target in targets])}"
-        )
-
-
-def install_sync(*packages: SyncPackage, pacman_flags: list[str]):
-    subprocess.run(
-        shlex.split(f"sudo pacman -S{' '.join(flag for flag in pacman_flags)}")
-    )
