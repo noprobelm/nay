@@ -1,9 +1,8 @@
 import os
 from dataclasses import dataclass
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 import subprocess
 import shlex
-import networkx as nx
 
 from .console import console
 from .exceptions import ConflictingOptions, InvalidOption
