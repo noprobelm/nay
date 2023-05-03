@@ -5,6 +5,7 @@ from nay.exceptions import (
     ConflictingOperations,
     ConflictingOptions,
     InvalidOperation,
+    MissingTargets,
     PacmanError,
     InvalidOption,
 )
@@ -284,3 +285,12 @@ def _():
     opts = ["--info", "--sysupgrade"]
     with raises(ConflictingOptions):
         nay.operations.Sync(options=opts, targets=[])
+
+
+@test(
+    "Sync class raises MissingTargets when options requiring a target are passed with no targets present"
+)
+def _():
+    with raises(MissingTargets):
+        operation = nay.operations.Sync(options=[], targets=[])
+        operation.run()
