@@ -121,7 +121,7 @@ class Sync(Operation):
         )
 
     def sysupgrade(self):
-        subprocess.run(shlex.split(f"sudo pacman -Su"))
+        subprocess.run(shlex.split("sudo pacman -Su"))
 
     def clean(self) -> None:
         subprocess.run(
@@ -294,7 +294,7 @@ class Wrapper(Operation):
             )
         except subprocess.CalledProcessError as err:
             stderr = err.stderr.decode().strip()
-            stderr = re.sub(f"pacman", "nay", stderr)
+            stderr = re.sub("pacman", "nay", stderr)
             raise PacmanError(stderr)
         else:
             pass
