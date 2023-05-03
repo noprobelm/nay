@@ -210,6 +210,18 @@ def install(
     skip_depchecks: Optional[bool] = False,
     download_only: Optional[bool] = False,
 ):
+    """
+    The main install loop. Utilizes the other functions in this module to install a series of targets
+
+    :param targets: target or series of targets to install
+    :type targets: Union[str (if querying the database/AUR), SyncPackage, AURPackage, AURBasic]
+    :param skip_verchecks: bool to skip verchecks on AUR packages. Default is False
+    :type skip_verchecks: Optional[bool]
+    :param skip_depchecks: bool to skip depchecks on AUR packages. Default is False
+    :type skip_depchecks: Optional[bool]
+    :param download_only: bool to only download AUR packages (makepkg still occurs, but no install). Default is False
+    :type download_only: Optional[bool]
+    """
 
     query = [target for target in targets if isinstance(target, str)]
     packages = [target for target in targets if isinstance(target, Package)]
