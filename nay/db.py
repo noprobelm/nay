@@ -302,6 +302,7 @@ def print_pkglist(
 def print_pkginfo(*packages: Package) -> None:
     """
     Print a package's meta data according to pacman (sync packages) or AURweb RPC interface info request (AUR packages)
+
     :param packages: A package.Package or series of package.Package objects for which to retrieve info
     :type packages: package.Package
     """
