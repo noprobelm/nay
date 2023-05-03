@@ -134,10 +134,10 @@ class Sync(Operation):
                 f"sudo pacman -S {' '.join([option for option in self.options if option == '--clean'])}"
             )
         )
-        from . import utils
+        from . import clean
 
-        utils.clean_cachedir()
-        utils.clean_untracked()
+        clean.clean_cachedir()
+        clean.clean_untracked()
 
     def search(self) -> None:
         if not self.targets:
@@ -152,6 +152,7 @@ class Sync(Operation):
     def print_pkg_info(self) -> None:
         if not self.targets:
             subprocess.run(shlex.split("pacman -Si"))
+
         from . import db
 
         packages = db.get_packages(*self.targets)
@@ -189,7 +190,7 @@ class Sync(Operation):
 
 class Nay(Sync):
     """
-    Pyaura-specific operations
+    Nay-specific operations
 
     :param options: The options for the operation (e.g. ['u', 'y'])
     :type options: list[str]
