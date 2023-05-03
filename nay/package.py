@@ -1,22 +1,15 @@
 import os
 import re
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-import networkx as nx
 import pyalpm
 import requests
-from rich.console import Console, ConsoleOptions, RenderResult
 from rich.table import Column, Table
-from rich.text import Text
 
 from .config import CACHEDIR
-from .console import default
-from .db import INSTALLED
 
 
-@dataclass
 class Package:
     """
     A minimum representation of an Arch package, agnostic to its origin (Sync vs AUR)
@@ -29,53 +22,57 @@ class Package:
     :type version: str
     :param desc: The description of the package
     :type desc: str
+    :param check_depends: An optional list of strings representing the check dependencies of the package
+    :type check_depends: Optional[List[str]]
+    :param make_depends: An optional list of strings representing the make dependencies of the package
+    :type make_depends: Optional[List[str]]
+    :param depends: An optional list of strings representing the runtime dependencies of the package
+    :type depends: Optional[List[str]]
+    :param opt_depends: An optional list of strings representing the optional dependencies of the package
+    :type opt_depends: Optional[List[str]]
+    :param info_query: An optional dictionary containing the package's info query from the Aurweb RPC interface (read: https://wiki.archlinux.org/title/Aurweb_RPC_interface)
+    :type info_query: Optional[dict]
+
 
     :ivar db: The database name where the package is located
     :ivar name: The name of the package
     :ivar version: The version number of the package
     :ivar desc: The description of the package
+    :ivar make_depends: An optional list of strings representing the make dependencies of the package
+    :ivar check_depends: An optional list of strings representing the check dependencies of the package
+    :ivar depends: An optional list of strings representing the runtime dependencies of the package
+    :ivar opt_depends: An optional list of strings representing the optional dependencies of the package
+    :ivar info_query: An optional dictionary containing the package's info query from the Aurweb RPC interface (read: https://wiki.archlinux.org/title/Aurweb_RPC_interface)
     """
 
-    db: str
-    name: str
-    version: str
-    desc: str
-
-    @property
-    def is_installed(self) -> bool:
-        """
-        Check if the package is installed on the local system
-
-        :return: A boolean indicating whether the package is installed
-        :rtype: bool
-        """
-        return True if self.name in INSTALLED.keys() else False
-
-    def __lt__(self, other) -> bool:
-        """
-        Compare two `Package` instances for alphabetical sorting purposes
-
-        :param other: The `Package` object to compare for sorting
-        :type other: Package
-
-        :return: A boolean indicating where the db var falls alphabetically
-        :rtype: bool
-        """
-        if isinstance(other, Package):
-            if self.db < other.db:
-                return True
-            elif self.db == other.db:
-                if self.name < other.name:
-                    return True
+    def __init__(
+        self,
+        db: str,
+        name: str,
+        version: str,
+        desc: Optional[str] = None,
+        check_depends: Optional[list[str]] = [],
+        make_depends: Optional[list[str]] = [],
+        depends: Optional[list[str]] = [],
+        opt_depends: Optional[list[str]] = [],
+    ) -> None:
+        self.db = db
+        self.name = name
+        self.version = version
+        self.desc = desc
+        self.check_depends = check_depends
+        self.make_depends = make_depends
+        self.depends = depends
+        self.opt_depends = opt_depends
 
     def __hash__(self) -> int:
         """
-        Generate a hash value for this `Package` instance. This is primarily used for locating Package instances among an nx.DiGraph object.
+        Generate a hash value for this `Package` instance.
 
         :return: A hash value of the package name and version
         :rtype: int
         """
-        return hash((self.name, self.version))
+        return hash(self.name)
 
     def __eq__(self, other) -> bool:
         """
@@ -90,11 +87,9 @@ class Package:
         if not isinstance(other, Package):
             return False
 
-        else:
-            return hash(self) == hash(other)
+        return hash((self.name, self.version)) == hash((other.name, other.version))
 
 
-@dataclass(eq=False)
 class SyncPackage(Package):
     """
     A representation of an Arch package sourced from a synchronization database
@@ -121,18 +116,24 @@ class SyncPackage(Package):
 
     """
 
-    size: int
-    isize: int
-
-    def __post_init__(self) -> None:
-        """
-        post-init method to represent package sizes in human-readable format. This data is used when printing package info to the terminal.
-
-        :return: None
-        :rtype: None
-        """
-        self.size = self.format_bytes(self.size)
-        self.isize = self.format_bytes(self.isize)
+    def __init__(
+        self,
+        db: str,
+        name: str,
+        version: str,
+        desc: str,
+        check_depends: list[str],
+        make_depends: list[str],
+        depends: list[str],
+        opt_depends: list[str],
+        size: int,
+        isize: int,
+    ) -> None:
+        super().__init__(
+            db, name, version, desc, check_depends, make_depends, depends, opt_depends
+        )
+        self.size = self.format_bytes(size)
+        self.isize = self.format_bytes(isize)
 
     @classmethod
     def from_pyalpm(cls, pkg: pyalpm.Package) -> "SyncPackage":
@@ -150,6 +151,10 @@ class SyncPackage(Package):
             "version": pkg.version,
             "desc": pkg.desc,
             "db": pkg.db.name,
+            "check_depends": pkg.checkdepends,
+            "make_depends": pkg.makedepends,
+            "opt_depends": pkg.optdepends,
+            "depends": pkg.depends,
             "size": pkg.size,
             "isize": pkg.isize,
         }
@@ -176,41 +181,113 @@ class SyncPackage(Package):
             n += 1
         return f"{round(size, 1)} {power_labels[n]}"
 
-    @property
-    def renderable(self) -> Text:
-        """
-        Get a rich.text.Text renderable representation of the package
 
-        :return: A rich.text.Text renderable representation of the package
-        :rtype: rich.text.Text
-        """
-        renderable = Text.assemble(
-            (
-                Text(
-                    self.db,
-                    style=self.db if self.db in default.styles.keys() else "other_db",
-                )
-            ),
-            (Text("/")),
-            (Text(f"{self.name} ")),
-            (Text(f"{self.version} ", style="cyan")),
-            (Text(f"({self.size} {self.isize}) ")),
-            (Text("(Installed)" if self.is_installed else "", style="bright_green")),
+class AURBasic(Package):
+    def __init__(
+        self,
+        db: str,
+        name: str,
+        version: str,
+        desc: str,
+        votes: int,
+        popularity: int,
+        flag_date: Optional[int] = None,
+        orphaned: Optional[int] = False,
+        search_query: Optional[dict] = None,
+        check_depends: Optional[list[str]] = [],
+        make_depends: Optional[list[str]] = [],
+        depends: Optional[list[str]] = [],
+        opt_depends: Optional[list[str]] = [],
+    ) -> None:
+        super().__init__(
+            db, name, version, desc, check_depends, make_depends, depends, opt_depends
         )
-        renderable = Text("\n    ").join([renderable, Text(self.desc)])
-        return renderable
+        self.votes = votes
+        self.popularity = popularity
+        self.flag_date = (
+            datetime.fromtimestamp(flag_date) if flag_date is not None else None
+        )
+        self.orphaned = orphaned
+        self.search_query = search_query
 
-    def __rich_console__(
-        self, console: Console, options: ConsoleOptions
-    ) -> RenderResult:
+    @classmethod
+    def from_search_query(cls, result: dict) -> "AURBasic":
         """
-        Protocol for rich.console.Console to render the package to the terminal
+        Create a `AURPackage` instance from a __search__ AURweb RPC interface HTTP request (read: https://wiki.archlinux.org/title/Aurweb_RPC_interface)
+
+        :param result: The JSON data containing the package information
+        :type dict:
+
+        :return: An `AURPackage` instance.
+        :rtype: AURPackage
         """
-        yield self.renderable
+
+        kwargs = {
+            "db": "aur",
+            "name": result["Name"],
+            "version": result["Version"],
+            "desc": result["Description"] if result["Description"] else "",
+            "flag_date": result["OutOfDate"],
+            "orphaned": True if result["Maintainer"] is None else False,
+            "votes": result["NumVotes"],
+            "popularity": result["Popularity"],
+        }
+
+        kwargs["search_query"] = result
+        return cls(**kwargs)
+
+    @property
+    def PKGBUILD(self) -> str:
+        """
+        Get the pseudo PKGBUILD path for a package in nay's CACHEDIR (whether it exists on the local filesystem or not)
+
+        :return: str path to the PKGBUILD file
+        :rtype: str
+        """
+        return os.path.join(CACHEDIR, f"{self.name}/PKGBUILD")
+
+    @property
+    def SRCINFO(self) -> str:
+        """
+        Get the pseudo .SRCINFO path for a package in nay's CACHEDIR (whether it exists on the local filesystem or not)
+
+        :return: str path to the .SRCINFO file
+        :rtype: str
+        """
+        return os.path.join(CACHEDIR, f"{self.name}/.SRCINFO")
+
+    @property
+    def pkgbuild_exists(self) -> bool:
+        """
+        Check if the PKGBUILD file exists. This will return 'False' if the PKGBUILD exists but is mismatched with the class instance's version
+
+        :return: bool: True if PKGBUILD exists and is up to date; False if PKGBUILD exists and is out of date or does not exist
+        :rtype: bool
+        """
+
+        if os.path.exists(self.PKGBUILD):
+            try:
+                with open(self.SRCINFO, "r") as f:
+                    data = f.read()
+                pkgver = re.search(r"pkgver = (.*)", data).group(1)
+                pkgrel = re.search(r"pkgrel = (.*)", data).group(1)
+                epoch = re.search(r"epoch = (.*)", data)
+                if epoch:
+                    epoch = epoch.group(1)
+                    srcinfo_ver = f"{epoch}:{pkgver}-{pkgrel}"
+                else:
+                    srcinfo_ver = f"{pkgver}-{pkgrel}"
+                if self.version != srcinfo_ver:
+                    return False
+
+                return True
+            except (FileNotFoundError, AttributeError):
+                return False
+        else:
+            return False
 
 
-@dataclass(eq=False)
-class AURPackage(Package):
+class AURPackage(AURBasic):
     """
     A representation of an Arch package sourced from the AUR
 
@@ -257,44 +334,43 @@ class AURPackage(Package):
 
     """
 
-    votes: int
-    popularity: float
-    flag_date: Optional[int] = None
-    orphaned: Optional[bool] = False
-    make_depends: Optional[list[str]] = None
-    check_depends: Optional[list[str]] = None
-    depends: Optional[list[str]] = None
-    opt_depends: Optional[list[str]] = None
-    info_query: Optional[dict] = None
-
-    def __post_init__(self) -> None:
-        self.flag_date = (
-            datetime.fromtimestamp(self.flag_date) if self.flag_date else None
+    def __init__(
+        self,
+        db: str,
+        name: str,
+        version: str,
+        desc: str,
+        check_depends: list[str],
+        make_depends: list[str],
+        depends: list[str],
+        opt_depends: list[str],
+        votes: int,
+        popularity: int,
+        flag_date: Optional[int] = None,
+        orphaned: Optional[int] = False,
+        info_query: Optional[dict] = None,
+    ) -> None:
+        super().__init__(
+            db,
+            name,
+            version,
+            desc,
+            votes,
+            popularity,
+            flag_date,
+            orphaned,
+            check_depends,
+            make_depends,
+            depends,
+            opt_depends,
         )
-
-    @classmethod
-    def from_search_query(cls, result: dict) -> "AURPackage":
-        """
-        Create a `AURPackage` instance from a __search__ AURweb RPC interface HTTP request (read: https://wiki.archlinux.org/title/Aurweb_RPC_interface)
-
-        :param result: The JSON data containing the package information
-        :type dict:
-
-        :return: An `AURPackage` instance.
-        :rtype: AURPackage
-        """
-
-        kwargs = {
-            "db": "aur",
-            "name": result["Name"],
-            "version": result["Version"],
-            "desc": result["Description"] if result["Description"] else "",
-            "flag_date": result["OutOfDate"],
-            "orphaned": True if result["Maintainer"] is None else False,
-            "votes": result["NumVotes"],
-            "popularity": result["Popularity"],
-        }
-        return cls(**kwargs)
+        self.votes = votes
+        self.popularity = popularity
+        self.flag_date = (
+            datetime.fromtimestamp(flag_date) if flag_date is not None else None
+        )
+        self.orphaned = orphaned
+        self.info_query = info_query
 
     @classmethod
     def from_info_query(cls, result: dict) -> "AURPackage":
@@ -329,125 +405,10 @@ class AURPackage(Package):
         for dtype in dep_types.keys():
             if dtype in result.keys():
                 kwargs[dep_types[dtype]] = result[dtype]
+            else:
+                kwargs[dep_types[dtype]] = []
 
         return cls(**kwargs)
-
-    @property
-    def PKGBUILD(self) -> str:
-        """
-        Get the pseudo PKGBUILD path for a package in nay's CACHEDIR (whether it exists on the local filesystem or not)
-
-        :return: str path to the PKGBUILD file
-        :rtype: str
-        """
-        return os.path.join(CACHEDIR, f"{self.name}/PKGBUILD")
-
-    @property
-    def SRCINFO(self) -> str:
-        """
-        Get the pseudo .SRCINFO path for a package in nay's CACHEDIR (whether it exists on the local filesystem or not)
-
-        :return: str path to the .SRCINFO file
-        :rtype: str
-        """
-        return os.path.join(CACHEDIR, f"{self.name}/.SRCINFO")
-
-    @property
-    def is_updated(self) -> bool:
-        """
-        Check if the AURPackage version matches the localdb version. If not, return False
-
-        :return: bool: True if self.version matches .SRCINFO meta data, otherwise False
-        :rtype: bool
-        """
-
-        if self.version == INSTALLED[self.name]:
-            return True
-        else:
-            return False
-
-    @property
-    def pkgbuild_exists(self) -> bool:
-        """
-        Check if the PKGBUILD file exists. This will return 'False' if the PKGBUILD exists but is mismatched with the class instance's version
-
-        :return: bool: True if PKGBUILD exists and is up to date; False if PKGBUILD exists and is out of date or does not exist
-        :rtype: bool
-        """
-
-        if os.path.exists(self.PKGBUILD):
-            try:
-                with open(self.SRCINFO, "r") as f:
-                    if re.search(r"pkgver=(.*)", f.read()) != self.version:
-                        return True
-                    else:
-                        return False
-            except FileNotFoundError:
-                return False
-        else:
-            return False
-
-    @property
-    def renderable(self) -> Text:
-        """
-        Get a rich.text.Text renderable representation of the package
-
-        :return: A rich.text.Text renderable representation of the package
-        :rtype: rich.text.Text
-        """
-        flag_date = self.flag_date.strftime("%Y-%m-%d") if self.flag_date else ""
-        popularity = "{:.2f}".format(self.popularity)
-        renderable = Text.assemble(
-            (
-                Text(
-                    self.db,
-                    style=self.db if self.db in default.styles.keys() else "other_db",
-                )
-            ),
-            (Text("/")),
-            (Text(f"{self.name} ")),
-            (Text(f"{self.version} ", style="cyan")),
-            (Text(f"(+{self.votes} {popularity}) ")),
-            (Text("(Installed) " if self.is_installed else "", style="bright_green")),
-            (Text("(Orphaned) " if self.orphaned else "", style="bright_red")),
-            (
-                Text(
-                    f"(Out-of-date: {flag_date})" if flag_date else flag_date,
-                    style="bright_red",
-                )
-            ),
-        )
-        renderable = Text("\n    ").join([renderable, Text(self.desc)])
-        return renderable
-
-    def get_aur_dependency_tree(self) -> nx.DiGraph:
-        """
-        Get the dependency tree of the AUR represented as a networkx DiGraph object. This method will return a graph of __only__ the immediate dependencies
-
-        :return: A dependency tree
-        :rtype: nx.DiGraph
-        """
-
-        tree = nx.DiGraph()
-        tree.add_node(self)
-        dtypes = ["check_depends", "make_depends", "depends"]
-        all_depends = []
-        for dtype in dtypes:
-            deps = getattr(self, dtype)
-            if isinstance(deps, list):
-                all_depends += deps
-        if all_depends:
-            aur_query = requests.get(
-                f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join(all_depends)}"
-            ).json()
-            if aur_query["results"]:
-                for result in aur_query["results"]:
-                    dep = AURPackage.from_info_query(result)
-                    for dtype in dtypes:
-                        deps = getattr(self, dtype)
-                        if isinstance(deps, list) and dep.name in deps:
-                            tree.add_edge(self, dep, dtype=dtype)
-        return tree
 
     @property
     def info(self) -> Table:
@@ -510,11 +471,3 @@ class AURPackage(Package):
         )
 
         return grid
-
-    def __rich_console__(
-        self, console: Console, options: ConsoleOptions
-    ) -> RenderResult:
-        """
-        Protocol for rich.console.Console to render the package to the terminal
-        """
-        yield self.renderable

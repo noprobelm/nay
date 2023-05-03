@@ -1,12 +1,11 @@
+import os
 import shlex
 import subprocess
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Optional
 
-from . import utils
-from .config import CACHEDIR
 from .console import console
-from .package import AURPackage
+from .exceptions import ConflictingOptions, InvalidOption, MissingTargets, PacmanError
 
 
 @dataclass
@@ -14,166 +13,183 @@ class Operation:
     """
     Boilerplate class for nay operations
 
-    :param options: The options for the operation (e.g. ['u', 'y'])
+    :param options: The options for the operation (e.g. ['-u', '-y'])
     :type options: list[str]
-    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :type args: list[str]
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
     :param run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
     :type run: Callable
 
-    :ivar options: The options for the operation (e.g. ['u', 'y'])
+    :ivar options: The options for the operation (e.g. ['-u', '-y'])
     :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
     :ivar run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
     """
 
     options: list[str]
-    args: list[str]
+    targets: list[str]
     run: Callable
-
-
-class Nay(Operation):
-    """
-    Pyaura-specific operations
-
-    :param options: The options for the operation (e.g. ['u', 'y'])
-    :type options: list[str]
-    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :type args: list[str]
-    :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
-    :type run: Callable
-
-    :ivar options: The options for the operation (e.g. ['u', 'y'])
-    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
-    """
-
-    def __init__(self, options: list[str], args: list[str]) -> None:
-        super().__init__(options, args, self.run)
-
-    def run(self) -> None:
-        if not self.args:
-            utils.refresh()
-            utils.upgrade()
-        else:
-            results = utils.search(" ".join(self.args))
-            if not results:
-                quit()
-            utils.print_pkglist(results, include_num=True)
-            packages = utils.select_packages(results)
-            utils.refresh()
-            utils.install(*packages)
 
 
 class Sync(Operation):
     """Sync operations
 
-    :param options: The options for the operation (e.g. ['u', 'y'])
+    :param options: The options for the operation (e.g. ['-u', '-y'])
     :type options: list[str]
-    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :type args: list[str]
-    :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
+    :param run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
     :type run: Callable
 
-    :ivar options: The options for the operation (e.g. ['u', 'y'])
+    :ivar options: The options for the operation (e.g. ['-u', '-y'])
     :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    :ivar run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
     """
 
-    def __init__(self, options: list[str], args: list[str]) -> None:
-        self.key = {
-            "--refresh": self.refresh,
-            "--sysupgrade": self.upgrade,
-            "--downloadonly": self.download,
-            "--clean": self.clean,
-            "--search": self.search,
-            "--info": self.info,
+    def __init__(self, options: list[str], targets: list[str]) -> None:
+
+        self.options = self.parse_options(options)
+
+        super().__init__(options, targets, self.run)
+
+    def parse_options(self, options):
+        mapper = {
+            "-c": "--clean",
+            "-s": "--search",
+            "-i": "--info",
+            "-u": "--sysupgrade",
+            "-w": "--downloadonly",
+            "-y": "--refresh",
         }
 
-        flags = {
-            "--refresh": {"force": False},
-            "--nodeps": {"skip_verchecks": False, "skip_depchecks": False},
+        for num, option in enumerate(options):
+            if option in mapper.keys():
+                options[num] = mapper[option]
+
+        conflicts = {
+            "--clean": ["--refresh", "search", "--sysupgrade"],
+            "--search": ["--sysupgrade", "--info", "--clean"],
+            "--info": ["--search"],
+            "--sysupgrade": ["--search, --clean", "--info"],
+            "--nodeps": [],
+            "--downloadonly": [],
+            "--refresh": ["--clean"],
         }
 
-        if options.count("--refresh") > 1:
-            flags["--refresh"]["force"] = True
-        elif options.count("--nodeps") > 0:
-            if options.count("--nodeps") == 1:
-                flags["--nodeps"]["skip_verchecks"] = True
-            else:
-                flags["--nodeps"]["skip_depchecks"] = True
+        for option in options:
+            for other in options:
+                try:
+                    if other in conflicts[option]:
+                        raise ConflictingOptions(
+                            f"error: invalid option: '{option}' and '{other}' may not be used together"
+                        )
+                except KeyError:
+                    raise InvalidOption(f"error: invalid option '{option}")
+        return options
 
-        self.flags = flags
+    def run(self):
+        if "--refresh" in self.options:
+            self.refresh()
 
-        options = list(set(options))
-        options = list(filter(lambda x: x in self.key.keys(), options))
-        options = list(sorted(options, key=lambda x: list(self.key.keys()).index(x)))
-        super().__init__(options, args, self.run)
+        if "--sysupgrade" in self.options:
+            self.sysupgrade()
+            if not self.targets:
+                return
 
-    def run(self) -> None:
-        if not self.options:
-            # TODO: Add error handling for missing args here
-            self.install()
-        elif any(opt in ["--clean", "--search", "--info"] for opt in self.options):
-            for opt in self.options:
-                self.key[opt]()
-        elif "--downloadonly" in self.options:
-            self.download()
-        else:
-            for opt in set(self.options):
-                self.key[opt]()
-            if self.args:
-                self.install()
+        if "--clean" in self.options:
+            self.clean()
+            return
 
-    def search(self) -> None:
-        packages = utils.search(" ".join(self.args))
-        utils.print_pkglist(packages)
+        if "--search" in self.options:
+            self.search()
+            return
 
-    def install(self) -> None:
-        targets = utils.get_packages(*self.args)
-        if targets:
-            utils.install(*targets, **self.flags["--nodeps"])
+        if "--info" in self.options:
+            self.print_pkg_info()
+            return
+
+        if not self.targets:
+            raise MissingTargets("error: no targets specified (use -h for help)")
+
+        self.install()
 
     def refresh(self):
-        utils.refresh(**self.flags["--refresh"])
-
-    def upgrade(self) -> None:
-        utils.upgrade()
-
-    def download(self) -> None:
-        targets = {"aur": [], "sync": []}
-        packages = utils.get_packages(*self.args)
-        for pkg in packages:
-            if isinstance(pkg, AURPackage):
-                targets["aur"].append(pkg)
-            else:
-                targets["sync"].append(pkg)
-
-        for target in targets["aur"]:
-            utils.get_pkgbuild(target, pkgdir=CACHEDIR)
-
-        if targets["sync"]:
-            subprocess.run(
-                shlex.split(
-                    f"sudo pacman -Sw {' '.join([pkg.name for pkg in targets['sync']])}"
-                )
+        subprocess.run(
+            shlex.split(
+                f"sudo pacman -S {' '.join([option for option in self.options if option == '--refresh'])}"
             )
+        )
+
+    def sysupgrade(self):
+        subprocess.run(shlex.split("sudo pacman -Su"))
 
     def clean(self) -> None:
-        utils.clean()
+        subprocess.run(
+            shlex.split(
+                f"sudo pacman -S {' '.join([option for option in self.options if option == '--clean'])}"
+            )
+        )
+        from . import clean
 
-    def info(self) -> None:
-        packages = utils.get_packages(*self.args)
-        utils.print_pkginfo(*packages)
+        clean.clean_cachedir()
+        clean.clean_untracked()
+
+    def search(self) -> None:
+        if not self.targets:
+            subprocess.run(shlex.split("pacman -S --search"))
+            return
+
+        from . import db
+
+        packages = db.search(" ".join(self.targets))
+        db.print_pkglist(packages)
+
+    def print_pkg_info(self) -> None:
+        if not self.targets:
+            subprocess.run(shlex.split("pacman -S --info"))
+
+        from . import db
+
+        packages = db.get_packages(*self.targets)
+        db.print_pkginfo(*packages)
+
+    def install(self) -> None:
+        from . import install
+
+        skip_verchecks = False
+        skip_depchecks = False
+        download_only = False
+        pacman_flags = []
+
+        if self.options.count("--nodeps") >= 1:
+            if self.options.count("--nodeps") == 1:
+                skip_verchecks = True
+                pacman_flags.append("--nodeps")
+            else:
+                skip_depchecks = True
+                pacman_flags.extend(["--nodeps", "--nodeps"])
+
+        if "--downloadonly" in self.options:
+            download_only = True
+            pacman_flags.append("--downloadonly")
+
+        install_kwargs = {
+            "skip_verchecks": skip_verchecks,
+            "skip_depchecks": skip_depchecks,
+            "download_only": download_only,
+            "pacman_flags": pacman_flags,
+        }
+
+        install.install(*self.targets, **install_kwargs)
 
 
-class Query(Operation):
+class Nay(Sync):
     """
-    Query the local/sync databases. Purely a pacman wrapper
+    Nay-specific operations
 
     :param options: The options for the operation (e.g. ['u', 'y'])
     :type options: list[str]
-    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :type args: list[str]
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
     :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
     :type run: Callable
 
@@ -182,13 +198,22 @@ class Query(Operation):
     :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
     """
 
-    def __init__(self, options: list[str], args: list[str]) -> None:
-        super().__init__(options, args, self.run)
+    def __init__(self, options: list[str], targets: list[str]) -> None:
+        super().__init__(options, targets)
 
     def run(self) -> None:
-        subprocess.run(
-            shlex.split(f"pacman -Q {' '.join(self.options)} {' '.join(self.args)}")
-        )
+        if not self.targets:
+            subprocess.run(shlex.split("sudo pacman -Syu"))
+        else:
+            from . import db
+
+            results = db.search(" ".join(self.targets))
+            if not results:
+                return
+            db.print_pkglist(results, include_num=True)
+            self.targets = db.select_packages(results)
+            subprocess.run(shlex.split("sudo pacman -Sy"))
+            self.install()
 
 
 class GetPKGBUILD(Operation):
@@ -197,8 +222,8 @@ class GetPKGBUILD(Operation):
 
     :param options: The options for the operation (e.g. ['u', 'y'])
     :type options: list[str]
-    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :type args: list[str]
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
     :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
     :type run: Callable
 
@@ -207,15 +232,17 @@ class GetPKGBUILD(Operation):
     :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
     """
 
-    def __init__(self, options: list[str], args: list[str]) -> None:
-        super().__init__(options, args, self.run)
+    def __init__(self, options: list[str], targets: list[str]) -> None:
+        super().__init__(options, targets, self.run)
 
     def run(self) -> None:
         succeeded = []
         failed = []
-        packages = utils.get_packages(*self.args)
+        from . import db, get
+
+        packages = db.get_packages(*self.targets)
         for pkg in packages:
-            if pkg.name in self.args:
+            if pkg.name in self.targets:
                 succeeded.append(pkg)
             else:
                 failed.append(pkg)
@@ -223,7 +250,7 @@ class GetPKGBUILD(Operation):
         if succeeded:
             for idx, pkg in enumerate(succeeded):
                 idx += 1
-                utils.get_pkgbuild(pkg)
+                get.get_pkgbuild(pkg, os.getcwd())
                 if pkg.db == "aur":
                     console.print(
                         f"[bright_blue]::[/bright_blue] ({idx}/{len(succeeded)}) Downloaded PKGBIULD: {pkg.name}"
@@ -235,59 +262,108 @@ class GetPKGBUILD(Operation):
 
         if failed:
             console.print(
-                f"[bright_yellow] ->[/bright_yellow] Unable to find the following packages: {', '.join([arg for arg in failed])}"
+                f"[bright_red] ->[/bright_yellow] Unable to find the following packages: {', '.join([arg for arg in failed])}"
             )
 
 
-class Remove(Operation):
+class Wrapper(Operation):
     """
-    Remove packages from the system. Purely a pacman wrapper
+    A class to manage pure-wrapper operations
 
-    :param options: The options for the operation (e.g. ['u', 'y'])
+    :param options: The options for the operation (e.g. ['-u', '-y'])
     :type options: list[str]
-    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :type args: list[str]
-    :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
+    :param run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
     :type run: Callable
+    :param sudo: Flag to determine if sudo should be prefixed to the wrapper command
+    :type sudo: Optional[bool]
 
-    :ivar options: The options for the operation (e.g. ['u', 'y'])
+    :ivar options: The options for the operation (e.g. ['-u', '-y'])
     :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    :ivar run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
+    :ivar sudo: Flag to determine if sudo should be prefixed to the wrapper command
+
     """
 
-    def __init__(self, options: list[str], args: list[str]) -> None:
-        super().__init__(options, args, self.run)
+    def __init__(
+        self,
+        operation: str,
+        options: list[str],
+        targets: list[str],
+        sudo: Optional[bool] = False,
+    ) -> None:
+        self.operation = operation
+        self.options = options
+        self.targets = targets
+        self.sudo = sudo
+        super().__init__(options, targets, self.run)
 
-    def run(self) -> None:
-        subprocess.run(
-            shlex.split(
-                f"sudo pacman -R {' '.join(self.options)} {' '.join(self.args)}"
-            )
-        )
+    def run(self):
+        command = f"pacman {self.operation} {' '.join(opt for opt in self.options)} {' '.join(target for target in self.targets)}"
+        if self.sudo is True:
+            command = f"sudo {command}"
+
+        # TODO: There's a complicated way here in which pacman redirects some user prompts (i.e. 'Do you want to remove
+        # these packages?') as stderr instead of stdout. If we're trying to print the full stdout while redirecting
+        # stderr in the event an error is encountered, the user prompt will be suppressed. Need to figure out a way to
+        # deal with this in the future. For now, unfortunately, a non-informative generic error message will have to do
+        #
+        # Is there a simple way to capture stdout/stderr while still enabling subprocess.run to print the information
+        # to the terminal?
+        try:
+            subprocess.run(shlex.split(command), check=True)
+        except subprocess.CalledProcessError:
+            raise PacmanError()
 
 
-class Upgrade(Operation):
+class Upgrade(Wrapper):
     """
-    Upgrade specified targets. Purely a pacman wrapper.
+    Wrapper for Upgrade operations
 
-    :param options: The options for the operation (e.g. ['u', 'y'])
+    :param options: The options for the operation (e.g. ['-u', '-y'])
     :type options: list[str]
-    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :type args: list[str]
-    :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
-    :type run: Callable
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
 
-    :ivar options: The options for the operation (e.g. ['u', 'y'])
+    :ivar options: The options for the operation (e.g. ['-u', '-y'])
     :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
     """
 
-    def __init__(self, options: list[str], args: list[str]) -> None:
-        super().__init__(options, args, self.run)
+    def __init__(self, options: list[str], targets: list[str]) -> None:
+        super().__init__("-U", options, targets, True)
 
-    def run(self) -> None:
-        subprocess.run(
-            shlex.split(
-                f"sudo pacman -U {' '.join(self.options)} {' '.join(self.args)}"
-            )
-        )
+
+class Remove(Wrapper):
+    """
+    Wrapper for Remove operations
+
+    :param options: The options for the operation (e.g. ['-u', '-y'])
+    :type options: list[str]
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
+
+    :ivar options: The options for the operation (e.g. ['-u', '-y'])
+    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+
+    """
+
+    def __init__(self, options: list[str], targets: list[str]) -> None:
+        super().__init__("-R", options, targets, True)
+
+
+class Query(Wrapper):
+    """
+    Wrapper for Query operations
+
+    :param options: The options for the operation (e.g. ['-u', '-y'])
+    :type options: list[str]
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
+
+    :ivar options: The options for the operation (e.g. ['-u', '-y'])
+    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    """
+
+    def __init__(self, options: list[str], targets: list[str]) -> None:
+        super().__init__("-Q", options, targets)
