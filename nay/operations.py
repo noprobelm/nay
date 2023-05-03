@@ -245,7 +245,7 @@ class GetPKGBUILD(Operation):
         succeeded = []
         failed = []
         from . import db
-        from . import utils
+        from . import get
 
         packages = db.get_packages(*self.targets)
         for pkg in packages:
@@ -257,7 +257,7 @@ class GetPKGBUILD(Operation):
         if succeeded:
             for idx, pkg in enumerate(succeeded):
                 idx += 1
-                utils.get_pkgbuild(pkg, os.getcwd())
+                get.get_pkgbuild(pkg, os.getcwd())
                 if pkg.db == "aur":
                     console.print(
                         f"[bright_blue]::[/bright_blue] ({idx}/{len(succeeded)}) Downloaded PKGBIULD: {pkg.name}"
