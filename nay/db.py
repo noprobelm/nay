@@ -83,7 +83,9 @@ def search(query: str, sortby: Optional[str] = "db") -> dict[int, Package]:
     return packages
 
 
-def get_packages(*pkg_names: str) -> list[Union[SyncPackage, AURPackage]]:
+def get_packages(
+    *pkg_names: str, verbose=False
+) -> list[Union[SyncPackage, AURPackage]]:
     """
     Get packages based on passed string or strings. Invalid results are ignored/dropped from return result.
 
@@ -111,7 +113,7 @@ def get_packages(*pkg_names: str) -> list[Union[SyncPackage, AURPackage]]:
                 packages.append(AURPackage.from_info_query(result))
                 aur_search = list(filter(lambda x: x != result["Name"], aur_search))
 
-    if aur_search:
+    if aur_search and verbose is True:
         console.print(f"[red]->[/red] No AUR package found for {', '.join(aur_search)}")
 
     return packages
