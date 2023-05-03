@@ -28,6 +28,8 @@ class Args(dict):
         "-R": operations.Remove,
         "--deptest": operations.DepTest,
         "-T": operations.DepTest,
+        "--files": operations.Files,
+        "-F": operations.Files,
     }
 
     def __init__(self) -> None:
