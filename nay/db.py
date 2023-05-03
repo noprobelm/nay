@@ -161,9 +161,7 @@ def get_dependency_tree(
     return tree
 
 
-def get_aur_depends(
-    aur_tree: nx.DiGraph, skip_verchecks=False, skip_depchecks=False
-) -> list[AURPackage]:
+def get_aur_depends(aur_tree: nx.DiGraph, skip_verchecks=False) -> list[AURPackage]:
     """
     Get the aur dependencies from installation targets
 
