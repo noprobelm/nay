@@ -1,18 +1,18 @@
 import configparser
+import re
+import shlex
+import subprocess
 from typing import Optional, Union
 
-import subprocess
-import shlex
 import networkx as nx
 import pyalpm
 import requests
 from pyalpm import Handle
+from rich.console import Group
+from rich.text import Text
 
 from .console import console, default
-from rich.console import Group
-import re
 from .package import AURBasic, AURPackage, Package, SyncPackage
-from rich.text import Text
 
 parser = configparser.ConfigParser(allow_no_value=True)
 parser.read("/etc/pacman.conf")
