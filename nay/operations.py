@@ -13,14 +13,14 @@ class Operation:
     """
     Boilerplate class for nay operations
 
-    :param options: The options for the operation (e.g. ['u', 'y'])
+    :param options: The options for the operation (e.g. ['-u', '-y'])
     :type options: list[str]
-    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
     :type targets: list[str]
     :param run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
     :type run: Callable
 
-    :ivar options: The options for the operation (e.g. ['u', 'y'])
+    :ivar options: The options for the operation (e.g. ['-u', '-y'])
     :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
     :ivar run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
     """
@@ -33,16 +33,16 @@ class Operation:
 class Sync(Operation):
     """Sync operations
 
-    :param options: The options for the operation (e.g. ['u', 'y'])
+    :param options: The options for the operation (e.g. ['-u', '-y'])
     :type options: list[str]
-    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :type args: list[str]
-    :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
+    :param run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
     :type run: Callable
 
-    :ivar options: The options for the operation (e.g. ['u', 'y'])
+    :ivar options: The options for the operation (e.g. ['-u', '-y'])
     :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :ivar run: The Callable for the operation. This is expected to be called after the class has been instantiated
+    :ivar run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
     """
 
     def __init__(self, options: list[str], targets: list[str]) -> None:
@@ -188,8 +188,8 @@ class Nay(Sync):
 
     :param options: The options for the operation (e.g. ['u', 'y'])
     :type options: list[str]
-    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :type args: list[str]
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
     :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
     :type run: Callable
 
@@ -222,8 +222,8 @@ class GetPKGBUILD(Operation):
 
     :param options: The options for the operation (e.g. ['u', 'y'])
     :type options: list[str]
-    :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :type args: list[str]
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
     :param run: The Callable for the operation. This is expected to be called after the class has been instantiated
     :type run: Callable
 
@@ -267,6 +267,25 @@ class GetPKGBUILD(Operation):
 
 
 class Wrapper(Operation):
+    """
+    A class to manage pure-wrapper operations
+
+    :param options: The options for the operation (e.g. ['-u', '-y'])
+    :type options: list[str]
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
+    :param run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
+    :type run: Callable
+    :param sudo: Flag to determine if sudo should be prefixed to the wrapper command
+    :type sudo: Optional[bool]
+
+    :ivar options: The options for the operation (e.g. ['-u', '-y'])
+    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :ivar run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
+    :ivar sudo: Flag to determine if sudo should be prefixed to the wrapper command
+
+    """
+
     def __init__(
         self,
         operation: str,
@@ -299,15 +318,27 @@ class Wrapper(Operation):
 
 
 class Upgrade(Wrapper):
+    """
+    Wrapper for Upgrade operations
+    """
+
     def __init__(self, options: list[str], targets: list[str]):
         super().__init__("-U", options, targets, True)
 
 
 class Remove(Wrapper):
+    """
+    Wrapper for Remove operations
+    """
+
     def __init__(self, options: list[str], targets: list[str]):
         super().__init__("-R", options, targets, True)
 
 
 class Query(Wrapper):
+    """
+    Wrapper for Query operations
+    """
+
     def __init__(self, options: list[str], targets: list[str]):
         super().__init__("-Q", options, targets)
