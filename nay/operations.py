@@ -5,8 +5,7 @@ from dataclasses import dataclass
 from typing import Callable, Optional
 
 from .console import console
-from .exceptions import (ConflictingOptions, InvalidOption, MissingTargets,
-                         PacmanError)
+from .exceptions import ConflictingOptions, InvalidOption, MissingTargets, PacmanError
 
 
 @dataclass
@@ -17,7 +16,7 @@ class Operation:
     :param options: The options for the operation (e.g. ['u', 'y'])
     :type options: list[str]
     :param args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :type args: list[str]
+    :type targets: list[str]
     :param run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
     :type run: Callable
 
