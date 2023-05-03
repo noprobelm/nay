@@ -132,7 +132,7 @@ def _():
     assert args["operation"] == nay.operations.Query
 
 
-@test("--database or -D returns Args object with 'nay.operations.Remove' operation")
+@test("--database or -D returns Args object with 'nay.operations.Database' operation")
 def _():
     sys.argv = [sys.argv[0]]
     sys.argv.append("--database")
@@ -144,7 +144,7 @@ def _():
     assert args["operation"] == nay.operations.Database
 
 
-@test("--deptest or -T returns Args object with 'nay.operations.Remove' operation")
+@test("--deptest or -T returns Args object with 'nay.operations.DepTest' operation")
 def _():
     sys.argv = [sys.argv[0]]
     sys.argv.append("--deptest")
@@ -154,6 +154,18 @@ def _():
     sys.argv = [sys.argv[0]]
     sys.argv.append("-T")
     assert args["operation"] == nay.operations.DepTest
+
+
+@test("--files or -F returns Args object with 'nay.operations.Files' operation")
+def _():
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("--files")
+    args = Args()
+    assert args["operation"] == nay.operations.Files
+
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("-F")
+    assert args["operation"] == nay.operations.Files
 
 
 @test("--remove or -R returns Args object with 'nay.operations.Remove' operation")
