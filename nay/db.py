@@ -6,8 +6,11 @@ import pyalpm
 import requests
 from pyalpm import Handle
 
-from .console import console
+from .console import console, default
+from rich.console import Group
+import re
 from .package import AURBasic, AURPackage, Package, SyncPackage
+from rich.text import Text
 
 parser = configparser.ConfigParser(allow_no_value=True)
 parser.read("/etc/pacman.conf")
