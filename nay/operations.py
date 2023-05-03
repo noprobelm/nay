@@ -320,6 +320,14 @@ class Wrapper(Operation):
 class Upgrade(Wrapper):
     """
     Wrapper for Upgrade operations
+
+    :param options: The options for the operation (e.g. ['-u', '-y'])
+    :type options: list[str]
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
+
+    :ivar options: The options for the operation (e.g. ['-u', '-y'])
+    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
     """
 
     def __init__(self, options: list[str], targets: list[str]):
@@ -329,6 +337,15 @@ class Upgrade(Wrapper):
 class Remove(Wrapper):
     """
     Wrapper for Remove operations
+
+    :param options: The options for the operation (e.g. ['-u', '-y'])
+    :type options: list[str]
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
+
+    :ivar options: The options for the operation (e.g. ['-u', '-y'])
+    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+
     """
 
     def __init__(self, options: list[str], targets: list[str]):
@@ -338,6 +355,14 @@ class Remove(Wrapper):
 class Query(Wrapper):
     """
     Wrapper for Query operations
+
+    :param options: The options for the operation (e.g. ['-u', '-y'])
+    :type options: list[str]
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
+
+    :ivar options: The options for the operation (e.g. ['-u', '-y'])
+    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
     """
 
     def __init__(self, options: list[str], targets: list[str]):
