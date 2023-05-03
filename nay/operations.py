@@ -141,7 +141,7 @@ class Sync(Operation):
 
     def search(self) -> None:
         if not self.targets:
-            subprocess.run(shlex.split("pacman -Ss"))
+            subprocess.run(shlex.split("pacman -S --search"))
             return
 
         from . import db
@@ -151,7 +151,7 @@ class Sync(Operation):
 
     def print_pkg_info(self) -> None:
         if not self.targets:
-            subprocess.run(shlex.split("pacman -Si"))
+            subprocess.run(shlex.split("pacman -S --info"))
 
         from . import db
 
