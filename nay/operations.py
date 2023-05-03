@@ -176,7 +176,7 @@ class Sync(Operation):
 
         if "--downloadonly" in self.options:
             download_only = True
-            pacman_flags.extend(["--downloadonly"])
+            pacman_flags.append("--downloadonly")
 
         install_kwargs = {
             "skip_verchecks": skip_verchecks,
