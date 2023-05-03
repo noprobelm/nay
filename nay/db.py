@@ -230,7 +230,7 @@ def print_pkglist(
         return Text("{:.2f}".format(pkg.popularity))
 
     def get_orphan(pkg):
-        return Text(f"(Orphaned) ", style="bright_red") if pkg.orphaned else Text("")
+        return Text("(Orphaned) ", style="bright_red") if pkg.orphaned else Text("")
 
     def get_flag_date(pkg):
         return (
