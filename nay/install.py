@@ -7,7 +7,7 @@ from typing import Optional, Union
 import networkx as nx
 from rich.table import Column, Table
 
-from . import db, utils
+from . import db, get
 from .config import CACHEDIR
 from .console import console
 from .package import AURBasic, AURPackage, Package, SyncPackage
@@ -138,14 +138,14 @@ def get_missing_pkgbuild(
     if multithread:
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             for num, pkg in enumerate(missing):
-                executor.submit(utils.get_pkgbuild, pkg, force=True)
+                executor.submit(get.get_pkgbuild, pkg, force=True)
                 if verbose:
                     console.print(
                         f"[notify]::[/notify] ({num+1}/{len(missing)}) Downloaded PKGBUILD: [notify]{pkg.name}"
                     )
     else:
         for num, pkg in enumerate(missing):
-            utils.get_pkgbuild(pkg, force=True)
+            get.get_pkgbuild(pkg, force=True)
             if verbose:
                 console.print(
                     f"[notify]::[/notify] {num+1}/{len(missing)} Downloaded PKGBUILD: [notify]{pkg.name}"

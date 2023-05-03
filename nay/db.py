@@ -16,7 +16,7 @@ from rich.text import Text
 from .config import CACHEDIR
 from .console import console, default
 from .package import AURBasic, AURPackage, Package, SyncPackage
-from .utils import makepkg
+from .install import makepkg
 
 parser = configparser.ConfigParser(allow_no_value=True)
 parser.read("/etc/pacman.conf")
