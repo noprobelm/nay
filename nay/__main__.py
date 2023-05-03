@@ -1,9 +1,14 @@
 from .args import Args
+from .exceptions import ArgumentError
 
 
 def main() -> None:
-    args = Args()
-    operation = args["operation"](options=args["options"], targets=args["targets"])
+    try:
+        args = Args()
+        operation = args["operation"](options=args["options"], targets=args["targets"])
+    except ArgumentError as err:
+        print(err)
+        quit()
     try:
         operation.run()
     except KeyboardInterrupt:
