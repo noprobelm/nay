@@ -1,14 +1,12 @@
 import os
 from dataclasses import dataclass
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 import subprocess
 import shlex
-from .package import SyncPackage, AURPackage, Package
-import concurrent.futures
 import networkx as nx
 
 from .console import console
-from .exceptions import ConflictingOptions
+from .exceptions import ConflictingOptions, InvalidOption
 
 
 @dataclass
@@ -50,33 +48,36 @@ class Sync(Operation):
 
     def __init__(self, options: list[str], targets: list[str]) -> None:
 
-        self.key = {
-            "--clean": self.clean,
-            "--search": self.search,
-            "--info": self.print_pkg_info,
-        }
-
-        flags = {
-            "install_flags": {
-                "skip_verchecks": False,
-                "skip_depchecks": False,
-                "download_only": False,
-            },
-        }
-
-        self.parse_options(options)
-        self.pacman_flags = []
+        self.options = self.parse_options(options)
 
         super().__init__(options, targets, self.run)
 
     def parse_options(self, options):
+        mapper = {
+            "-c": "--clean",
+            "-s": "--search",
+            "-i": "--info",
+            "-u": "--upgrade",
+            "-w": "--downloadonly",
+            "-y": "--refresh",
+        }
+
+        for num, option in enumerate(options):
+            if option in mapper.keys():
+                options[num] = mapper[option]
+
         conflicts = {
             "--clean": ["--refresh", "search", "--sysupgrade"],
             "--search": ["--sysupgrade", "--info", "--clean"],
+            "--info": ["--search"],
+            "--sysupgrade": ["--search, --clean"],
+            "--nodeps": [],
+            "--downloadonly": [],
+            "--refresh": [],
         }
         for option in options:
-            if option in conflicts.keys():
-                for other in options:
+            for other in options:
+                try:
                     if other in conflicts[option]:
                         try:
                             raise ConflictingOptions(
@@ -85,6 +86,13 @@ class Sync(Operation):
                         except ConflictingOptions as err:
                             console.print(err)
                             quit()
+                except KeyError:
+                    try:
+                        raise InvalidOption(f"error: invalid option '{option}")
+                    except InvalidOption as err:
+                        print(err)
+                        quit()
+        return options
 
     def run(self):
         if "--refresh" in self.options:
@@ -106,6 +114,9 @@ class Sync(Operation):
         if "--info" in self.options:
             self.print_pkg_info()
             return
+
+        if not self.targets:
+            quit()
 
         self.install()
 
@@ -142,93 +153,8 @@ class Sync(Operation):
         packages = db.get_packages(*self.targets)
         db.print_pkginfo(*packages)
 
-    def install(self, targets: Optional[list[Package]] = None) -> None:
-        from . import db
-        from . import utils
-        from .package import SyncPackage, AURPackage
-        from rich.table import Table, Column
-
-        def preview_job(
-            sync_explicit: Optional[list[SyncPackage]] = None,
-            sync_depends: Optional[list[SyncPackage]] = None,
-            aur_explicit: Optional[list[AURPackage]] = None,
-            aur_depends: Optional[list[AURPackage]] = None,
-        ) -> None:
-
-            if sync_explicit:
-                output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in sync_explicit]
-                console.print(
-                    f"Sync Explicit {len(sync_explicit)}: {', '.join([pkg for pkg in output])}"
-                )
-            if aur_explicit:
-                output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in aur_explicit]
-                console.print(
-                    f"AUR Explicit ({len(aur_explicit)}): {', '.join([pkg for pkg in output])}"
-                )
-
-            if aur_depends:
-                output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in aur_depends]
-                console.print(
-                    f"AUR Dependency ({len(aur_depends)}): {', '.join([out for out in output])}"
-                )
-
-            if sync_depends:
-                output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in sync_depends]
-                console.print(
-                    f"Sync Dependency ({len(sync_depends)}): {', '.join([out for out in output])}"
-                )
-
-        def get_missing_pkgbuild(*packages: AURPackage, verbose=False):
-            missing = []
-            for pkg in packages:
-                if not pkg.pkgbuild_exists:
-                    missing.append(pkg)
-                else:
-                    if verbose:
-                        console.print(
-                            f"[notify]::[/notify] PKGBUILD up to date, skipping download: [notify]{pkg.name}"
-                        )
-
-            with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-                for num, pkg in enumerate(missing):
-                    executor.submit(utils.get_pkgbuild, pkg, force=True)
-                    if verbose:
-                        console.print(
-                            f"[notify]::[/notify] ({num+1}/{len(missing)}) Downloaded PKGBUILD: [notify]{pkg.name}"
-                        )
-
-        def preview_aur(*packages: AURPackage) -> None:
-            """
-            Print an overview of the explicit and depends AUR packages to be installed
-
-            :param packages: A package or series of AURPackage objects to be explicitly installed
-            :type packages: package.AURPackage
-            """
-
-            install_preview = Table.grid(
-                Column("num", justify="right"),
-                Column("pkgname", width=35, justify="left"),
-                Column("pkgbuild_exists"),
-                padding=(0, 1, 0, 1),
-            )
-
-            for num, pkg in enumerate(packages):
-                # TODO: Fix hardcoded "Build Files Exist" -- I'm not how we'd encounter a scenario where we got here and they don't already exist
-                install_preview.add_row(
-                    f"[magenta]{len(packages) - num}[/magenta]",
-                    pkg.name,
-                    "[bright_green](Build Files Exist)",
-                )
-
-            console.print(install_preview)
-
-        def prompt_proceed() -> None:
-            """Present prompt to proceed with installation"""
-            prompt = console.input(
-                "[bright_green]==>[/bright_green] Install packages? [Y/n] "
-            )
-            if not prompt.lower().startswith("y"):
-                quit()
+    def install(self) -> None:
+        from . import install
 
         skip_verchecks = False
         skip_depchecks = False
@@ -247,53 +173,14 @@ class Sync(Operation):
             download_only = True
             pacman_flags.extend(["--downloadonly"])
 
-        if targets is None:
-            targets = db.get_packages(*self.targets)
+        install_kwargs = {
+            "skip_verchecks": skip_verchecks,
+            "skip_depchecks": skip_depchecks,
+            "download_only": download_only,
+            "pacman_flags": pacman_flags,
+        }
 
-        sync_explicit = [
-            target for target in targets if isinstance(target, SyncPackage)
-        ]
-        aur_explicit = [target for target in targets if isinstance(target, AURPackage)]
-
-        if skip_depchecks is True:
-            preview_job(sync_explicit=sync_explicit, aur_explicit=aur_explicit)
-            if aur_explicit:
-                get_missing_pkgbuild(*aur_explicit, verbose=True)
-                preview_aur(*aur_explicit)
-                prompt_proceed()
-                utils.install_aur(
-                    *aur_explicit,
-                    skip_depchecks=True,
-                    download_only=download_only,
-                )
-            if sync_explicit:
-                utils.install_sync(*sync_explicit, pacman_flags=pacman_flags)
-
-        aur_tree = db.get_dependency_tree(*aur_explicit, recursive=False)
-        aur_depends = db.get_aur_depends(aur_tree, skip_verchecks=skip_verchecks)
-        sync_depends = db.get_sync_depends(*aur_explicit)
-
-        preview_job(sync_explicit, sync_depends, aur_explicit, aur_depends)
-
-        aur = aur_explicit + aur_depends
-        get_missing_pkgbuild(*aur, verbose=True)
-        preview_aur(*aur)
-        prompt_proceed()
-        if aur_depends:
-            aur_tree = nx.compose(aur_tree, db.get_dependency_tree(*aur_depends))
-        get_missing_pkgbuild(
-            *[pkg for pkg in aur_tree if pkg not in aur], verbose=False
-        )
-
-        if aur_tree:
-            install_order = [layer for layer in nx.bfs_layers(aur_tree, *aur_explicit)][
-                ::-1
-            ]
-            for layer in install_order:
-                utils.install_aur(*layer, download_only=download_only)
-
-        if sync_explicit:
-            utils.install_sync(*sync_explicit, pacman_flags=pacman_flags)
+        install.install(*self.targets, **install_kwargs)
 
 
 class Nay(Sync):
