@@ -8,7 +8,7 @@ class Args(dict):
     """
     Class to parse sys.argv arguments
 
-    :cvar OPERATIONS: A dict mapper of valid operations to their respective operations.Operation subclass and acceptable options
+    :cvar OPERATIONS: A dict mapper of valid operations to their respective operations.Operation subclass
     """
 
     OPERATIONS = {
