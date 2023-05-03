@@ -1,12 +1,8 @@
 import os
-import shlex
 import shutil
-import subprocess
-from typing import Optional
 
 from .config import CACHEDIR
 from .console import console
-from .package import Package
 
 
 def clean_cachedir() -> None:
