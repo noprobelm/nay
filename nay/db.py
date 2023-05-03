@@ -1,6 +1,8 @@
 import configparser
 from typing import Optional, Union
 
+import subprocess
+import shlex
 import networkx as nx
 import pyalpm
 import requests
@@ -283,7 +285,9 @@ def print_pkglist(
             num.append_text(renderable)
             renderable = num
 
-        renderable = Text("\n    ").join([renderable, Text(pkg.desc)])
+        if pkg.desc:
+            renderable = Text("\n    ").join([renderable, Text(pkg.desc)])
+
         render_result.append(renderable)
 
     render_result = Group(*render_result)
