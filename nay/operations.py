@@ -330,7 +330,7 @@ class Upgrade(Wrapper):
     :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
     """
 
-    def __init__(self, options: list[str], targets: list[str]):
+    def __init__(self, options: list[str], targets: list[str]) -> None:
         super().__init__("-U", options, targets, True)
 
 
@@ -348,7 +348,7 @@ class Remove(Wrapper):
 
     """
 
-    def __init__(self, options: list[str], targets: list[str]):
+    def __init__(self, options: list[str], targets: list[str]) -> None:
         super().__init__("-R", options, targets, True)
 
 
@@ -365,5 +365,5 @@ class Query(Wrapper):
     :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
     """
 
-    def __init__(self, options: list[str], targets: list[str]):
+    def __init__(self, options: list[str], targets: list[str]) -> None:
         super().__init__("-Q", options, targets)
