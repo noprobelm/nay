@@ -3,7 +3,6 @@ import shlex
 import subprocess
 from dataclasses import dataclass
 from typing import Callable, Optional
-import re
 
 from .console import console
 from .exceptions import ConflictingOptions, InvalidOption, MissingTargets, PacmanError
