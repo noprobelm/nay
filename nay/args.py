@@ -30,6 +30,8 @@ class Args(dict):
         "-T": operations.DepTest,
         "--files": operations.Files,
         "-F": operations.Files,
+        "--version": operations.Version,
+        "-V": operations.Version
     }
 
     def __init__(self) -> None:

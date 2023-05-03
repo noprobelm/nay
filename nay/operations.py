@@ -3,6 +3,7 @@ import shlex
 import subprocess
 from dataclasses import dataclass
 from typing import Callable, Optional
+import nay
 
 from .console import console
 from .exceptions import ConflictingOptions, InvalidOption, MissingTargets, PacmanError
@@ -46,7 +47,6 @@ class Sync(Operation):
     """
 
     def __init__(self, options: list[str], targets: list[str]) -> None:
-
         self.options = self.parse_options(options)
 
         super().__init__(options, targets, self.run)
@@ -264,6 +264,25 @@ class GetPKGBUILD(Operation):
             console.print(
                 f"[bright_red] ->[/bright_yellow] Unable to find the following packages: {', '.join([arg for arg in failed])}"
             )
+
+
+class Version(Operation):
+    """
+    A class to display nay's version information
+
+    :param options: The options for the operation (e.g. ['-u', '-y'])
+    :type options: list[str]
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
+    :param run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
+    :type run: Callable
+    """
+
+    def __init__(self, options: list[str], targets: list[str]):
+        super().__init__(options, targets, self.run)
+
+    def run(self):
+        print(f"nay version: {nay.__version__}")
 
 
 class Wrapper(Operation):
