@@ -120,13 +120,10 @@ def get_packages(*pkg_names: str) -> list[Union[SyncPackage, AURPackage]]:
 def get_dependency_tree(
     *packages: Package,
     recursive: Optional[bool] = True,
-    include_sync: Optional[bool] = False,
 ) -> nx.DiGraph:
     """
-    Get the AUR tree for a package or series of packages
+    Get the AUR dependency tree for a package or series of packages
 
-    :param multithread: Optional parameter indicating whether this function should be multithreaded. Default is True
-    :type multithread: Optional[bool]
     :param recursive: Optional parameter indicating whether this function should run recursively. If 'False', only immediate dependencies will be returned. Defaults is True
     :type recursive: Optional[bool]
 
