@@ -13,7 +13,7 @@ from .console import console
 from .package import AURBasic, AURPackage, Package, SyncPackage
 
 
-def makepkg(pkg: Package, pkgdir, flags: str) -> None:
+def makepkg(pkg: Package, pkgdir: str, flags: str) -> None:
     """
     Make a package using 'makepkg'. This is a pure pacman wrapper.
 
