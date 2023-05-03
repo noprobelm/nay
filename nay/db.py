@@ -196,12 +196,8 @@ def get_sync_depends(*aur_explicit) -> list[SyncPackage]:
     for pkg in aur_explicit:
         for dep_type in ["check_depends", "make_depends", "depends"]:
             depends = getattr(pkg, dep_type)
-            sync_depends.extend(
-                [
-                    SYNC_PACKAGES[dep]
-                    for dep in depends
-                    if dep not in SYNC_PACKAGES.keys()
-                ]
-            )
+            for dep in depends:
+                if dep in SYNC_PACKAGES.keys() and dep not in INSTALLED.keys():
+                    sync_depends.append(SYNC_PACKAGES[dep])
 
     return sync_depends
