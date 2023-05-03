@@ -93,6 +93,8 @@ class Sync(Operation):
 
         if "--sysupgrade" in self.options:
             self.sysupgrade()
+            if not self.targets:
+                return
 
         if "--clean" in self.options:
             self.clean()
