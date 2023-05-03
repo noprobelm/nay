@@ -20,6 +20,8 @@ class Args(dict):
         "-S": operations.Sync,
         "--upgrade": operations.Upgrade,
         "-U": operations.Upgrade,
+        "--database": operations.Database,
+        "-D": operations.Database,
         "--query": operations.Query,
         "-Q": operations.Query,
         "--remove": operations.Remove,
