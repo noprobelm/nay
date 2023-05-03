@@ -1,21 +1,22 @@
 import configparser
-import re
 import os
-import subprocess
+import re
 import shlex
-
-import pyalpm
-from pyalpm import Handle
-from .console import console, default
-from rich.console import Group
+import subprocess
 from typing import Optional, Union
-from .package import Package, AURPackage, AURBasic, SyncPackage
+
 import networkx as nx
+import pyalpm
 import requests
+from pyalpm import Handle
+from rich.console import Group
+from rich.table import Column, Table
 from rich.text import Text
-from rich.table import Table, Column
-from .utils import makepkg
+
 from .config import CACHEDIR
+from .console import console, default
+from .package import AURBasic, AURPackage, Package, SyncPackage
+from .utils import makepkg
 
 parser = configparser.ConfigParser(allow_no_value=True)
 parser.read("/etc/pacman.conf")

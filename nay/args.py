@@ -1,7 +1,7 @@
 import sys
 
 from . import operations
-from .exceptions import InvalidOperation, ConflictingOperations
+from .exceptions import ConflictingOperations, InvalidOperation
 
 
 class Args(dict):

@@ -1,10 +1,11 @@
-from .package import Package
-from typing import Optional
-from .config import CACHEDIR
 import os
-import shutil
 import shlex
+import shutil
 import subprocess
+from typing import Optional
+
+from .config import CACHEDIR
+from .package import Package
 
 
 def get_pkgbuild(pkg: Package, clonedir: Optional[str] = CACHEDIR, force=False) -> None:

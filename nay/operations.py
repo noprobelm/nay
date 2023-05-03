@@ -1,8 +1,8 @@
 import os
+import shlex
+import subprocess
 from dataclasses import dataclass
 from typing import Callable, Optional
-import subprocess
-import shlex
 
 from .console import console
 from .exceptions import ConflictingOptions, InvalidOption
@@ -244,8 +244,7 @@ class GetPKGBUILD(Operation):
     def run(self) -> None:
         succeeded = []
         failed = []
-        from . import db
-        from . import get
+        from . import db, get
 
         packages = db.get_packages(*self.targets)
         for pkg in packages:

@@ -1,15 +1,16 @@
-from .console import console
-from .package import SyncPackage, AURPackage, AURBasic, Package
-from .config import CACHEDIR
-from . import utils
-from typing import Optional, Union
 import concurrent.futures
-import subprocess
-import shlex
 import os
+import shlex
+import subprocess
+from typing import Optional, Union
+
 import networkx as nx
-from . import db
-from rich.table import Table, Column
+from rich.table import Column, Table
+
+from . import db, utils
+from .config import CACHEDIR
+from .console import console
+from .package import AURBasic, AURPackage, Package, SyncPackage
 
 
 def makepkg(pkg: Package, pkgdir, flags: str) -> None:
