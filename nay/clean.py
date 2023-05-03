@@ -6,6 +6,9 @@ from .console import console
 
 
 def clean_cachedir() -> None:
+    """
+    Clean the cachedir
+    """
     response = console.input(
         "\n[bright_blue]::[/bright_blue] Do you want to remove all other AUR packages from cache? [Y/n] "
     )
@@ -21,6 +24,9 @@ def clean_cachedir() -> None:
 
 
 def clean_untracked() -> None:
+    """
+    Clean package metadata out of cached package directories
+    """
     response = console.input(
         "\n[bright_blue]::[/bright_blue] Do you want to remove ALL untracked AUR files? [Y/n] "
     )
