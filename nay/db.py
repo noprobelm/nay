@@ -147,7 +147,7 @@ def get_dependency_tree(
                     aur_query.append(dep)
                     aur_deps[pkg][dep] = {"dtype": dtype}
 
-    aur_info = get_packages(*set(list(aur_query)), verbose=False)
+    aur_info = get_packages(*set(list(aur_query)))
     for pkg in aur_deps:
         for dep in aur_info:
             if dep.name in aur_deps[pkg].keys():
