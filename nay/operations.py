@@ -5,8 +5,7 @@ from dataclasses import dataclass
 from typing import Callable, Optional
 
 from .console import console
-from .exceptions import (ConflictingOptions, InvalidOption, MissingTargets,
-                         PacmanError)
+from .exceptions import ConflictingOptions, InvalidOption, MissingTargets, PacmanError
 
 
 @dataclass
