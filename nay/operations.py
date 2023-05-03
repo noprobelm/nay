@@ -385,3 +385,20 @@ class Query(Wrapper):
 
     def __init__(self, options: list[str], targets: list[str]) -> None:
         super().__init__("-Q", options, targets)
+
+
+class DepTest(Wrapper):
+    """
+    Wrapper for DepTest operations
+
+    :param options: The options for the operation (e.g. ['-u', '-y'])
+    :type options: list[str]
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
+
+    :ivar options: The options for the operation (e.g. ['-u', '-y'])
+    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    """
+
+    def __init__(self, options: list[str], targets: list[str]) -> None:
+        super().__init__("-T", options, targets)
