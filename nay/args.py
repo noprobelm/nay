@@ -6,7 +6,7 @@ from .exceptions import ConflictingOperations, InvalidOperation
 
 class Args(dict):
     """
-    Class to parse sys.argsv arguments
+    Class to parse sys.argv arguments
 
     :cvar OPERATIONS: A dict mapper of valid operations to their respective operations.Operation subclass and acceptable options
     """
