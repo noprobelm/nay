@@ -12,6 +12,28 @@ from . import db
 from rich.table import Table, Column
 
 
+def makepkg(pkg: Package, pkgdir, flags: str) -> None:
+    """
+    Make a package using 'makepkg'. This is a pure pacman wrapper.
+
+    :param pkg: The package.Package object to make the package from
+    :type pkg: package.Package
+    :param pkgdir: The full path (exclusive of the package path itself)
+    :type pkgdir: str
+    :param flags: The flags to pass to 'makepkg' (exlusive of the leading '-')
+    :type flags: str
+
+    """
+    os.chdir(f"{pkgdir}/{pkg.name}")
+    return_code = subprocess.run(shlex.split(f"makepkg -{flags}")).returncode
+    if return_code != 0:
+        console.print(f"[red] -> error making: {pkg.name}-exit status {return_code}")
+        console.print(
+            f"[red] Failed to install {pkg.name}. Manual intervention is required"
+        )
+        quit()
+
+
 def install_aur(
     *packages: AURPackage,
     skip_depchecks: Optional[bool] = False,
@@ -20,9 +42,9 @@ def install_aur(
     targets = []
     for pkg in packages:
         if skip_depchecks is True:
-            utils.makepkg(pkg, CACHEDIR, "fscd")
+            makepkg(pkg, CACHEDIR, "fscd")
         else:
-            utils.makepkg(pkg, CACHEDIR, "fsc")
+            makepkg(pkg, CACHEDIR, "fsc")
 
         pattern = f"{pkg.name}-"
         for obj in os.listdir(os.path.join(CACHEDIR, pkg.name)):
