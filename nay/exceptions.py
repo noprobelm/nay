@@ -48,6 +48,15 @@ class InvalidOption(ArgumentError):
     pass
 
 
+class MissingTargets(ArgumentError):
+    """
+    Exception raised when no targets are passed to an operation requiring arguments.
+
+    :param message: Explanation of the error
+    :type message: str
+    """
+
+
 class PacmanError(ArgumentError):
     """
     Exception raised when pacman returns a non-zero return status code

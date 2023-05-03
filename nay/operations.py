@@ -6,7 +6,7 @@ from typing import Callable, Optional
 import re
 
 from .console import console
-from .exceptions import ConflictingOptions, InvalidOption, PacmanError
+from .exceptions import ConflictingOptions, InvalidOption, MissingTargets, PacmanError
 
 
 @dataclass
@@ -107,7 +107,7 @@ class Sync(Operation):
             return
 
         if not self.targets:
-            return
+            raise MissingTargets("error: no targets specified (use -h for help)")
 
         self.install()
 

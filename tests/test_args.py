@@ -1,7 +1,13 @@
 import sys
 from ward import raises, test
 from nay.args import Args
-from nay.exceptions import ConflictingOperations, InvalidOperation
+from nay.exceptions import (
+    ConflictingOperations,
+    ConflictingOptions,
+    InvalidOperation,
+    PacmanError,
+    InvalidOption,
+)
 import nay.operations
 import itertools
 
@@ -48,6 +54,23 @@ def _():
     sys.argv.append("-X")
     with raises(InvalidOperation):
         Args()
+
+
+@test(
+    "Uppercase switches among a series of strings following a single '-' character are considered operations. Lowercase are options"
+)
+def _():
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("-Syu")
+    args = Args()
+    assert args["operation"] == nay.operations.Sync
+    assert args["options"] == ["-y", "-u"]
+
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("-ySu")
+    args = Args()
+    assert args["operation"] == nay.operations.Sync
+    assert args["options"] == ["-y", "-u"]
 
 
 @test("--sync or -S returns Args object with 'nay.operations.Sync' operation")
@@ -124,6 +147,34 @@ def _():
     assert args["operation"] == nay.operations.Remove
 
 
+@test("optless/argless returns Args object with 'nay.operations.Nay' operation")
+def _():
+    sys.argv = [sys.argv[0]]
+    args = Args()
+
+    assert args["operation"] == nay.operations.Nay
+
+
+@test("argless returns Args object with 'nay.operations.Nay' operation")
+def _():
+    sys.argv = [sys.argv[0]]
+    opts = ["--test"]
+    sys.argv.extend(opts)
+    args = Args()
+
+    assert args["operation"] == nay.operations.Nay
+
+
+@test("optless returns Args object with 'nay.operations.Nay' operation")
+def _():
+    sys.argv = [sys.argv[0]]
+    targets = ["test"]
+    sys.argv.extend(targets)
+    args = Args()
+
+    assert args["operation"] == nay.operations.Nay
+
+
 @test(
     "A valid operation with an arbitrary number of options return an Args object reflecting as such"
 )
@@ -146,7 +197,7 @@ def _():
 
 
 @test(
-    "A valid operation with an arbitrary number of options and args returns an Args object reflecting as such"
+    "A valid operation with an arbitrary number of options returns an Args object reflecting as such"
 )
 def _():
     sys.argv = [sys.argv[0]]
@@ -166,7 +217,7 @@ def _():
 
 
 @test(
-    "A valid operation with an arbitrary number of options and args returns an Args object reflecting as such"
+    "A valid operation with an arbitrary number of options and targets returns an Args object reflecting as such"
 )
 def _():
     sys.argv = [sys.argv[0]]
@@ -206,11 +257,30 @@ def _():
         assert args["targets"] == targets
 
 
-@test("pacman returns error when invalid options are passed to Wrapper subclass")
+@test(
+    "Wrapper class raises PacmanError when invalid options are passed to a class/subclass instance"
+)
 def _():
-    operation = ["-U"]
     opts = ["--elkfjweklq", "-x", "-p", "--fklklejwkl", "--TlkjdnjnA"]
-    sys.argv = [sys.argv[0]]
-    sys.argv.extend("-U")
-    sys.argv.extend(opts)
-    args = Args()
+    with raises(PacmanError):
+        operation = nay.operations.Query(options=opts, targets=[])
+        operation.run()
+
+
+@test("Sync class raises InvalidOption when invalid options are passed to the class")
+def _():
+    opts = ["--elkfjweklq", "-x", "-p", "--fklklejwkl", "--TlkjdnjnA"]
+    with raises(InvalidOption):
+        nay.operations.Sync(options=opts, targets=[])
+
+    with raises(InvalidOption):
+        nay.operations.Nay(options=opts, targets=[])
+
+
+@test(
+    "Sync class raises ConflictingOptions when conflicting options are passed to the class"
+)
+def _():
+    opts = ["--info", "--sysupgrade"]
+    with raises(ConflictingOptions):
+        nay.operations.Sync(options=opts, targets=[])
