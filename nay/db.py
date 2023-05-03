@@ -169,6 +169,8 @@ def get_aur_depends(aur_tree: nx.DiGraph, skip_verchecks=False) -> list[AURPacka
 
     :param aur_tree: The dependency tree of the AUR explicit packages
     :type aur_tree: nx.DiGraph
+    :param skip_verchecks: Flag to skip version checks for dependencies. Default is False
+    :type skip_verchecks: bool
 
     :return: A list of the aur dependencies
     :rtype: list[AurPackage]
