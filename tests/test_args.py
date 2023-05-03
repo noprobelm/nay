@@ -204,3 +204,13 @@ def _():
         assert args["operation"] == nay.operations.Remove
         assert args["options"] == opts
         assert args["targets"] == targets
+
+
+@test("pacman returns error when invalid options are passed to Wrapper subclass")
+def _():
+    operation = ["-U"]
+    opts = ["--elkfjweklq", "-x", "-p", "--fklklejwkl", "--TlkjdnjnA"]
+    sys.argv = [sys.argv[0]]
+    sys.argv.extend("-U")
+    sys.argv.extend(opts)
+    args = Args()

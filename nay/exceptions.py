@@ -46,3 +46,13 @@ class InvalidOption(ArgumentError):
     """
 
     pass
+
+
+class PacmanError(ArgumentError):
+    """
+    Exception raised when pacman returns a non-zero return status code
+
+    :param message: Explanation of the error
+    :type message: str
+
+    """

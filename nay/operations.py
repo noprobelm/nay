@@ -3,9 +3,10 @@ import shlex
 import subprocess
 from dataclasses import dataclass
 from typing import Callable, Optional
+import re
 
 from .console import console
-from .exceptions import ConflictingOptions, InvalidOption
+from .exceptions import ConflictingOptions, InvalidOption, PacmanError
 
 
 @dataclass
@@ -291,7 +292,18 @@ class Wrapper(Operation):
         if self.sudo is True:
             command = f"sudo {command}"
 
-        subprocess.run(shlex.split(command))
+        try:
+            subprocess.run(
+                shlex.split(command),
+                check=True,
+                stderr=subprocess.PIPE,
+            )
+        except subprocess.CalledProcessError as err:
+            stderr = err.stderr.decode().strip()
+            stderr = re.sub(f"pacman", "nay", stderr)
+            raise PacmanError(stderr)
+        else:
+            pass
 
 
 class Upgrade(Wrapper):
