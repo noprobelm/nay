@@ -83,7 +83,7 @@ def search(query: str, sortby: Optional[str] = "db") -> dict[int, Package]:
     return packages
 
 
-def get_packages(*pkg_names: str, verbose=True) -> list[Union[SyncPackage, AURPackage]]:
+def get_packages(*pkg_names: str) -> list[Union[SyncPackage, AURPackage]]:
     """
     Get packages based on passed string or strings. Invalid results are ignored/dropped from return result.
 
