@@ -168,6 +168,18 @@ def _():
     assert args["operation"] == nay.operations.Files
 
 
+@test("--version or -V returns Args object with 'nay.operations.Version' operation")
+def _():
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("--version")
+    args = Args()
+    assert args["operation"] == nay.operations.Version
+
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("-V")
+    assert args["operation"] == nay.operations.Version
+
+
 @test("--remove or -R returns Args object with 'nay.operations.Remove' operation")
 def _():
     sys.argv = [sys.argv[0]]
