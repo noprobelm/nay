@@ -48,33 +48,24 @@ class Args(dict):
                     if switch.islower():
                         options.append(f"-{switch}")
                     elif switch.isupper():
-                        if f"-{switch}" in self.OPERATIONS.keys():
-                            operation.append(f"-{switch}")
+                        if f"-{switch}" not in self.OPERATIONS.keys():
+                            raise InvalidOperation(f"nay: invalid option -- '{switch}'")
                         else:
-                            options.append(f"-{switch}")
+                            operation.append(f"-{switch}")
 
             else:
                 targets.append(arg)
 
         if len(operation) > 1:
-            try:
-                raise ConflictingOperations(
-                    f"error: only one operation may be used at a time"
-                )
-            except ConflictingOperations as err:
-                print(err)
+            raise ConflictingOperations(
+                f"error: only one operation may be used at a time"
+            )
 
-        if len(operation) == 0:
-            operation = "--nay"
-        else:
+        if len(operation) == 1:
             operation = operation[0]
 
-        if operation not in self.OPERATIONS.keys():
-            try:
-                raise InvalidOperation(f"nay: invalid option -- {operation}")
-            except InvalidOperation as err:
-                print(err)
-                quit()
+        else:
+            operation = "--nay"
 
         super().__init__(
             {
