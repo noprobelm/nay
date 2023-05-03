@@ -286,18 +286,17 @@ class Wrapper(Operation):
         if self.sudo is True:
             command = f"sudo {command}"
 
+        # TODO: There's a complicated way here in which pacman redirects some user prompts (i.e. 'Do you want to remove
+        # these packages?') as stderr instead of stdout. If we're trying to print the full stdout while redirecting
+        # stderr in the event an error is encountered, the user prompt will be suppressed. Need to figure out a way to
+        # deal with this in the future. For now, unfortunately, a non-informative generic error message will have to do
+        #
+        # Is there a simple way to capture stdout/stderr while still enabling subprocess.run to print the information
+        # to the terminal?
         try:
-            subprocess.run(
-                shlex.split(command),
-                check=True,
-                stderr=subprocess.PIPE,
-            )
-        except subprocess.CalledProcessError as err:
-            stderr = err.stderr.decode().strip()
-            stderr = re.sub("pacman", "nay", stderr)
-            raise PacmanError(stderr)
-        else:
-            pass
+            subprocess.run(shlex.split(command), check=True)
+        except subprocess.CalledProcessError:
+            raise PacmanError()
 
 
 class Upgrade(Wrapper):
