@@ -80,19 +80,11 @@ class Sync(Operation):
             for other in options:
                 try:
                     if other in conflicts[option]:
-                        try:
-                            raise ConflictingOptions(
-                                f"error: invalid option: '{option}' and '{other}' may not be used together"
-                            )
-                        except ConflictingOptions as err:
-                            console.print(err)
-                            quit()
+                        raise ConflictingOptions(
+                            f"error: invalid option: '{option}' and '{other}' may not be used together"
+                        )
                 except KeyError:
-                    try:
-                        raise InvalidOption(f"error: invalid option '{option}")
-                    except InvalidOption as err:
-                        print(err)
-                        quit()
+                    raise InvalidOption(f"error: invalid option '{option}")
         return options
 
     def run(self):
