@@ -190,7 +190,7 @@ def get_aur_depends(
     return aur_depends
 
 
-def get_sync_depends(*aur_explicit) -> list[SyncPackage]:
+def get_sync_depends(*aur_explicit: list[AURPackage]) -> list[SyncPackage]:
     """
     Get the sync dependencies from AUR explicit targets
 
