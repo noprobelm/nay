@@ -84,13 +84,16 @@ def search(query: str, sortby: Optional[str] = "db") -> dict[int, Package]:
 
 
 def get_packages(
-    *pkg_names: str, verbose=False
+    *pkg_names: str, verbose: Optional[bool] = False
 ) -> list[Union[SyncPackage, AURPackage]]:
     """
     Get packages based on passed string or strings. Invalid results are ignored/dropped from return result.
 
     :param pkg_names: A string or series of strings for which SyncPackage or AURPackage objects will be fetched
     :type pkg_names: str
+    :param verbose: Flag to induce verbosity. Defaults to False
+    :type verbose: bool
+
 
     :returns: Package list based on input
     :rtype: list[Package]
