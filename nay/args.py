@@ -26,6 +26,8 @@ class Args(dict):
         "-Q": operations.Query,
         "--remove": operations.Remove,
         "-R": operations.Remove,
+        "--deptest": operations.DepTest,
+        "-T": operations.DepTest,
     }
 
     def __init__(self) -> None:
