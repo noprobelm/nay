@@ -3,7 +3,6 @@ import re
 from datetime import datetime
 from typing import Optional
 
-import networkx as nx
 import pyalpm
 import requests
 from rich.table import Column, Table
@@ -410,42 +409,6 @@ class AURPackage(AURBasic):
                 kwargs[dep_types[dtype]] = []
 
         return cls(**kwargs)
-
-    def get_dependency_tree(self) -> nx.DiGraph:
-        """
-        Get the dependency tree of the AUR represented as a networkx DiGraph object. This method will return a graph of __only__ the immediate dependencies
-
-        :return: A dependency tree
-        :rtype: nx.DiGraph
-        """
-
-        tree = nx.DiGraph()
-        tree.add_node(self)
-        dtypes = ["check_depends", "make_depends", "depends"]
-        all_depends = []
-        sync_depends = []
-        aur_depends = []
-        for dtype in dtypes:
-            deps = getattr(self, dtype)
-            if isinstance(deps, list):
-                all_depends += list(set(deps))
-        for dep in all_depends:
-            if dep in SYNC_PACKAGES:
-                sync_depends.append(dep)
-            else:
-                aur_depends.append(dep)
-        if aur_depends:
-            aur_query = requests.get(
-                f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={'&arg[]='.join(all_depends)}"
-            ).json()
-            if aur_query["results"]:
-                for result in aur_query["results"]:
-                    dep = AURPackage.from_info_query(result)
-                    for dtype in dtypes:
-                        deps = getattr(self, dtype)
-                        if isinstance(deps, list) and dep.name in deps:
-                            tree.add_edge(self, dep, dtype=dtype)
-        return tree
 
     @property
     def info(self) -> Table:
