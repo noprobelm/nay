@@ -2,12 +2,10 @@ import os
 import shlex
 import shutil
 import subprocess
-from typing import Optional, Union
-from .package import Package, AURBasic, AURPackage, SyncPackage
+from typing import Optional
+from .package import Package
 from .console import console
-import concurrent.futures
 from .config import CACHEDIR
-from rich.table import Table, Column
 
 
 def clean_cachedir() -> None:
