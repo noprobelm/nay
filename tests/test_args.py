@@ -132,6 +132,66 @@ def _():
     assert args["operation"] == nay.operations.Query
 
 
+@test("--database or -D returns Args object with 'nay.operations.Database' operation")
+def _():
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("--database")
+    args = Args()
+    assert args["operation"] == nay.operations.Database
+
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("-D")
+    assert args["operation"] == nay.operations.Database
+
+
+@test("--deptest or -T returns Args object with 'nay.operations.DepTest' operation")
+def _():
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("--deptest")
+    args = Args()
+    assert args["operation"] == nay.operations.DepTest
+
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("-T")
+    assert args["operation"] == nay.operations.DepTest
+
+
+@test("--files or -F returns Args object with 'nay.operations.Files' operation")
+def _():
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("--files")
+    args = Args()
+    assert args["operation"] == nay.operations.Files
+
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("-F")
+    assert args["operation"] == nay.operations.Files
+
+
+@test("--version or -V returns Args object with 'nay.operations.Version' operation")
+def _():
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("--version")
+    args = Args()
+    assert args["operation"] == nay.operations.Version
+
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("-V")
+    assert args["operation"] == nay.operations.Version
+
+
+@test("--help or -h returns Args object with 'nay.operations.Help' operation")
+def _():
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("--help")
+    args = Args()
+    assert args["operation"] == nay.operations.Help
+
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("-h")
+    assert args["operation"] == nay.operations.Help
+
+
 @test("--remove or -R returns Args object with 'nay.operations.Remove' operation")
 def _():
     sys.argv = [sys.argv[0]]
