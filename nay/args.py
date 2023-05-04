@@ -31,7 +31,9 @@ class Args(dict):
         "--files": operations.Files,
         "-F": operations.Files,
         "--version": operations.Version,
-        "-V": operations.Version
+        "-V": operations.Version,
+        "--help": operations.Help,
+        "-h": operations.Help,
     }
 
     def __init__(self) -> None:
@@ -53,7 +55,7 @@ class Args(dict):
                     options.append(arg)
             elif arg.startswith("-"):
                 for switch in arg[1:]:
-                    if switch.islower():
+                    if switch.islower() and switch not in self.OPERATIONS.keys():
                         options.append(f"-{switch}")
                     elif switch.isupper():
                         if f"-{switch}" not in self.OPERATIONS.keys():
