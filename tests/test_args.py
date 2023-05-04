@@ -180,6 +180,18 @@ def _():
     assert args["operation"] == nay.operations.Version
 
 
+@test("--help or -h returns Args object with 'nay.operations.Help' operation")
+def _():
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("--help")
+    args = Args()
+    assert args["operation"] == nay.operations.Help
+
+    sys.argv = [sys.argv[0]]
+    sys.argv.append("-h")
+    assert args["operation"] == nay.operations.Help
+
+
 @test("--remove or -R returns Args object with 'nay.operations.Remove' operation")
 def _():
     sys.argv = [sys.argv[0]]

@@ -285,6 +285,37 @@ class Version(Operation):
         print(f"nay version: {nay.__version__}")
 
 
+class Help(Operation):
+    """
+    A class to display the help message
+
+    :param options: The options for the operation (e.g. ['-u', '-y'])
+    :type options: list[str]
+    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
+    :type targets: list[str]
+    :param run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
+    :type run: Callable
+    """
+
+    def __init__(self, options: list[str], targets: list[str]):
+        super().__init__(options, targets, self.run)
+
+    def run(self):
+        help_msg = """usage:  nay <operation> [...]
+operations:
+    nay {-h --help}
+    nay {-V --version}
+    nay {-D --database} <options> <package(s)>
+    nay {-F --files}    [options] [file(s)]
+    nay {-Q --query}    [options] [package(s)]
+    nay {-R --remove}   [options] <package(s)>
+    nay {-S --sync}     [options] [package(s)]
+    nay {-T --deptest}  [options] [package(s)]
+    nay {-U --upgrade}  [options] <file(s)>"
+"""
+        print(help_msg)
+
+
 class Wrapper(Operation):
     """
     A class to manage pure-wrapper operations
