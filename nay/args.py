@@ -83,9 +83,18 @@ class Args(dict):
 
         upgrade = parser.add_argument_group("Upgrade options")
         upgrade.add_argument("-w", "--downloadonly", action="store_true")
-        # TODO: Add this flag to install.install() so we can properly
         upgrade.add_argument("--asdeps", action="store_true")
         upgrade.add_argument("--asdeps", action="store_true")
+        upgrade.add_argument("--asexplicit", action="store_true")
+        # TODO: This needs to be comma separated only. No spaces
+        upgrade.add_argument("--ignore", action="store_true")
+        upgrade.add_argument("--needed", action="store_true")
+        # TODO: Not sure if this is the proper nargs
+        upgrade.add_argument("--overwrite", nargs="+")
+
+        query = parser.add_argument_group("Query options")
+        query.add_argument("-c", "--changelog", action="store_true")
+        query.add_argument("-d", "--deps", action="store_true")
 
         args = parser.parse_args()
         operations = [arg for arg in args.__dict__ if args.__dict__[arg] is True]
