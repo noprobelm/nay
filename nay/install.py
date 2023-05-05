@@ -39,6 +39,7 @@ def install_aur(
     *packages: AURPackage,
     skip_depchecks: Optional[bool] = False,
     download_only: Optional[bool] = False,
+    asdeps: Optional[bool] = False,
 ):
     """
     Install passed AURPackage objects
@@ -51,6 +52,7 @@ def install_aur(
     :type download_only bool
     """
     targets = []
+    upgrade_flags = []
     for pkg in packages:
         if skip_depchecks is True:
             makepkg(pkg, CACHEDIR, "fscd")
@@ -62,9 +64,18 @@ def install_aur(
             if pattern in obj and obj.endswith("zst"):
                 targets.append(os.path.join(CACHEDIR, pkg.name, obj))
 
-    if download_only is False:
-        subprocess.run(shlex.split(f"sudo pacman -U {' '.join(targets)}"))
-    else:
+    if download_only is True:
+        upgrade_flags.append("--downloadonly")
+    if asdeps is True:
+        upgrade_flags.append("--asdeps")
+
+    print(targets)
+    print(upgrade_flags)
+    subprocess.run(
+        shlex.split(f"sudo pacman -U {' '.join(upgrade_flags)} {' '.join(targets)}")
+    )
+
+    if download_only is True:
         console.print(
             f"-> nothing to install for {' '.join([target for target in targets])}"
         )
@@ -92,7 +103,6 @@ def preview_packages(
     aur_explicit: Optional[list[AURPackage]] = None,
     aur_depends: Optional[list[AURPackage]] = None,
 ) -> None:
-
     """
     Print a list of packages to be installed to the terminal
 
@@ -267,8 +277,11 @@ def install(
         install_order = [layer for layer in nx.bfs_layers(aur_tree, *aur_explicit)][
             ::-1
         ]
-        for layer in install_order:
-            install_aur(*layer, download_only=download_only)
+        for num, layer in enumerate(install_order):
+            if num + 1 == len(install_order):
+                install_aur(*layer, download_only=download_only, asdeps=False)
+            else:
+                install_aur(*layer, download_only=download_only, asdeps=True)
 
     if sync_explicit:
         install_sync(*sync_explicit, pacman_flags=pacman_flags)
