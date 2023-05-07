@@ -7,7 +7,8 @@ from typing import Optional, Union
 import networkx as nx
 from rich.table import Column, Table
 
-from . import db, get
+from .db import Manager
+from . import get
 from .config import CACHEDIR
 from .console import console
 from .package import AURBasic, AURPackage, Package, SyncPackage
@@ -92,7 +93,6 @@ def preview_packages(
     aur_explicit: Optional[list[AURPackage]] = None,
     aur_depends: Optional[list[AURPackage]] = None,
 ) -> None:
-
     """
     Print a list of packages to be installed to the terminal
 
@@ -223,10 +223,11 @@ def install(
     :type download_only: Optional[bool]
     """
 
+    manager = Manager()
     query = [target for target in targets if isinstance(target, str)]
     packages = [target for target in targets if isinstance(target, Package)]
     if query:
-        packages.extend(db.get_packages(*query))
+        packages.extend(manager.get_packages(*query))
     if not packages:
         quit()
 
@@ -249,11 +250,10 @@ def install(
 
         return
 
-    aur_tree = db.get_dependency_tree(*aur_explicit, recursive=False)
-    aur_depends = db.get_aur_depends(aur_tree, skip_verchecks=skip_verchecks)
-    sync_depends = db.get_sync_depends(*aur_explicit)
+    aur_tree = manager.get_dependency_tree(*aur_explicit, recursive=False)
+    depends = manager.get_depends(*packages)
 
-    preview_packages(sync_explicit, sync_depends, aur_explicit, aur_depends)
+    preview_packages(sync_explicit, depends["sync"], aur_explicit, depends["aur"])
 
     aur = aur_explicit + aur_depends
     get_missing_pkgbuild(*aur, verbose=True)
