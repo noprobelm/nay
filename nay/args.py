@@ -1,59 +1,24 @@
 import pathlib
 import sys
 import argparse
+import re
+
 
 from . import operations
 from .exceptions import ConflictingOperations, InvalidOperation
 
 
-COMMON = {
-    "dbpath": {"args": ["--dbpath"], "kwargs": {"nargs": 1, "type": pathlib.Path}},
-    "root": {"args": ["--root"], "kwargs": {"nargs": 1, "type": pathlib.Path}},
-    "verbose": {"args": ["--verbose"], "kwargs": {"action": "store_true"}},
-    "arch": {"args": ["--arch"], "kwargs": {"nargs": 1}},
-    "cachedir": {
-        "args": ["--cachedir"],
-        "kwargs": {"nargs": 1, "type": pathlib.Path},
-    },
-    "color": {
-        "args": ["--color"],
-        "kwargs": {"choices": ["always", "auto", "never"]},
-    },
-    "config": {
-        "args": ["--config"],
-        "kwargs": {"nargs": 1, "type": argparse.FileType("r")},
-    },
-    "debug": {"args": ["--debug"], "kwargs": {"action": "store_true"}},
-    "gpgdir": {"args": ["--gpgdir"], "kwargs": {"nargs": 1, "type": pathlib.Path}},
-    "hookdir": {
-        "args": ["--hookdir"],
-        "kwargs": {"nargs": 1, "type": pathlib.Path},
-    },
-    "logfile": {
-        "args": ["--logfile"],
-        "kwargs": {"nargs": 1, "type": argparse.FileType("r")},
-    },
-    "noconfirm": {"args": ["--noconfirm"], "kwargs": {"action": "store_true"}},
-    "disable-download-timeout": {
-        "args": ["--disable-download-timeout"],
-        "kwargs": {"action": "store_true"},
-    },
-    "sysroot": {
-        "args": ["--sysroot"],
-        "kwargs": {"nargs": 1, "type": pathlib.Path},
-    },
-    "targets": {"args": ["targets"], "kwargs": {"nargs": "*"}},
-}
-
-
 class UpgradeArgs:
     ARGS = {
-        "upgrade": {"args": ["-U", "--upgrade"], "kwargs": {"nargs": 1}},
+        "upgrade": {"args": ["-U", "--upgrade"], "kwargs": {"action": "store_true"}},
         "nodeps": {
             "args": ["-d", "--nodeps"],
             "kwargs": {"action": "count", "default": 0},
         },
-        "assume-installed": {"args": ["--assume-installed"], "kwargs": {"nargs": 1}},
+        "assume-installed": {
+            "args": ["--assume-installed"],
+            "kwargs": {"nargs": "+", "type": str},
+        },
         "dbonly": {"args": ["--dbonly"], "kwargs": {"action": "store_true"}},
         "noprogressbar": {
             "args": ["--noprogressbar"],
@@ -61,7 +26,7 @@ class UpgradeArgs:
         },
         "noscriptlet": {"args": ["--noscriptlet"], "kwargs": {"action": "store_true"}},
         "print": {"args": ["-p, --print"], "kwargs": {"action": "store_true"}},
-        "--print-format": {"args": ["--print-format"], "kwargs": {"nargs": 1}},
+        "--print-format": {"args": ["--print-format"], "kwargs": {"nargs": "?"}},
         "downloadonly": {
             "args": ["-w", "--downloadonly"],
             "kwargs": {"action": "store_true"},
@@ -89,7 +54,7 @@ class RemoveArgs:
         },
         "noscriptlet": {"args": ["--noscriptlet"], "kwargs": {"action": "store_true"}},
         "print": {"args": ["-p, --print"], "kwargs": {"action": "store_true"}},
-        "print-format": {"args": ["--print-format"], "kwargs": {"nargs": 1}},
+        "--print-format": {"args": ["--print-format"], "kwargs": {"nargs": "?"}},
     }
 
 
@@ -100,7 +65,7 @@ class SyncArgs:
             "args": ["-d", "--nodeps"],
             "kwargs": {"action": "count", "default": 0},
         },
-        "assume-installed": {"args": ["--assume-installed"], "kwargs": {"nargs": 1}},
+        "assume-installed": {"args": ["--assume-installed"], "kwargs": {"nargs": "?"}},
         "dbonly": {"args": ["--dbonly"], "kwargs": {"action": "store_true"}},
         "noprogressbar": {
             "args": ["--noprogressbar"],
@@ -108,7 +73,7 @@ class SyncArgs:
         },
         "noscriptlet": {"args": ["--noscriptlet"], "kwargs": {"action": "store_true"}},
         "print": {"args": ["-p, --print"], "kwargs": {"action": "store_true"}},
-        "--print-format": {"args": ["--print-format"], "kwargs": {"nargs": 1}},
+        "--print-format": {"args": ["--print-format"], "kwargs": {"nargs": "?"}},
         "downloadonly": {
             "args": ["-w", "--downloadonly"],
             "kwargs": {"action": "store_true"},
@@ -131,9 +96,11 @@ class SyncArgs:
             "args": ["-u", "--sysupgrade"],
             "kwargs": {"action": "store_true"},
         },
-        "refresh": {"args": ["-y", "--refresh"], "kwargs": {"action": "store_true"}},
+        "refresh": {
+            "args": ["-y", "--refresh"],
+            "kwargs": {"action": "count", "default": 0},
+        },
     }
-    ARGS.update(COMMON)
 
 
 class DatabaseArgs:
@@ -178,7 +145,10 @@ class QueryArgs:
 class FilesArgs:
     ARGS = {
         "files": {"args": ["-F", "--files"], "kwargs": {"action": "store_true"}},
-        "refresh": {"args": ["-y", "--refresh"], "kwargs": {"action": "store_true"}},
+        "refresh": {
+            "args": ["-y", "--refresh"],
+            "kwargs": {"action": "count", "default": 0},
+        },
         "list": {"args": ["-l", "--list"], "kwargs": {"action": "store_true"}},
         "regex": {"args": ["-x", "--regex"], "kwargs": {"action": "store_true"}},
         "quiet": {"args": ["-q", "--quiet"], "kwargs": {"action": "store_true"}},
@@ -193,28 +163,28 @@ class DeptestArgs:
     ARGS = {
         "deptest": {"args": ["-T", "--deptest"], "kwargs": {"action": "store_true"}}
     }
-    ARGS.update(COMMON)
 
 
 class VersionArgs:
     ARGS = {
         "version": {"args": ["-V", "--version"], "kwargs": {"action": "store_true"}}
     }
-    ARGS.update(COMMON)
 
 
 class NayArgs:
     ARGS = {"nay": {"args": ["-N", "--nay"], "kwargs": {"action": "store_true"}}}
-    ARGS.update(COMMON)
 
 
 class GetPKGBUILIDArgs:
-    ARGS = COMMON
+    ARGS = {}
 
 
 class Args:
     __COMMON = {
-        "dbpath": {"args": ["--dbpath"], "kwargs": {"nargs": 1, "type": pathlib.Path}},
+        "dbpath": {
+            "args": ["--dbpath"],
+            "kwargs": {"nargs": "?", "type": pathlib.Path},
+        },
         "root": {"args": ["--root"], "kwargs": {"nargs": 1, "type": pathlib.Path}},
         "verbose": {"args": ["--verbose"], "kwargs": {"action": "store_true"}},
         "arch": {"args": ["--arch"], "kwargs": {"nargs": 1}},
@@ -305,8 +275,19 @@ class Args:
                 **args[arg]["kwargs"],
             )
 
-        args = parser.parse_args()
+        args = vars(parser.parse_args())
+        operation_flags = []
+        for arg in args:
+            if args[arg] and arg != "targets":
+                flag = f"--{re.sub('_', '-', arg)}"
+                if isinstance(args[arg], str):
+                    flag = f"{flag} {args[arg]}"
+                else:
+                    for flag in range(args[arg]):
+                        flag = f"--{re.sub('_', '-', arg)}"
+                        operation_flags.append(flag)
         print(args)
+        print(operation_flags)
         quit()
 
     @property

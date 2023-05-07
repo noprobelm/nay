@@ -2,6 +2,7 @@ import os
 import shlex
 import subprocess
 from dataclasses import dataclass
+import re
 from typing import Callable, Optional
 import nay
 
@@ -9,7 +10,6 @@ from .console import console
 from .exceptions import ConflictingOptions, InvalidOption, MissingTargets, PacmanError
 
 
-@dataclass
 class Operation:
     """
     Boilerplate class for nay operations
@@ -25,6 +25,17 @@ class Operation:
     :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
     :ivar run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
     """
+
+    def __init__(self, run: Callable, *targets, **kwargs):
+        sudo = False
+        pacman_flags = []
+        for kwarg in kwargs:
+            if isinstance(kwargs[kwarg], bool):
+                if kwargs[kwarg] is True:
+                    kwarg = f"--{re.sub('_', '-', kwarg)}"
+                    pacman_flags.append(kwarg)
+            elif isinstance(kwargs[kwarg], bool):
+                pass
 
     options: list[str]
     targets: list[str]
@@ -46,10 +57,10 @@ class Sync(Operation):
     :ivar run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
     """
 
-    def __init__(self, options: list[str], targets: list[str]) -> None:
-        self.options = self.parse_options(options)
+    def __init__(self, *targets, **kwargs) -> None:
+        self.kwargs = self.parse_options(kwargs)
 
-        super().__init__(options, targets, self.run)
+        super().__init__(self.run, *targets, **kwargs)
 
     def parse_options(self, options):
         mapper = {
