@@ -2,7 +2,7 @@ import configparser
 import re
 import shlex
 import subprocess
-from typing import Optional, Union
+from typing import Optional, Union, BinaryIO
 
 import networkx as nx
 import pyalpm
@@ -13,6 +13,201 @@ from rich.text import Text
 
 from .console import console, default
 from .package import AURBasic, AURPackage, Package, SyncPackage
+import pathlib
+
+
+class Manager:
+    def __init__(self):
+        self.syncdb = SyncDatabase()
+        self.aur = AUR()
+
+    def search(self, query: str, sortby: Optional[str] = "db"):
+        aur_packages = self.aur.search(query)
+        sync_packages = self.syncdb.search(query)
+        packages = aur_packages + sync_packages
+
+        sort_priorities = {"db": {"core": 0, "extra": 1, "community": 2, "multilib": 4}}
+        for num, db in enumerate(self.syncdb):
+            num += max([num for num in sort_priorities["db"].values()])
+            if db not in sort_priorities["db"].keys():
+                sort_priorities["db"][db] = num
+        sort_priorities["db"]["aur"] = max(
+            [num for num in sort_priorities["db"].values()]
+        )
+
+        packages = list(
+            reversed(
+                sorted(
+                    packages,
+                    key=lambda val: sort_priorities[sortby][getattr(val, sortby)],
+                )
+            )
+        )
+
+        for num, pkg in enumerate(packages):
+            if pkg.name == query:
+                packages.append(packages.pop(num))
+
+        packages = {len(packages) - num: pkg for num, pkg in enumerate(packages)}
+
+        return packages
+
+    def get_packages(self, *names: str):
+        sync_packages = self.syncdb.get_packages(*names)
+        aur_packages = self.aur.get_packages(
+            *[name for name in names if name not in sync_packages]
+        )
+        packages = sync_packages + aur_packages
+        return packages
+
+    def get_dependency_tree(
+        self,
+        *packages: Package,
+        recursive: Optional[bool] = True,
+    ) -> nx.DiGraph:
+        """
+        Get the AUR dependency tree for a package or series of packages
+
+        :param recursive: Optional parameter indicating whether this function should run recursively. If 'False', only immediate dependencies will be returned. Defaults is True
+        :type recursive: Optional[bool]
+
+        :return: A dependency tree of all packages passed to the function
+        :rtype: nx.DiGraph
+        """
+        tree = nx.DiGraph()
+        aur_query = []
+
+        aur_deps = {pkg: {} for pkg in packages}
+        for pkg in packages:
+            tree.add_node(pkg)
+            for dtype in ["check_depends", "make_depends", "depends"]:
+                for dep in getattr(pkg, dtype):
+                    dep = self.syncdb.get_packages(dep)
+                    if not dep:
+                        aur_query.append(dep)
+                        aur_deps[pkg][dep] = {"dtype": dtype}
+
+        aur_info = self.aur.get_packages(*set(list(aur_query)))
+        for pkg in aur_deps:
+            for dep in aur_info:
+                if dep.name in aur_deps[pkg].keys():
+                    tree.add_edge(pkg, dep, dtype=aur_deps[pkg][dep.name]["dtype"])
+        if recursive is False:
+            return tree
+
+        layers = [layer for layer in nx.bfs_layers(tree, packages)]
+        if len(layers) > 1:
+            dependencies = layers[1]
+            tree = nx.compose(tree, get_dependency_tree(*dependencies))
+
+        return tree
+
+
+class AUR:
+    def __init__(self):
+        self.search_endpoint = "https://aur.archlinux.org/rpc/?v=5&type=search&arg="
+        self.info_endpoint = "https://aur.archlinux.org/rpc/?v=5&type=info&arg[]="
+
+    def search(self, query):
+        packages = []
+
+        results = requests.get(
+            f"https://aur.archlinux.org/rpc/?v=5&type=search&arg={query}"
+        ).json()
+
+        if results["results"]:
+            packages.extend(
+                AURBasic.from_search_query(result) for result in results["results"]
+            )
+
+        return packages
+
+    def get_packages(self, *names, verbose=False):
+        packages = []
+        missing = []
+        names = list(names)
+
+        results = requests.get(
+            f"{self.info_endpoint}&arg[]={'&arg[]='.join(names)}"
+        ).json()
+        for result in results["results"]:
+            if names.count(result["Name"]) == 0:
+                missing.append(result["Name"])
+            packages.append(AURPackage.from_info_query(result))
+
+        if missing and verbose is True:
+            console.print(
+                f"[red]->[/red] No AUR package found for {', '.join(missing)}"
+            )
+
+        return packages
+
+
+class SyncDatabase(dict):
+    def __init__(
+        self,
+        root: Optional[pathlib.Path] = pathlib.Path("/"),
+        dbpath: Optional[pathlib.Path] = pathlib.Path("/var/lib/pacman"),
+        config: Optional[pathlib.Path] = pathlib.Path("/etc/pacman.conf"),
+    ):
+        parser = configparser.ConfigParser(allow_no_value=True)
+        parser.read(config)
+
+        handle = Handle(root, dbpath)
+        super().__init__(
+            {
+                db: handle.register_syncdb(db, pyalpm.SIG_DATABASE_OPTIONAL)
+                for db in parser.sections()[1:]
+            }
+        )
+
+    def search(self, query: str) -> list:
+        """
+        Query the database and AUR. Exact matches will always be presented first despite specified sort order
+
+        :param query: The search query to use
+        :type query: str
+        :param sortby: The package.Package attribute to sort results by
+
+        :returns: A dictionary of integers representing index to package results
+        :rtype: dict[int, Package]
+        """
+
+        packages = []
+
+        for db in self:
+            packages.extend(
+                [SyncPackage.from_pyalpm(pkg) for pkg in self[db].search(query)]
+            )
+
+        return packages
+
+    def get_packages(
+        self,
+        *names: str,
+    ) -> list[SyncPackage]:
+        """
+        Get packages based on passed string or strings. Invalid results are ignored/dropped from return result.
+
+        :param pkg_names: A string or series of strings for which SyncPackage or AURPackage objects will be fetched
+        :type pkg_names: str
+        :param verbose: Flag to induce verbosity. Defaults to False
+        :type verbose: bool
+
+
+        :returns: Package list based on input
+        :rtype: list[Package]
+        """
+        names = set(names)
+        packages = []
+        for db in self.syncdb:
+            for name in names:
+                pkg = self.syncdb[db].get_pkg(name)
+                if pkg:
+                    packages.append(SyncPackage.from_pyalpm(pkg))
+
+        return packages
+
 
 parser = configparser.ConfigParser(allow_no_value=True)
 parser.read("/etc/pacman.conf")
@@ -32,13 +227,6 @@ for db in DATABASES:
 INSTALLED = {
     pkg.name: SyncPackage.from_pyalpm(pkg) for pkg in handle.get_localdb().pkgcache
 }
-
-SORT_PRIORITIES = {"db": {"core": 0, "extra": 1, "community": 2, "multilib": 4}}
-for num, db in enumerate(DATABASES):
-    num += max([num for num in SORT_PRIORITIES["db"].values()])
-    if db not in SORT_PRIORITIES["db"].keys():
-        SORT_PRIORITIES["db"][db] = num
-SORT_PRIORITIES["db"]["aur"] = max([num for num in SORT_PRIORITIES["db"].values()])
 
 
 def search(query: str, sortby: Optional[str] = "db") -> dict[int, Package]:
