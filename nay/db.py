@@ -380,12 +380,7 @@ class LocalDatabase:
 
 
 class SyncDatabase(dict):
-    def __init__(
-        self,
-        root: Optional[pathlib.Path] = pathlib.Path("/"),
-        dbpath: Optional[pathlib.Path] = pathlib.Path("/var/lib/pacman"),
-        config: Optional[pathlib.Path] = pathlib.Path("/etc/pacman.conf"),
-    ):
+    def __init__(self, root: pathlib.Path, dbpath: pathlib.Path, config: pathlib.Path):
         parser = configparser.ConfigParser(allow_no_value=True)
         parser.read(config)
 

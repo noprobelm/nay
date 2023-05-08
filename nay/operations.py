@@ -5,6 +5,8 @@ from dataclasses import dataclass
 import re
 from typing import Callable, Optional
 import nay
+import pathlib
+
 
 from .console import console
 from .exceptions import ConflictingOptions, InvalidOption, MissingTargets, PacmanError
@@ -26,20 +28,10 @@ class Operation:
     :ivar run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
     """
 
-    def __init__(self, run: Callable, *targets, **kwargs):
-        sudo = False
-        pacman_flags = []
-        for kwarg in kwargs:
-            if isinstance(kwargs[kwarg], bool):
-                if kwargs[kwarg] is True:
-                    kwarg = f"--{re.sub('_', '-', kwarg)}"
-                    pacman_flags.append(kwarg)
-            elif isinstance(kwargs[kwarg], bool):
-                pass
-
-    options: list[str]
-    targets: list[str]
-    run: Callable
+    def __init__(self, run: Callable, targets: list[str], **kwargs: dict):
+        self.run = run
+        self.targets = targets
+        self.kwargs = kwargs
 
 
 class Sync(Operation):
@@ -57,48 +49,41 @@ class Sync(Operation):
     :ivar run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
     """
 
-    def __init__(self, *targets, **kwargs) -> None:
-        self.kwargs = self.parse_options(kwargs)
+    def __init__(
+        self,
+        root: pathlib.Path,
+        dbpath: pathlib.Path,
+        config: pathlib.Path,
+        targets: list,
+        **kwargs,
+    ) -> None:
+        self.root = root
+        self.dbpath = dbpath
+        self.config = config
+        kwargs = self.parse_kwargs(kwargs)
+        super().__init__(self.run, targets, **kwargs)
 
-        super().__init__(self.run, *targets, **kwargs)
-
-    def parse_options(self, options):
-        mapper = {
-            "-c": "--clean",
-            "-s": "--search",
-            "-i": "--info",
-            "-u": "--sysupgrade",
-            "-w": "--downloadonly",
-            "-y": "--refresh",
-        }
-
-        for num, option in enumerate(options):
-            if option in mapper.keys():
-                options[num] = mapper[option]
-
+    def parse_kwargs(self, kwargs):
         conflicts = {
-            "--clean": ["--refresh", "search", "--sysupgrade"],
-            "--search": ["--sysupgrade", "--info", "--clean"],
-            "--info": ["--search"],
-            "--sysupgrade": ["--search, --clean", "--info"],
-            "--nodeps": [],
-            "--downloadonly": [],
-            "--refresh": ["--clean"],
+            "clean": ["refresh", "search", "sysupgrade"],
+            "search": ["sysupgrade", "info", "clean"],
+            "info": ["search"],
+            "sysupgrade": ["search, clean", "info"],
+            "nodeps": [],
+            "downloadonly": [],
+            "refresh": ["clean"],
         }
 
-        for option in options:
-            for other in options:
-                try:
-                    if other in conflicts[option]:
-                        raise ConflictingOptions(
-                            f"error: invalid option: '{option}' and '{other}' may not be used together"
-                        )
-                except KeyError:
-                    raise InvalidOption(f"error: invalid option '{option}")
-        return options
+        for kwarg in kwargs:
+            for other in kwargs:
+                if other in conflicts[kwarg]:
+                    raise ConflictingOptions(
+                        f"error: invalid option: '{kwarg}' and '{other}' may not be used together"
+                    )
+        return kwargs
 
-    def run(self):
-        if "--refresh" in self.options:
+    def run(self) -> None:
+        if "refresh" in self.kwargs:
             self.refresh()
 
         if "--sysupgrade" in self.options:
@@ -126,12 +111,14 @@ class Sync(Operation):
     def refresh(self):
         subprocess.run(
             shlex.split(
-                f"sudo pacman -S {' '.join([option for option in self.options if option == '--refresh'])}"
+                f"sudo pacman --sync {' '.join(['--refresh' for i in range(self.kwargs['refresh'])])}"
             )
         )
+        del self.kwargs["refresh"]
 
     def sysupgrade(self):
-        subprocess.run(shlex.split("sudo pacman -Su"))
+        subprocess.run(shlex.split("sudo pacman --sync --sysupgrade"))
+        del self.kwargs["sysupgrade"]
 
     def clean(self) -> None:
         subprocess.run(

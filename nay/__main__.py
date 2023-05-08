@@ -5,7 +5,7 @@ from .exceptions import ArgumentError
 def main() -> None:
     try:
         args = Args()
-        operation = args["operation"](options=args["options"], targets=args["targets"])
+        operation = args["operation"](targets=args["targets"], **args["kwargs"])
         operation.run()
     except KeyboardInterrupt:
         quit()

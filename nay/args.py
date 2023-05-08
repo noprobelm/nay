@@ -179,18 +179,29 @@ class GetPKGBUILIDArgs:
     ARGS = {}
 
 
-class Args:
+class Args(dict):
     __COMMON = {
         "dbpath": {
             "args": ["--dbpath"],
-            "kwargs": {"nargs": "?", "type": pathlib.Path},
+            "kwargs": {
+                "nargs": "?",
+                "type": pathlib.Path,
+                "default": "/var/lib/pacman",
+            },
         },
-        "root": {"args": ["--root"], "kwargs": {"nargs": 1, "type": pathlib.Path}},
+        "root": {
+            "args": ["--root"],
+            "kwargs": {"nargs": "?", "type": pathlib.Path, "default": "/"},
+        },
         "verbose": {"args": ["--verbose"], "kwargs": {"action": "store_true"}},
         "arch": {"args": ["--arch"], "kwargs": {"nargs": 1}},
         "cachedir": {
             "args": ["--cachedir"],
-            "kwargs": {"nargs": 1, "type": pathlib.Path},
+            "kwargs": {
+                "nargs": "?",
+                "type": pathlib.Path,
+                "default": "/var/cache/pacman/pkg",
+            },
         },
         "color": {
             "args": ["--color"],
@@ -198,17 +209,24 @@ class Args:
         },
         "config": {
             "args": ["--config"],
-            "kwargs": {"nargs": 1, "type": argparse.FileType("r")},
+            "kwargs": {
+                "nargs": "?",
+                "type": pathlib.Path,
+                "default": "/etc/pacman.conf",
+            },
         },
         "debug": {"args": ["--debug"], "kwargs": {"action": "store_true"}},
-        "gpgdir": {"args": ["--gpgdir"], "kwargs": {"nargs": 1, "type": pathlib.Path}},
+        "gpgdir": {
+            "args": ["--gpgdir"],
+            "kwargs": {"nargs": "?", "type": pathlib.Path},
+        },
         "hookdir": {
             "args": ["--hookdir"],
-            "kwargs": {"nargs": 1, "type": pathlib.Path},
+            "kwargs": {"nargs": "?", "type": pathlib.Path},
         },
         "logfile": {
             "args": ["--logfile"],
-            "kwargs": {"nargs": 1, "type": argparse.FileType("r")},
+            "kwargs": {"nargs": "?", "type": pathlib.Path},
         },
         "noconfirm": {"args": ["--noconfirm"], "kwargs": {"action": "store_true"}},
         "disable-download-timeout": {
@@ -217,7 +235,7 @@ class Args:
         },
         "sysroot": {
             "args": ["--sysroot"],
-            "kwargs": {"nargs": 1, "type": pathlib.Path},
+            "kwargs": {"nargs": "?", "type": pathlib.Path},
         },
         "targets": {"args": ["targets"], "kwargs": {"nargs": "*"}},
     }
@@ -250,7 +268,7 @@ class Args:
         },
     }
 
-    __OPERATION_MAPPER = {
+    __ARG_MAPPER = {
         "remove": RemoveArgs,
         "upgrade": UpgradeArgs,
         "sync": SyncArgs,
@@ -263,9 +281,23 @@ class Args:
         "version": VersionArgs,
     }
 
+    __OPERATION_MAPPER = {
+        "remove": operations.Wrapper,
+        "upgrade": operations.Wrapper,
+        "sync": operations.Sync,
+        "query": operations.Wrapper,
+        "database": operations.Wrapper,
+        "files": operations.Wrapper,
+        "nay": operations.Nay,
+        "getpkgbuild": operations.GetPKGBUILD,
+        "deptest": operations.Wrapper,
+        "version": operations.Wrapper,
+    }
+
     def __init__(self) -> None:
         operation = self.operation
-        args = self.__OPERATION_MAPPER[operation].ARGS
+        args = self.__ARG_MAPPER[operation].ARGS
+        operation = self.__OPERATION_MAPPER[operation]
         args.update(self.__COMMON)
         parser = argparse.ArgumentParser()
 
@@ -276,18 +308,28 @@ class Args:
             )
 
         args = vars(parser.parse_args())
-        operation_flags = []
+        kwargs = {}
+        targets = []
         for arg in args:
-            if args[arg] and arg != "targets":
-                flag = f"--{re.sub('_', '-', arg)}"
-                if isinstance(args[arg], str):
-                    flag = f"{flag} {args[arg]}"
+            if arg == "targets":
+                targets.extend(args[arg])
+            elif args[arg]:
+                flag = f"{re.sub('_', '-', arg)}"
+                if isinstance(args[arg], str) or isinstance(args[arg], pathlib.Path):
+                    kwargs[flag] = args[arg]
                 else:
+                    kwargs[flag] = args[arg]
                     for flag in range(args[arg]):
-                        flag = f"--{re.sub('_', '-', arg)}"
-                        operation_flags.append(flag)
-        print(args)
-        print(operation_flags)
+                        flag = f"{re.sub('_', '-', arg)}"
+        kwargs["targets"] = args["targets"]
+        super().__init__(
+            {
+                "operation": operation,
+                "targets": targets,
+                "kwargs": kwargs,
+            }
+        )
+        print(self)
         quit()
 
     @property
