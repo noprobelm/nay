@@ -6,7 +6,7 @@ def main() -> None:
     try:
         args = parse()
         operation = args["operation"]
-        operation = operation(**args["kwargs"])
+        operation = operation(**args["args"])
         print(operation)
     except KeyboardInterrupt:
         quit()

@@ -43,7 +43,7 @@ UPGRADE_ARGS = {
     },
     "print": {
         "args": ["-p, --print"],
-        "kwargs": {"action": "store_true"},
+        "kwargs": {"action": "store_true", "dest": "print_only"},
         "conflicts": [],
     },
     "--print-format": {
@@ -53,7 +53,7 @@ UPGRADE_ARGS = {
     },
     "downloadonly": {
         "args": ["-w", "--downloadonly"],
-        "kwargs": {"action": "store_true"},
+        "kwargs": {"action": "store_true", "dest": "download_only"},
         "conflicts": [],
     },
     "asdeps": {
@@ -134,7 +134,7 @@ SYNC_ARGS = {
         "kwargs": {"action": "count", "default": 0},
         "conflicts": [],
     },
-    "assume-installed": {
+    "assume_installed": {
         "args": ["--assume-installed"],
         "kwargs": {"nargs": "?"},
         "conflicts": [],
@@ -156,7 +156,7 @@ SYNC_ARGS = {
     },
     "print": {
         "args": ["-p, --print"],
-        "kwargs": {"action": "store_true"},
+        "kwargs": {"action": "store_true", "dest": "print_only"},
         "conflicts": [],
     },
     "--print-format": {
@@ -166,11 +166,11 @@ SYNC_ARGS = {
     },
     "downloadonly": {
         "args": ["-w", "--downloadonly"],
-        "kwargs": {"action": "store_true"},
+        "kwargs": {"action": "store_true", "dest": "download_only"},
         "conflicts": [],
     },
     "asdeps": {
-        "args": ["--aspdeps"],
+        "args": ["--asdeps"],
         "kwargs": {"action": "store_true"},
         "conflicts": [],
     },
@@ -189,7 +189,11 @@ SYNC_ARGS = {
         "kwargs": {"action": "store_true"},
         "conflicts": [],
     },
-    "overwrite": {"args": ["--overwrite"], "kwargs": {"nargs": "+"}, "conflicts": []},
+    "overwrite": {
+        "args": ["--overwrite"],
+        "kwargs": {"action": "store_true"},
+        "conflicts": [],
+    },
     "clean": {
         "args": ["-c", "--clean"],
         "kwargs": {"action": "count", "default": 0},
@@ -198,7 +202,7 @@ SYNC_ARGS = {
     "groups": {
         "args": ["-g", "--groups"],
         "kwargs": {"action": "store_true"},
-        "conflicts": [],
+        "conflicts": ["info", "search", "sysupgrade"],
     },
     "info": {
         "args": ["-i", "--info"],
@@ -207,7 +211,7 @@ SYNC_ARGS = {
     },
     "list": {
         "args": ["-l", "--list"],
-        "kwargs": {"action": "store_true"},
+        "kwargs": {"action": "store_true", "dest": "_list"},
         "conflicts": [],
     },
     "quiet": {
@@ -448,9 +452,21 @@ GLOBAL_ARGS = {
         "conflicts": [],
     },
     "debug": {"args": ["--debug"], "kwargs": {"action": "store_true"}, "conflicts": []},
-    "gpgdir": {"args": ["--gpgdir"], "kwargs": {"nargs": "?"}, "conflicts": []},
-    "hookdir": {"args": ["--hookdir"], "kwargs": {"nargs": "?"}, "conflicts": []},
-    "logfile": {"args": ["--logfile"], "kwargs": {"nargs": "?"}, "conflicts": []},
+    "gpgdir": {
+        "args": ["--gpgdir"],
+        "kwargs": {"nargs": "?", "default": "/etc/pacman.d/gnupg"},
+        "conflicts": [],
+    },
+    "hookdir": {
+        "args": ["--hookdir"],
+        "kwargs": {"nargs": "?", "default": "/etc/pacman.d/hooks"},
+        "conflicts": [],
+    },
+    "logfile": {
+        "args": ["--logfile"],
+        "kwargs": {"nargs": "?", "default": "/var/log/pacman.log"},
+        "conflicts": [],
+    },
     "noconfirm": {
         "args": ["--noconfirm"],
         "kwargs": {"action": "store_true"},
@@ -494,16 +510,16 @@ OPERATIONS = {
 }
 
 OPERATION_MAPPER = {
-    "remove": operations.Wrapper,
-    "upgrade": operations.Wrapper,
+    "remove": operations.Operation,
+    "upgrade": operations.Operation,
     "sync": sync.Sync,
-    "query": operations.Wrapper,
-    "database": operations.Wrapper,
-    "files": operations.Wrapper,
-    "nay": operations.Nay,
-    "getpkgbuild": operations.GetPKGBUILD,
-    "deptest": operations.Wrapper,
-    "version": operations.Wrapper,
+    "query": operations.Operation,
+    "database": operations.Operation,
+    "files": operations.Operation,
+    "nay": operations.Operation,
+    "getpkgbuild": operations.Operation,
+    "deptest": operations.Operation,
+    "version": operations.Operation,
 }
 
 ARG_MAPPER = {
@@ -578,7 +594,5 @@ def parse():
                         raise ConflictingOptions(
                             f"error: invalid option: '{arg}' and '{other}' may not be used together"
                         )
-
-    quit()
 
     return {"operation": cls, "args": parsed}
