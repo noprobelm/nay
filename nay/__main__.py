@@ -1,12 +1,13 @@
-from .args import Args
+from .args import parse
 from .exceptions import ArgumentError
 
 
 def main() -> None:
     try:
-        args = Args()
-        operation = args["operation"](targets=args["targets"], **args["kwargs"])
-        operation.run()
+        args = parse()
+        operation = args["operation"]
+        operation = operation(**args["kwargs"])
+        print(operation)
     except KeyboardInterrupt:
         quit()
     except ArgumentError as err:

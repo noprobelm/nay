@@ -3,6 +3,8 @@ import re
 import shlex
 import subprocess
 from typing import Optional, Union, BinaryIO
+from . import clean
+from . import utils
 
 import networkx as nx
 import pyalpm
@@ -17,9 +19,9 @@ import pathlib
 
 
 class Manager:
-    def __init__(self):
-        self.localdb = LocalDatabase()
-        self.syncdb = SyncDatabase()
+    def __init__(self, root: pathlib.Path, dbpath: pathlib.Path, config: pathlib.Path):
+        self.localdb = LocalDatabase(root, dbpath)
+        self.syncdb = SyncDatabase(root, dbpath, config)
         self.aur = AUR()
 
     def search(self, query: str, sortby: Optional[str] = "db"):
@@ -220,11 +222,11 @@ class Manager:
             if isinstance(pkg, SyncPackage):
                 renderable.append_text(Text(f"({get_size(pkg)} "))
                 renderable.append_text(Text(f"{get_isize(pkg)}) "))
-                local = SyncPackage.from_pyalpm(self.localdb.get_packages(pkg.name))
+                local = self.localdb.get_packages(pkg.name)
                 if local:
                     renderable.append_text(
                         Text(
-                            f"(Installed: {local.version}) ",
+                            f"(Installed: {pkg.version}) ",
                             style="bright_green",
                         )
                     )
@@ -233,11 +235,11 @@ class Manager:
                 renderable.append_text(
                     Text(f"(+{get_votes(pkg)} {get_popularity(pkg)}) ")
                 )
-                local = SyncPackage.from_pyalpm(self.localdb.get_packages(pkg.name))
+                local = self.localdb.get_packages(pkg.name)
                 if local:
                     renderable.append_text(
                         Text(
-                            f"(Installed: {local.version}) ",
+                            f"(Installed: {pkg.version}) ",
                             style="bright_green",
                         )
                     )

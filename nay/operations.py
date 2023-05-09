@@ -1,37 +1,34 @@
 import os
 import shlex
 import subprocess
-from dataclasses import dataclass
-import re
 from typing import Callable, Optional
 import nay
 import pathlib
 
 
 from .console import console
-from .exceptions import ConflictingOptions, InvalidOption, MissingTargets, PacmanError
+from .exceptions import ConflictingOptions, MissingTargets, PacmanError
 
 
 class Operation:
-    """
-    Boilerplate class for nay operations
-
-    :param options: The options for the operation (e.g. ['-u', '-y'])
-    :type options: list[str]
-    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :type targets: list[str]
-    :param run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
-    :type run: Callable
-
-    :ivar options: The options for the operation (e.g. ['-u', '-y'])
-    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :ivar run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
-    """
-
-    def __init__(self, run: Callable, targets: list[str], **kwargs: dict):
-        self.run = run
+    def __init__(
+        self,
+        root: pathlib.Path,
+        dbpath: pathlib.Path,
+        config: pathlib.Path,
+        targets: list,
+        run: Callable,
+    ):
+        self.root = root
+        self.dbpath = dbpath
+        self.config = config
         self.targets = targets
-        self.kwargs = kwargs
+        self.run = run
+
+    def wrap_pacman(self, params: list[str], sudo: bool = False):
+        prefix = "sudo " if sudo is True else ""
+        params.extend([f"--dbpath {self.dbpath}", f"--root {self.root}"])
+        subprocess.run(shlex.split(f"{prefix}pacman {' '.join([p for p in params])}"))
 
 
 class Sync(Operation):
