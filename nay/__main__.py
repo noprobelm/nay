@@ -7,7 +7,7 @@ def main() -> None:
         args = parse()
         operation = args["operation"]
         operation = operation(**args["args"])
-        print(operation)
+        operation.run()
     except KeyboardInterrupt:
         quit()
     except ArgumentError as err:

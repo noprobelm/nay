@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from .console import console, default
 from rich.console import Group
 from rich.text import Text
-from .package import Package
+from .package import Package, SyncPackage, AURPackage, AURBasic
 
 
 @dataclass
@@ -88,7 +88,7 @@ class Sync(Operation):
                 ]
                 self.wrap_pacman(params, sudo=False)
             else:
-                packages = self.manager.get_packages(*self.targets)
+                self.print_pkginfo()
 
             return
 
@@ -208,7 +208,7 @@ class Sync(Operation):
             if isinstance(pkg, SyncPackage):
                 renderable.append_text(Text(f"({get_size(pkg)} "))
                 renderable.append_text(Text(f"{get_isize(pkg)}) "))
-                local = self.localdb.get_packages(pkg.name)
+                local = self.local_db.get_packages(pkg.name)
                 if local:
                     renderable.append_text(
                         Text(
@@ -221,7 +221,7 @@ class Sync(Operation):
                 renderable.append_text(
                     Text(f"(+{get_votes(pkg)} {get_popularity(pkg)}) ")
                 )
-                local = self.localdb.get_packages(pkg.name)
+                local = self.local_db.get_packages(pkg.name)
                 if local:
                     renderable.append_text(
                         Text(
