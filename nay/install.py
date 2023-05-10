@@ -7,7 +7,6 @@ from typing import Optional, Union
 import networkx as nx
 from rich.table import Column, Table
 
-from .db import Manager
 from . import get
 from .config import CACHEDIR
 from .console import console

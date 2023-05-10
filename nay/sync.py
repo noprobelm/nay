@@ -9,6 +9,10 @@ from .console import console, default
 from rich.console import Group
 from rich.text import Text
 from .package import Package, SyncPackage, AURPackage, AURBasic
+from rich.table import Table, Column
+import networkx as nx
+import concurrent.futures
+from . import get
 
 
 @dataclass
@@ -95,7 +99,9 @@ class Sync(Operation):
         if not self.targets:
             raise MissingTargets("error: no targets specified (use -h for help)")
 
-        self.install()
+        sync_explicit = self.sync_db.get_packages(*self.targets)
+        aur_explicit = self.aur.get_packages(*self.targets)
+        self.install(sync_explicit, aur_explicit)
 
     def upgrade_system(self) -> None:
         params = ["--sync", "--sysupgrade"]
@@ -272,37 +278,168 @@ class Sync(Operation):
 
         console.print(Group(*aur))
 
-    def install(self) -> None:
-        from . import install
+    def install(
+        self, sync_explicit: list[SyncPackage], aur_explicit: list[AURPackage]
+    ) -> None:
+        def preview_packages(
+            sync_explicit: Optional[list[SyncPackage]] = None,
+            sync_depends: Optional[list[SyncPackage]] = None,
+            aur_explicit: Optional[list[AURPackage]] = None,
+            aur_depends: Optional[list[AURPackage]] = None,
+        ) -> None:
+            """
+            Print a list of packages to be installed to the terminal
 
-        skip_verchecks = False
-        skip_depchecks = False
-        download_only = False
-        pacman_flags = []
+            :param sync_explicit: A list of SyncPackage objects to be explicitly installed
+            :type sync_explicit: list[SyncPackage]
+            :param sync_depends: A list of SyncPackage dependencies to be installed
+            :type sync_depends: list[SyncPackage]
+            :param aur_explicit: An list of AURPackage objects to be explicitly installed
+            :type aur_explicit: list[AURPackage]
+            :param aur_depends: A list of AURPackage dependencies to be installed
+            :type aur_depends: list[AURPackage]
+            """
 
-        if self.nodeps:
-            if self.nodeps == 1:
-                skip_verchecks = True
-                pacman_flags.append("--nodeps")
+            if sync_explicit:
+                output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in sync_explicit]
+                console.print(
+                    f"Sync Explicit {len(sync_explicit)}: {', '.join([pkg for pkg in output])}"
+                )
+            if aur_explicit:
+                output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in aur_explicit]
+                console.print(
+                    f"AUR Explicit ({len(aur_explicit)}): {', '.join([pkg for pkg in output])}"
+                )
+
+            if aur_depends:
+                output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in aur_depends]
+                console.print(
+                    f"AUR Dependency ({len(aur_depends)}): {', '.join([out for out in output])}"
+                )
+
+            if sync_depends:
+                output = [f"[cyan]{pkg.name}-{pkg.version}" for pkg in sync_depends]
+                console.print(
+                    f"Sync Dependency ({len(sync_depends)}): {', '.join([out for out in output])}"
+                )
+
+        def get_missing_pkgbuild(
+            *packages: AURPackage, multithread=True, verbose=False
+        ) -> None:
+            """
+            Get missing PKGBUILD files
+
+            :param packages: An AURPackage or series of AURPackage objects to get PKGBUILD data for
+            :type packages: AURPackage
+            :param multithread: Optional parameter indicating whether this function should be multithreaded. Default is True
+            :type multithread: Optional[bool]
+            :param verbose: Optional parameter indicating whether success/failure messages should be verbose. Default is False
+            :type verbose: Optional[bool]
+            """
+            missing = []
+            for pkg in packages:
+                if not pkg.pkgbuild_exists:
+                    missing.append(pkg)
+                else:
+                    if verbose:
+                        console.print(
+                            f"[notify]::[/notify] PKGBUILD up to date, skipping download: [notify]{pkg.name}"
+                        )
+
+            if multithread:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+                    for num, pkg in enumerate(missing):
+                        executor.submit(get.get_pkgbuild, pkg, force=True)
+                        if verbose:
+                            console.print(
+                                f"[notify]::[/notify] ({num+1}/{len(missing)}) Downloaded PKGBUILD: [notify]{pkg.name}"
+                            )
             else:
-                skip_depchecks = True
-                pacman_flags.extend(["--nodeps", "--nodeps"])
+                for num, pkg in enumerate(missing):
+                    get.get_pkgbuild(pkg, force=True)
+                    if verbose:
+                        console.print(
+                            f"[notify]::[/notify] {num+1}/{len(missing)} Downloaded PKGBUILD: [notify]{pkg.name}"
+                        )
 
-        if self.download_only is True:
-            download_only = True
+        def preview_aur(*packages: AURPackage) -> None:
+            """
+            Print an overview of the explicit and depends AUR packages to be installed
+
+            :param packages: A package or series of AURPackage objects to be explicitly installed
+            :type packages: package.AURPackage
+            """
+
+            install_preview = Table.grid(
+                Column("num", justify="right"),
+                Column("pkgname", width=35, justify="left"),
+                Column("pkgbuild_exists"),
+                padding=(0, 1, 0, 1),
+            )
+
+            for num, pkg in enumerate(packages):
+                # TODO: Fix hardcoded "Build Files Exist" -- I'm not how we'd encounter a scenario where we got here and they don't already exist
+                install_preview.add_row(
+                    f"[magenta]{len(packages) - num}[/magenta]",
+                    pkg.name,
+                    "[bright_green](Build Files Exist)",
+                )
+
+            console.print(install_preview)
+
+        def prompt_proceed() -> None:
+            """Present prompt to proceed with installation"""
+            prompt = console.input(
+                "[bright_green]==>[/bright_green] Install packages? [Y/n] "
+            )
+            if not prompt.lower().startswith("y"):
+                quit()
+
+        pacman_flags = ["--sync"]
+        pacman_flags.extend(["--nodeps" for _ in range(self.nodeps)])
+        if self.download_only:
+            pacman_flags.append("--downloadonly")
+        skip_verchecks = True if self.nodeps > 0 else False
+        skip_depchecks = True if self.nodeps > 1 else False
+        download_only = self.download_only
+
+        for _ in range(self.nodeps):
+            pacman_flags.append("--nodeps")
+        if download_only is True:
             pacman_flags.append("--downloadonly")
 
-        install_kwargs = {
-            "skip_verchecks": skip_verchecks,
-            "skip_depchecks": skip_depchecks,
-            "download_only": download_only,
-            "pacman_flags": pacman_flags,
-        }
+        pacman_flags.extend([pkg.name for pkg in sync_explicit])
 
-        install.install(
-            skip_verchecks=skip_verchecks,
-            skip_depchecks=skip_depchecks,
-            download_only=download_only,
-            pacman_flags=pacman_flags,
-            *self.targets,
+        if skip_depchecks is True:
+            preview_packages(sync_explicit=sync_explicit, aur_explicit=aur_explicit)
+            if aur_explicit:
+                get_missing_pkgbuild(*aur_explicit, verbose=True)
+                preview_aur(*aur_explicit)
+                prompt_proceed()
+                self.aur.install(*aur_explicit)
+            if sync_explicit:
+                self.wrap_pacman(pacman_flags, sudo=True)
+
+        aur_tree = self.aur.get_dependency_tree(*aur_explicit, recursive=False)
+        aur_depends = [dep for pkg, dep in aur_tree.edges]
+        sync_depends = self.sync_db.get_depends(*sync_explicit)
+        get_missing_pkgbuild(*[node for node in aur_tree.nodes], verbose=True)
+        preview_packages(
+            sync_explicit=sync_explicit,
+            sync_depends=sync_depends,
+            aur_explicit=aur_explicit,
+            aur_depends=aur_depends,
         )
+        preview_aur(*[node for node in aur_tree.nodes])
+        prompt_proceed()
+        if aur_depends:
+            aur_tree = nx.compose(aur_tree, self.aur.get_dependency_tree(*aur_depends))
+        get_missing_pkgbuild(*[node for node in aur_tree], verbose=False)
+        if aur_tree:
+            install_order = [layer for layer in nx.bfs_layers(aur_tree, *aur_explicit)][
+                ::-1
+            ]
+            for layer in install_order:
+                self.aur.install(*layer, download_only=download_only)
+        if sync_explicit:
+            self.wrap_pacman(pacman_flags, sudo=True)

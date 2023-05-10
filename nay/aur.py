@@ -5,6 +5,10 @@ from .package import AURBasic, AURPackage, Package
 from .console import console
 import shutil
 import networkx as nx
+from typing import Optional
+from .utils import makepkg
+import subprocess
+import shlex
 
 
 class AUR:
@@ -46,6 +50,46 @@ class AUR:
 
         return packages
 
+    def get_dependency_tree(
+        self,
+        *packages: Package,
+        recursive: Optional[bool] = True,
+    ) -> nx.DiGraph:
+        """
+        Get the AUR dependency tree for a package or series of packages
+
+        :param recursive: Optional parameter indicating whether this function should run recursively. If 'False', only immediate dependencies will be returned. Defaults is True
+        :type recursive: Optional[bool]
+
+        :return: A dependency tree of all packages passed to the function
+        :rtype: nx.DiGraph
+        """
+        tree = nx.DiGraph()
+        aur_query = []
+
+        aur_deps = {pkg: {} for pkg in packages}
+        for pkg in packages:
+            tree.add_node(pkg)
+            for dtype in ["check_depends", "make_depends", "depends"]:
+                for dep in getattr(pkg, dtype):
+                    aur_query.append(dep)
+                    aur_deps[pkg][dep] = {"dtype": dtype}
+
+        aur_info = self.get_packages(*set(list(aur_query)))
+        for pkg in aur_deps:
+            for dep in aur_info:
+                if dep.name in aur_deps[pkg].keys():
+                    tree.add_edge(pkg, dep, dtype=aur_deps[pkg][dep.name]["dtype"])
+        if recursive is False:
+            return tree
+
+        layers = [layer for layer in nx.bfs_layers(tree, packages)]
+        if len(layers) > 1:
+            dependencies = layers[1]
+            tree = nx.compose(tree, self.get_dependency_tree(*dependencies))
+
+        return tree
+
     def get_depends(self, aur_tree: nx.DiGraph) -> list[Package]:
         """
         Get the aur dependencies from installation targets
@@ -80,3 +124,38 @@ class AUR:
                     if _.endswith(".tar.zst"):
                         os.remove(_)
                 os.chdir("../")
+
+    def install(
+        self,
+        *packages: AURPackage,
+        skip_depchecks: Optional[bool] = False,
+        download_only: Optional[bool] = False,
+    ):
+        """
+        Install passed AURPackage objects
+
+        :param packages: Package or series of packages to install
+        :type packages: AURPackage
+        :param skip_depchecks: Flag to skip dependency checks. Default is False
+        :type skip_depchecks: bool
+        :param download_only: Flag download only (makepkg will still occur, packages will not be installed)
+        :type download_only bool
+        """
+        targets = []
+        for pkg in packages:
+            if skip_depchecks is True:
+                makepkg(pkg, CACHEDIR, "fscd")
+            else:
+                makepkg(pkg, CACHEDIR, "fsc")
+
+            pattern = f"{pkg.name}-"
+            for obj in os.listdir(os.path.join(CACHEDIR, pkg.name)):
+                if pattern in obj and obj.endswith("zst"):
+                    targets.append(os.path.join(CACHEDIR, pkg.name, obj))
+
+        if download_only is False:
+            subprocess.run(shlex.split(f"sudo pacman -U {' '.join(targets)}"))
+        else:
+            console.print(
+                f"-> nothing to install for {' '.join([target for target in targets])}"
+            )
