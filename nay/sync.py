@@ -1,13 +1,8 @@
 from nay.operations import Operation
-import subprocess
-import shlex
-from nay.utils import clean_cachedir, clean_untracked
 from nay.exceptions import MissingTargets
 from typing import Optional
 from dataclasses import dataclass
-from rich.console import Group
-from rich.text import Text
-from .package import Package, SyncPackage, AURPackage, AURBasic
+from .package import Package, SyncPackage, AURPackage
 from rich.table import Table, Column
 import networkx as nx
 import concurrent.futures
