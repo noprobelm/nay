@@ -1,7 +1,7 @@
 import requests
 import os
 from .config import CACHEDIR
-from .package import AURBasic, AURPackage, Package
+from .package import AURBasic, AURPackage, Package, SyncPackage
 import shutil
 import networkx as nx
 from typing import Optional
@@ -11,7 +11,7 @@ import shlex
 
 
 class AUR:
-    def __init__(self, syncdb: pyalpm.Database, localdb: "pyalpm.Database"):
+    def __init__(self, syncdb: "pyalpm.Database", localdb: "pyalpm.Database"):
         self.syncdb = syncdb
         self.localdb = localdb
         self.search_endpoint = "https://aur.archlinux.org/rpc/?v=5&type=search&arg="
@@ -34,7 +34,7 @@ class AUR:
     def get_packages(self, *names, verbose=False):
         packages = []
         missing = []
-        names = list(names)
+        names = list(set(names))
 
         results = requests.get(
             f"{self.info_endpoint}&arg[]={'&arg[]='.join(names)}"
@@ -73,19 +73,15 @@ class AUR:
             tree.add_node(pkg)
             for dtype in ["check_depends", "make_depends", "depends"]:
                 for dep_name in getattr(pkg, dtype):
-                    for db in self.syncdb:
-                        dep = self.syncdb[db].get_pkg(dep_name)
-                        if dep:
-                            tree.add_edge(pkg, dep)
-                    else:
-                        aur_query.append(dep_name)
-                        aur_deps[pkg][dep_name] = {"dtype": dtype}
+                    aur_query.append(dep_name)
+                    aur_deps[pkg][dep_name] = {"dtype": dtype}
 
         aur_info = self.get_packages(*set(list(aur_query)))
         for pkg in aur_deps:
             for dep in aur_info:
                 if dep.name in aur_deps[pkg].keys():
                     tree.add_edge(pkg, dep, dtype=aur_deps[pkg][dep.name]["dtype"])
+
         if recursive is False:
             return tree
 
@@ -186,15 +182,6 @@ class AUR:
         """
         Clean package metadata out of cached package directories
         """
-        response = console.input(
-            "\n[bright_blue]::[/bright_blue] Do you want to remove ALL untracked AUR files? [Y/n] "
-        )
-
-        if response.lower() == "y":
-            console.print("removing untracked AUR files from cache...")
-        else:
-            return
-
         os.chdir(CACHEDIR)
         for obj in os.listdir():
             if os.path.isdir(os.path.join(os.getcwd(), obj)):

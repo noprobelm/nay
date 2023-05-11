@@ -44,7 +44,7 @@ class Operation:
                     section, pyalpm.SIG_DATABASE_OPTIONAL
                 )
 
-        self.aur = AUR(self.local)
+        self.aur = AUR(self.sync, self.local)
 
     @property
     def wrapper_params(self):
