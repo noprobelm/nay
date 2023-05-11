@@ -399,20 +399,20 @@ class Nay(Sync):
 
     def select_packages(self, packages):
         selections = self.console.get_nums("Packages to install (eg: 1 2 3, 1-3 or ^4)")
-        selected = []
+        packages = []
         for num in selections:
             try:
-                selected.append(packages[num])
+                packages.append(packages[num])
             # Ignore invalid selections by the user
             except KeyError:
                 pass
 
-        aur_query = [pkg.name for pkg in selected if isinstance(pkg, AURBasic)]
+        aur_query = [pkg.name for pkg in packages if isinstance(pkg, AURBasic)]
         if aur_query:
             aur_packages = self.aur.get_packages(*aur_query)
-            for num, pkg in enumerate(selected):
+            for num, pkg in enumerate(packages):
                 for aur_pkg in aur_packages:
                     if pkg.name == aur_pkg.name:
-                        selected[num] = aur_pkg
+                        packages[num] = aur_pkg
 
-        return selected
+        return packages
