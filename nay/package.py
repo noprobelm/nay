@@ -348,7 +348,6 @@ class AURPackage(AURBasic):
         popularity: int,
         flag_date: Optional[int] = None,
         orphaned: Optional[int] = False,
-        info_query: Optional[dict] = None,
     ) -> None:
         super().__init__(
             db,
@@ -359,10 +358,10 @@ class AURPackage(AURBasic):
             popularity,
             flag_date,
             orphaned,
-            check_depends,
-            make_depends,
-            depends,
-            opt_depends,
+            check_depends=check_depends,
+            make_depends=make_depends,
+            depends=depends,
+            opt_depends=opt_depends,
         )
         self.votes = votes
         self.popularity = popularity
@@ -370,7 +369,6 @@ class AURPackage(AURBasic):
             datetime.fromtimestamp(flag_date) if flag_date is not None else None
         )
         self.orphaned = orphaned
-        self.info_query = info_query
 
     @classmethod
     def from_info_query(cls, result: dict) -> "AURPackage":
@@ -393,7 +391,6 @@ class AURPackage(AURBasic):
             "orphaned": True if result["Maintainer"] is None else False,
             "votes": result["NumVotes"],
             "popularity": result["Popularity"],
-            "info_query": result,
         }
 
         dep_types = {
@@ -402,7 +399,7 @@ class AURPackage(AURBasic):
             "Depends": "depends",
             "OptDepends": "opt_depends",
         }
-        for dtype in dep_types.keys():
+        for dtype in dep_types:
             if dtype in result.keys():
                 kwargs[dep_types[dtype]] = result[dtype]
             else:

@@ -4,7 +4,13 @@ from pyalpm import Handle
 from .package import SyncPackage, AURPackage
 
 
-class LocalDatabase:
+class Database:
+    def __init__(self, root: str, dbpath: str):
+        handle = Handle(root, dbpath)
+        self.db = handle.get_localdb()
+
+
+class Local(Database):
     def __init__(self, root: str, dbpath: str):
         handle = Handle(root, dbpath)
         self.db = handle.get_localdb()
@@ -35,7 +41,7 @@ class LocalDatabase:
         return packages
 
 
-class SyncDatabase(dict):
+class Sync(Database, dict):
     def __init__(self, root: str, dbpath: str, config: str):
         self.root = root
         self.dbpath = dbpath
@@ -95,7 +101,7 @@ class SyncDatabase(dict):
                 pkg = self[db].get_pkg(name)
                 if pkg:
                     packages.append(SyncPackage.from_pyalpm(pkg))
-                    break
+                    continue
 
         return packages
 

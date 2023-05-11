@@ -107,6 +107,7 @@ class AUR:
         for pkg, dep in aur_tree.edges:
             if aur_tree.get_edge_data(pkg, dep)["dtype"] != "opt_depends":
                 aur_depends.append(dep)
+        quit()
 
         return aur_depends
 
@@ -130,6 +131,7 @@ class AUR:
         *packages: AURPackage,
         skip_depchecks: Optional[bool] = False,
         download_only: Optional[bool] = False,
+        asdeps: Optional[bool] = False,
     ):
         """
         Install passed AURPackage objects
@@ -154,7 +156,13 @@ class AUR:
                     targets.append(os.path.join(CACHEDIR, pkg.name, obj))
 
         if download_only is False:
-            subprocess.run(shlex.split(f"sudo pacman -U {' '.join(targets)}"))
+            if asdeps is True:
+                subprocess.run(
+                    shlex.split(f"sudo pacman -U --asdeps {' '.join(targets)}")
+                )
+            else:
+                subprocess.run(shlex.split(f"sudo pacman -U {' '.join(targets)}"))
+
         else:
             console.print(
                 f"-> nothing to install for {' '.join([target for target in targets])}"

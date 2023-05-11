@@ -12,7 +12,7 @@ from .package import Package, SyncPackage, AURPackage, AURBasic
 from rich.table import Table, Column
 import networkx as nx
 import concurrent.futures
-from . import get
+from .utils import get_pkgbuild
 
 
 @dataclass
@@ -101,6 +101,7 @@ class Sync(Operation):
 
         sync_explicit = self.sync_db.get_packages(*self.targets)
         aur_explicit = self.aur.get_packages(*self.targets)
+
         self.install(sync_explicit, aur_explicit)
 
     def upgrade_system(self) -> None:
@@ -349,14 +350,14 @@ class Sync(Operation):
             if multithread:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
                     for num, pkg in enumerate(missing):
-                        executor.submit(get.get_pkgbuild, pkg, force=True)
+                        executor.submit(get_pkgbuild, pkg, force=True)
                         if verbose:
                             console.print(
                                 f"[notify]::[/notify] ({num+1}/{len(missing)}) Downloaded PKGBUILD: [notify]{pkg.name}"
                             )
             else:
                 for num, pkg in enumerate(missing):
-                    get.get_pkgbuild(pkg, force=True)
+                    get_pkgbuild(pkg, force=True)
                     if verbose:
                         console.print(
                             f"[notify]::[/notify] {num+1}/{len(missing)} Downloaded PKGBUILD: [notify]{pkg.name}"
@@ -421,8 +422,20 @@ class Sync(Operation):
                 self.wrap_pacman(pacman_flags, sudo=True)
 
         aur_tree = self.aur.get_dependency_tree(*aur_explicit, recursive=False)
-        aur_depends = [dep for pkg, dep in aur_tree.edges]
-        sync_depends = self.sync_db.get_depends(*sync_explicit)
+        aur_depends = list(
+            filter(
+                lambda x: not self.local_db.get_packages(x.name),
+                [dep for pkg, dep in aur_tree.edges],
+            )
+        )
+        sync_depends = list(
+            filter(
+                lambda x: not self.local_db.get_packages(x.name),
+                [dep for dep in self.sync_db.get_depends(*aur_explicit)],
+            )
+        )
+        print([dep.name for dep in sync_depends])
+        quit()
         get_missing_pkgbuild(*[node for node in aur_tree.nodes], verbose=True)
         preview_packages(
             sync_explicit=sync_explicit,
@@ -436,10 +449,13 @@ class Sync(Operation):
             aur_tree = nx.compose(aur_tree, self.aur.get_dependency_tree(*aur_depends))
         get_missing_pkgbuild(*[node for node in aur_tree], verbose=False)
         if aur_tree:
-            install_order = [layer for layer in nx.bfs_layers(aur_tree, *aur_explicit)][
+            install_order = [layer for layer in nx.bfs_layers(aur_tree, aur_explicit)][
                 ::-1
             ]
-            for layer in install_order:
-                self.aur.install(*layer, download_only=download_only)
+            for num, layer in enumerate(install_order):
+                if num + 1 == len(install_order):
+                    self.aur.install(*layer, download_only=download_only, asdeps=False)
+                else:
+                    self.aur.install(*layer, download_only=download_only, asdeps=True)
         if sync_explicit:
             self.wrap_pacman(pacman_flags, sudo=True)
