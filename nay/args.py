@@ -397,12 +397,14 @@ VERSION_ARGS = {
 
 
 NAY_ARGS = {
-    "nay": {
-        "args": ["-N", "--nay"],
+    "sync": {
+        "args": ["-S", "--sync"],
         "kwargs": {"action": "store_true"},
         "conflicts": [],
     }
 }
+
+NAY_ARGS.update(SYNC_ARGS)
 
 GETPKGBUILD_ARGS = {
     "GetPKGBUILD": {
@@ -516,7 +518,7 @@ OPERATION_MAPPER = {
     "query": operations.Operation,
     "database": operations.Operation,
     "files": operations.Operation,
-    "nay": operations.Operation,
+    "nay": sync.Nay,
     "getpkgbuild": operations.Operation,
     "deptest": operations.Operation,
     "version": operations.Operation,
@@ -585,7 +587,10 @@ def parse():
         )
 
     parsed = vars(parser.parse_args())
-    del parsed[operation]
+    if operation == "nay":
+        del parsed["sync"]
+    else:
+        del parsed[operation]
     for arg in parsed:
         if parsed[arg]:
             for other in parsed:

@@ -4,6 +4,7 @@ from .package import Package
 from typing import Optional
 from rich.text import Text
 from .package import SyncPackage, AURBasic, AURPackage
+import re
 
 DEFAULT = Theme(
     {
@@ -39,6 +40,28 @@ class NayConsole(Console):
         if affirm in self.input(f"[prompt]==>[/prompt] {message} ").lower():
             return True
         return False
+
+    def get_nums(self, message: str):
+        selections = self.input(f"[prompt]==>[/prompt] {message} ")
+        matches = re.findall(r"\^?\d+(?:-\d+)?", selections)
+        selections = set()
+        for match in matches:
+            if "-" in match:
+                start, end = match.split("-")
+                if match.startswith("^"):
+                    start = start.strip("^")
+                    for num in range(int(start), int(end) + 1):
+                        selections.discard(num)
+                else:
+                    for num in range(int(start), int(end) + 1):
+                        selections.add(num)
+            elif match.startswith("^"):
+                match = match.strip("^")
+                selections.discard(int(match))
+            else:
+                selections.add(int(match))
+
+        return selections
 
     def print_packages(
         self,

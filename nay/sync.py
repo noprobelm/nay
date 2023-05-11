@@ -2,7 +2,7 @@ from nay.operations import Operation
 from nay.exceptions import MissingTargets
 from typing import Optional
 from dataclasses import dataclass
-from .package import Package, SyncPackage, AURPackage
+from .package import Package, SyncPackage, AURPackage, AURBasic
 from rich.table import Table, Column
 import networkx as nx
 import concurrent.futures
@@ -191,7 +191,7 @@ class Sync(Operation):
 
         self.console.print_pkginfo(*aur)
 
-    def install(self) -> None:
+    def install(self, targets: Optional[list[Package]] = None) -> None:
         sync_params = self.wrapper_params
         sync_params.extend(["--nodeps" for _ in range(self.nodeps)])
         sync_params.extend(["--downloadonly" for _ in range(self.download_only)])
@@ -200,16 +200,20 @@ class Sync(Operation):
         skip_depchecks = True if self.nodeps > 1 else False
         download_only = self.download_only
 
-        targets = list(set(self.targets))
-        sync_explicit = []
-        for db in self.sync:
-            for target in targets:
-                pkg = self.sync[db].get_pkg(target)
-                if pkg:
-                    sync_explicit.append(pkg)
-                    targets.pop(targets.index(target))
+        if targets is None:
+            targets = list(set(self.targets))
+            sync_explicit = []
+            for db in self.sync:
+                for target in targets:
+                    pkg = self.sync[db].get_pkg(target)
+                    if pkg:
+                        sync_explicit.append(pkg)
+                        targets.pop(targets.index(target))
 
-        aur_explicit = self.aur.get_packages(*targets)
+            aur_explicit = self.aur.get_packages(*targets)
+        else:
+            sync_explicit = [pkg for pkg in targets if isinstance(pkg, SyncPackage)]
+            aur_explicit = [pkg for pkg in targets if isinstance(pkg, AURPackage)]
 
         def preview_packages(
             sync_explicit: Optional[list[SyncPackage]] = None,
@@ -378,3 +382,37 @@ class Sync(Operation):
         if sync_explicit:
             sync_params.extend(pkg.name for pkg in sync_explicit)
             self.wrap_pacman(sync_params, sudo=True)
+
+
+@dataclass
+class Nay(Sync):
+    def run(self):
+        self.wrapper_prefix = "sync"
+        if not self.targets:
+            params = self.wrapper_params + ["--refresh", "--sysupgrade"]
+            self.wrap_pacman(params, sudo=True)
+            return
+        packages = self.search_packages(" ".join([target for target in self.targets]))
+        self.console.print_packages(packages, self.local, include_num=True)
+        packages = self.select_packages(packages)
+        self.install(packages)
+
+    def select_packages(self, packages):
+        selections = self.console.get_nums("Packages to install (eg: 1 2 3, 1-3 or ^4)")
+        selected = []
+        for num in selections:
+            try:
+                selected.append(packages[num])
+            # Ignore invalid selections by the user
+            except KeyError:
+                pass
+
+        aur_query = [pkg.name for pkg in selected if isinstance(pkg, AURBasic)]
+        if aur_query:
+            aur_packages = self.aur.get_packages(*aur_query)
+            for num, pkg in enumerate(selected):
+                for aur_pkg in aur_packages:
+                    if pkg.name == aur_pkg.name:
+                        selected[num] = aur_pkg
+
+        return selected
