@@ -13,7 +13,7 @@ DEFAULT = Theme(
         "core": "bright_yellow",
         "multilib": "bright_cyan",
         "other_db": "bright_yellow",
-        "prompt": "green",
+        "prompt": "bright_green",
         "notify": "bright_cyan",
         "alert": "yellow",
         "warn": "red",

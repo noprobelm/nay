@@ -1,9 +1,7 @@
 import configparser
 import shlex
 import subprocess
-from typing import Callable, Optional, Union
 from dataclasses import dataclass
-from .db import SyncDatabase, LocalDatabase
 from .aur import AUR
 from pyalpm import Handle
 import pyalpm
