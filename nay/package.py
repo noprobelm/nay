@@ -348,6 +348,7 @@ class AURPackage(AURBasic):
         popularity: int,
         flag_date: Optional[int] = None,
         orphaned: Optional[int] = False,
+        info_query: Optional[dict] = None,
     ) -> None:
         super().__init__(
             db,
@@ -363,6 +364,7 @@ class AURPackage(AURBasic):
             depends=depends,
             opt_depends=opt_depends,
         )
+        self.info_query = info_query
         self.votes = votes
         self.popularity = popularity
         self.flag_date = (
@@ -391,6 +393,7 @@ class AURPackage(AURBasic):
             "orphaned": True if result["Maintainer"] is None else False,
             "votes": result["NumVotes"],
             "popularity": result["Popularity"],
+            "info_query": result,
         }
 
         dep_types = {

@@ -5,13 +5,12 @@ from .package import SyncPackage, AURPackage
 
 
 class Database:
-    def __init__(self, root: str, dbpath: str):
+    def __init__(self, root: str, dbpath: str, dbname: str):
         handle = Handle(root, dbpath)
-        self.db = handle.get_localdb()
 
 
-class Local(Database):
-    def __init__(self, root: str, dbpath: str):
+class LocalDatabase(Database):
+    def __init__(self):
         handle = Handle(root, dbpath)
         self.db = handle.get_localdb()
 
@@ -41,8 +40,8 @@ class Local(Database):
         return packages
 
 
-class Sync(Database, dict):
-    def __init__(self, root: str, dbpath: str, config: str):
+class SyncDatabase(Database):
+    def __init__(self, handle: Handle):
         self.root = root
         self.dbpath = dbpath
 

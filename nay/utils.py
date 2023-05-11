@@ -2,7 +2,6 @@ import subprocess
 import shlex
 import os
 from .config import CACHEDIR
-from .console import console
 import shutil
 from .package import Package
 from typing import Optional

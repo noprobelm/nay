@@ -5,7 +5,6 @@ from nay.utils import clean_cachedir, clean_untracked
 from nay.exceptions import MissingTargets
 from typing import Optional
 from dataclasses import dataclass
-from .console import console, default
 from rich.console import Group
 from rich.text import Text
 from .package import Package, SyncPackage, AURPackage, AURBasic
@@ -55,33 +54,28 @@ class Sync(Operation):
 
     def run(self) -> None:
         if self.refresh:
-            params = ["--sync"]
-            for _ in range(self.refresh):
-                params.append("--refresh")
+            params = self.wrapper_params + ["--refresh" for _ in range(self.refresh)]
             self.wrap_pacman(params, sudo=True)
 
         if self.sysupgrade is True:
-            params = ["--sync", "--sysupgrade"]
+            params = self.wrapper_params + ["--sysupgrade"]
             self.wrap_pacman(params, sudo=True)
-            self.upgrade_system()
             if not self.targets:
                 return
 
         if self.clean:
-            self.clean_cache()
+            params = self.wrapper_params + ["--clean" for _ in range(self.clean)]
+            self.clean_pkgcache()
             return
 
         if self.search is True:
             if not self.targets:
-                params = [
-                    "--sync",
-                    "--search",
-                ]
+                params = self.wrapper_params + ["--search"]
                 self.wrap_pacman(params, sudo=False)
                 return
 
-            packages = self.search_database()
-            self.print_pkglist(packages, include_num=False)
+            packages = self.search_packages(" ".join(self.targets))
+            self.console.print_packages(packages, self.local, include_num=False)
             return
 
         if self.info is True:
@@ -104,155 +98,66 @@ class Sync(Operation):
 
         self.install(sync_explicit, aur_explicit)
 
-    def upgrade_system(self) -> None:
-        params = ["--sync", "--sysupgrade"]
-        self.wrap_pacman(params, sudo=True)
-
-    def clean_cache(self) -> None:
-        params = ["--sync"]
-        for _ in range(self.clean):
-            params.append("--clean")
-
-        self.wrap_pacman(params, sudo=True)
-
-        if (
-            console.input(
-                "\n[bright_blue]::[/bright_blue] Do you want to remove all other AUR packages from cache? [Y/n] "
-            ).lower()
-            == "y"
+    def clean_pkgcache(self) -> None:
+        if self.console.prompt(
+            message="Do you want to remove all other AUR packages from cache? [Y/n]",
+            affirm="y",
         ):
-            console.print("removing untracked AUR files from cache...")
-            clean_cachedir()
+            self.console.notify("removing untracked AUR files from cache...")
+            self.aur.clean_cachedir()
 
-        if (
-            console.input(
-                "\n[bright_blue]::[/bright_blue] Do you want to remove ALL untracked AUR files? [Y/n] "
-            ).lower()
-            == "y"
+        if self.console.prompt(
+            message="Do you want to remove ALL untracked AUR files? [Y/n]", affirm="y"
         ):
-            console.print("removing AUR packages from cache...")
+            self.aur.clean_untracked()
 
-            clean_untracked()
+    def search_packages(
+        self, query: str, sortby: Optional[str] = "db"
+    ) -> dict[int, Package]:
+        def search():
+            packages = []
+            for db in self.sync:
+                packages.extend(
+                    [
+                        SyncPackage.from_pyalpm(pkg)
+                        for pkg in self.sync[db].search(query)
+                    ]
+                )
+            packages.extend(self.aur.search(query))
+            return packages
 
-    def search_database(self, sortby: Optional[str] = "db") -> dict[int, Package]:
-        query = " ".join(self.targets)
-        aur = self.aur.search(query)
-        sync = self.sync_db.search(query)
-        packages = aur + sync
-        sort_priorities = {"db": {"core": 0, "extra": 1, "community": 2, "multilib": 4}}
-        for num, db in enumerate(self.sync_db):
-            num += max([num for num in sort_priorities["db"].values()])
-            if db not in sort_priorities["db"].keys():
-                sort_priorities["db"][db] = num
-        sort_priorities["db"]["aur"] = max(
-            [num for num in sort_priorities["db"].values()]
-        )
+        def sort_packages(packages):
+            sort_priorities = {
+                "db": {"core": 0, "extra": 1, "community": 2, "multilib": 4}
+            }
+            for num, db in enumerate(self.sync):
+                num += max([num for num in sort_priorities["db"].values()])
+                if db not in sort_priorities["db"].keys():
+                    sort_priorities["db"][db] = num
+            sort_priorities["db"]["aur"] = max(
+                [num for num in sort_priorities["db"].values()]
+            )
 
-        packages = list(
-            reversed(
-                sorted(
-                    packages,
-                    key=lambda val: sort_priorities[sortby][getattr(val, sortby)],
+            packages = list(
+                reversed(
+                    sorted(
+                        packages,
+                        key=lambda val: sort_priorities[sortby][getattr(val, sortby)],
+                    )
                 )
             )
-        )
 
-        for num, pkg in enumerate(packages):
-            if pkg.name == query:
-                packages.append(packages.pop(num))
+            for num, pkg in enumerate(packages):
+                if pkg.name == query:
+                    packages.append(packages.pop(num))
 
-        packages = {len(packages) - num: pkg for num, pkg in enumerate(packages)}
+            packages = {len(packages) - num: pkg for num, pkg in enumerate(packages)}
+
+            return packages
+
+        packages = search()
+        packages = sort_packages(packages)
         return packages
-
-    def print_pkglist(
-        self, packages: dict[int, Package], include_num: Optional[bool] = False
-    ) -> None:
-        """
-        Print a sequence of passed packages
-        :param packages: A dictionary of integers representing index to package results
-        :type packages: dict[int, Package]
-        :param include_num: Optional bool to indicate whether a package's index should be included in the print result or not. Default is False
-        :type include_num: Optional[bool]
-        """
-
-        def get_size(pkg):
-            return Text(f"{pkg.size}")
-
-        def get_isize(pkg):
-            return Text(f"{pkg.isize}")
-
-        def get_votes(pkg):
-            return Text(f"{pkg.votes}")
-
-        def get_popularity(pkg):
-            return Text("{:.2f}".format(pkg.popularity))
-
-        def get_orphan(pkg):
-            return Text("(Orphaned) ", style="bright_red") if pkg.orphaned else Text("")
-
-        def get_flag_date(pkg):
-            return (
-                Text(f"(Out-of-date): {pkg.flag_date.strftime('%Y-%m-%d')}")
-                if pkg.flag_date
-                else Text("")
-            )
-
-        render_result = []
-
-        for num in packages:
-            pkg = packages[num]
-
-            renderable = Text.assemble(
-                Text(
-                    pkg.db,
-                    style=pkg.db if pkg.db in default.styles.keys() else "other_db",
-                ),
-                Text("/"),
-                Text(f"{pkg.name} "),
-                Text(f"{pkg.version} ", style="cyan"),
-            )
-
-            if isinstance(pkg, SyncPackage):
-                renderable.append_text(Text(f"({get_size(pkg)} "))
-                renderable.append_text(Text(f"{get_isize(pkg)}) "))
-                local = self.local_db.get_packages(pkg.name)
-                if local:
-                    renderable.append_text(
-                        Text(
-                            f"(Installed: {pkg.version}) ",
-                            style="bright_green",
-                        )
-                    )
-
-            elif isinstance(pkg, AURBasic):
-                renderable.append_text(
-                    Text(f"(+{get_votes(pkg)} {get_popularity(pkg)}) ")
-                )
-                local = self.local_db.get_packages(pkg.name)
-                if local:
-                    renderable.append_text(
-                        Text(
-                            f"(Installed: {pkg.version}) ",
-                            style="bright_green",
-                        )
-                    )
-                renderable.append_text(get_orphan(pkg))
-                renderable.append_text(get_flag_date(pkg))
-
-            if include_num is True:
-                num = Text(f"{num} ")
-                num.stylize("magenta", 0, len(num))
-                num.append_text(renderable)
-                renderable = num
-
-            if pkg.desc:
-                renderable = Text("\n    ").join([renderable, Text(pkg.desc)])
-
-            render_result.append(renderable)
-
-        render_result = Group(*render_result)
-
-        console.print(render_result)
 
     def print_pkginfo(self) -> None:
         """
@@ -261,23 +166,30 @@ class Sync(Operation):
         :param packages: A package.Package or series of package.Package objects for which to retrieve info
         :type packages: package.Package
         """
-        console.print(":: Querying AUR...")
+        self.console.notify(":: Querying AUR...")
 
-        missing = self.targets
-        sync = self.sync_db.get_packages(*self.targets)
+        missing = list(self.targets)
+        sync = []
+        aur = []
+        for db in self.sync:
+            for target in self.targets:
+                if self.sync[db].get_pkg(target):
+                    sync.append(target)
+                    missing.pop(missing.index(target))
         aur = self.aur.get_packages(*self.targets)
-        for pkg in sync + aur:
+        for pkg in aur:
             if pkg.name in missing:
                 missing.pop(missing.index(pkg.name))
 
-        console.print(f"Packages not in AUR: {', '.join([pkg for pkg in missing])}")
+        self.console.alert(
+            f"Packages not in AUR: {', '.join([pkg for pkg in missing])}"
+        )
 
         if sync:
-            subprocess.run(
-                shlex.split(f"pacman -Si {' '.join([target.name for target in sync])}")
-            )
+            params = self.wrapper_params + ["--info", f"{' '.join(sync)}"]
+            self.wrap_pacman(params, sudo=False)
 
-        console.print(Group(*aur))
+        self.console.print_pkginfo(*aur)
 
     def install(
         self, sync_explicit: list[SyncPackage], aur_explicit: list[AURPackage]

@@ -1,10 +1,13 @@
-import os
+import configparser
 import shlex
 import subprocess
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 from dataclasses import dataclass
 from .db import SyncDatabase, LocalDatabase
 from .aur import AUR
+from pyalpm import Handle
+import pyalpm
+from .console import NayConsole
 
 
 @dataclass
@@ -26,9 +29,31 @@ class Operation:
     sysroot: bool
 
     def __post_init__(self):
-        self.sync_db = SyncDatabase(self.root, self.dbpath, self.config)
-        self.local_db = LocalDatabase(self.root, self.dbpath)
-        self.aur = AUR()
+        self.console = NayConsole()
+        self.wrapper_prefix = type(self).__name__.lower()
+        handle = Handle(self.root, self.dbpath)
+        parser = configparser.ConfigParser(allow_no_value=True)
+        parser.read(self.config)
+
+        self.local = handle.get_localdb()
+
+        self.sync = {}
+        for section in parser.sections():
+            if section != "options":
+                self.sync[section] = handle.register_syncdb(
+                    section, pyalpm.SIG_DATABASE_OPTIONAL
+                )
+
+        self.aur = AUR(self.local)
+
+    @property
+    def wrapper_params(self):
+        wrapper_params = [
+            f"--{self.wrapper_prefix}",
+            f"--dbpath {self.dbpath}",
+            f"--root {self.root}",
+        ]
+        return wrapper_params
 
     def wrap_pacman(self, params: list[str], sudo: bool = False):
         prefix = "sudo " if sudo is True else ""

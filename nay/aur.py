@@ -2,7 +2,6 @@ import requests
 import os
 from .config import CACHEDIR
 from .package import AURBasic, AURPackage, Package
-from .console import console
 import shutil
 import networkx as nx
 from typing import Optional
@@ -12,7 +11,9 @@ import shlex
 
 
 class AUR:
-    def __init__(self):
+    def __init__(self, syncdb: pyalpm.Database, localdb: "pyalpm.Database"):
+        self.syncdb = syncdb
+        self.localdb = localdb
         self.search_endpoint = "https://aur.archlinux.org/rpc/?v=5&type=search&arg="
         self.info_endpoint = "https://aur.archlinux.org/rpc/?v=5&type=info&arg[]="
 
@@ -52,7 +53,7 @@ class AUR:
 
     def get_dependency_tree(
         self,
-        *packages: Package,
+        *packages: AURPackage,
         recursive: Optional[bool] = True,
     ) -> nx.DiGraph:
         """
@@ -71,9 +72,14 @@ class AUR:
         for pkg in packages:
             tree.add_node(pkg)
             for dtype in ["check_depends", "make_depends", "depends"]:
-                for dep in getattr(pkg, dtype):
-                    aur_query.append(dep)
-                    aur_deps[pkg][dep] = {"dtype": dtype}
+                for dep_name in getattr(pkg, dtype):
+                    for db in self.syncdb:
+                        dep = self.syncdb[db].get_pkg(dep_name)
+                        if dep:
+                            tree.add_edge(pkg, dep)
+                    else:
+                        aur_query.append(dep_name)
+                        aur_deps[pkg][dep_name] = {"dtype": dtype}
 
         aur_info = self.get_packages(*set(list(aur_query)))
         for pkg in aur_deps:
@@ -167,3 +173,33 @@ class AUR:
             console.print(
                 f"-> nothing to install for {' '.join([target for target in targets])}"
             )
+
+    def clean_cachedir(self) -> None:
+        """
+        Clean the cachedir
+        """
+        os.chdir(CACHEDIR)
+        for obj in os.listdir():
+            shutil.rmtree(obj, ignore_errors=True)
+
+    def clean_untracked(self) -> None:
+        """
+        Clean package metadata out of cached package directories
+        """
+        response = console.input(
+            "\n[bright_blue]::[/bright_blue] Do you want to remove ALL untracked AUR files? [Y/n] "
+        )
+
+        if response.lower() == "y":
+            console.print("removing untracked AUR files from cache...")
+        else:
+            return
+
+        os.chdir(CACHEDIR)
+        for obj in os.listdir():
+            if os.path.isdir(os.path.join(os.getcwd(), obj)):
+                os.chdir(os.path.join(os.getcwd(), obj))
+                for _ in os.listdir():
+                    if _.endswith(".tar.zst"):
+                        os.remove(_)
+                os.chdir("../")
