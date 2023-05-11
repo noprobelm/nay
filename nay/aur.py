@@ -109,7 +109,6 @@ class AUR:
         for pkg, dep in aur_tree.edges:
             if aur_tree.get_edge_data(pkg, dep)["dtype"] != "opt_depends":
                 aur_depends.append(dep)
-        quit()
 
         return aur_depends
 
@@ -154,6 +153,7 @@ class AUR:
 
             pattern = f"{pkg.name}-"
             for obj in os.listdir(os.path.join(CACHEDIR, pkg.name)):
+                print(obj)
                 if pattern in obj and obj.endswith("zst"):
                     targets.append(os.path.join(CACHEDIR, pkg.name, obj))
 

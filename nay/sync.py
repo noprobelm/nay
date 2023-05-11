@@ -197,9 +197,9 @@ class Sync(Operation):
         self.console.print_pkginfo(*aur)
 
     def install(self) -> None:
-        params = self.wrapper_params
-        params.extend(["--nodeps" for _ in range(self.nodeps)])
-        params.extend(["--downloadonly" for _ in range(self.download_only)])
+        sync_params = self.wrapper_params
+        sync_params.extend(["--nodeps" for _ in range(self.nodeps)])
+        sync_params.extend(["--downloadonly" for _ in range(self.download_only)])
 
         skip_verchecks = True if self.nodeps > 0 else False
         skip_depchecks = True if self.nodeps > 1 else False
@@ -328,12 +328,28 @@ class Sync(Operation):
             if aur_explicit:
                 self.aur.install(*aur_explicit)
             if sync_explicit:
-                self.wrap_pacman(params, sudo=True)
+                self.wrap_pacman(sync_params, sudo=True)
+
+        # Dependency resolution is just a big, dirty band-aid right now. Need to add SRCINFO parsing for proper
+        # fetching of sync deps
 
         aur_tree = self.aur.get_dependency_tree(*aur_explicit, recursive=False)
-        aur_depends = [
-            dep for pkg, dep in aur_tree.edges if not self.local.get_pkg(dep.name)
-        ]
+        aur_depends = self.aur.get_depends(aur_tree)
+        for i, dep in enumerate(aur_depends):
+            local = self.local.get_pkg(dep.name)
+            if local and local.version == dep.version:
+                aur_depends.pop(i)
+
+        sync_depends = []
+        for db in self.sync:
+            for pkg in aur_explicit:
+                for dep_type in ["make_depends", "check_depends", "depends"]:
+                    deps = [dep for dep in getattr(pkg, dep_type)]
+                    for dep_name in deps:
+                        sync = self.sync[db].get_pkg(dep_name)
+                        local = self.local.get_pkg(dep_name)
+                        if sync is not None and local is None:
+                            sync_depends.append(SyncPackage.from_pyalpm(sync))
 
         get_missing_pkgbuild(*aur_depends, verbose=True)
         preview_packages(
@@ -347,17 +363,20 @@ class Sync(Operation):
         if self.console.prompt("Proceed with install? [Y/n]", affirm="y") is not True:
             return
 
-        # if aur_depends:
-        #     aur_tree = nx.compose(aur_tree, self.aur.get_dependency_tree(*aur_depends))
+        if aur_depends:
+            aur_tree = nx.compose(aur_tree, self.aur.get_dependency_tree(*aur_depends))
+
         get_missing_pkgbuild(*[node for node in aur_tree], verbose=False)
         if aur_tree:
             install_order = [layer for layer in nx.bfs_layers(aur_tree, aur_explicit)][
                 ::-1
             ]
             for num, layer in enumerate(install_order):
+                print(f"INSTALLING TARGETS {[pkg.name for pkg in layer]}")
                 if num + 1 == len(install_order):
                     self.aur.install(*layer, download_only=download_only, asdeps=False)
                 else:
                     self.aur.install(*layer, download_only=download_only, asdeps=True)
         if sync_explicit:
-            self.wrap_pacman(params, sudo=True)
+            sync_params.extend(pkg.name for pkg in sync_explicit)
+            self.wrap_pacman(sync_params, sudo=True)
