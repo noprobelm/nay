@@ -337,8 +337,11 @@ class Sync(Operation):
         aur_depends = self.aur.get_depends(aur_tree)
         for i, dep in enumerate(aur_depends):
             local = self.local.get_pkg(dep.name)
-            if local and local.version == dep.version:
-                aur_depends.pop(i)
+            if local:
+                if skip_verchecks == True:
+                    aur_depends.pop(i)
+                elif local.version == dep.version:
+                    aur_depends.pop(i)
 
         sync_depends = []
         for db in self.sync:
