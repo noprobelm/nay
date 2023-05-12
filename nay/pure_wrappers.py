@@ -3,28 +3,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class Query(Operation):
-    changelog: bool
-    deps: bool
-    explicit: bool
-    group: bool
-    info: bool
-    check: bool
-    _list: bool
-    foreign: bool
-    native: bool
-    owns: bool
-    _file: bool
-    quiet: bool
-    search: bool
-    unrequired: bool
-
-    def run(self) -> None:
-        self.wrap_pacman(sudo=False)
-
-
-@dataclass
-class Remove(Operation):
+class Transaction(Operation):
     nodeps: bool
     assume_installed: list[str]
     dbonly: bool
@@ -32,6 +11,10 @@ class Remove(Operation):
     noscriptlet: bool
     print_only: bool
     print_format: str
+
+
+@dataclass
+class Remove(Transaction):
     cascade: bool
     nosave: bool
     recursive: bool
@@ -46,14 +29,7 @@ class Remove(Operation):
 
 
 @dataclass
-class Upgrade(Operation):
-    nodeps: int
-    assume_installed: str
-    dbonly: bool
-    noprogressbar: bool
-    noscriptlet: bool
-    print_only: bool
-    print_format: bool
+class Upgrade(Transaction):
     download_only: bool
     asdeps: bool
     asexplicit: bool
@@ -104,4 +80,25 @@ class Files(Operation):
 @dataclass
 class Deptest(Operation):
     def run(self):
+        self.wrap_pacman(sudo=False)
+
+
+@dataclass
+class Query(Operation):
+    changelog: bool
+    deps: bool
+    explicit: bool
+    group: bool
+    info: bool
+    check: bool
+    _list: bool
+    foreign: bool
+    native: bool
+    owns: bool
+    _file: bool
+    quiet: bool
+    search: bool
+    unrequired: bool
+
+    def run(self) -> None:
         self.wrap_pacman(sudo=False)
