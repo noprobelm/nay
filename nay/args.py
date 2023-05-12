@@ -1,9 +1,9 @@
 import sys
 import argparse
-
-from nay.sync import Sync, Nay
+from .sync import Sync, Nay
 from .exceptions import ConflictingOperations, InvalidOperation, ConflictingOptions
-from nay.operations import Remove, Upgrade, Query, Database, Files, Deptest
+from nay.wrappers import Remove, Upgrade, Query, Database, Files, Deptest
+
 
 TRANSACTION_ARGS = {
     "nodeps": {
@@ -223,7 +223,7 @@ SYNC_ARGS = {
         "pacman_param": "--refresh",
     },
 }
-REMOVE_ARGS.update(TRANSACTION_ARGS)
+SYNC_ARGS.update(TRANSACTION_ARGS)
 
 
 DATABASE_ARGS = {

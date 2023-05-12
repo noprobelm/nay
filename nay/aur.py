@@ -1,9 +1,7 @@
-import requests
 import os
 from .config import CACHEDIR
-from .package import AURBasic, AURPackage, Package, SyncPackage
+from .package import AURBasic, AURPackage, Package
 import shutil
-import networkx as nx
 from typing import Optional
 from .utils import makepkg
 import subprocess
@@ -12,6 +10,11 @@ import shlex
 
 class AUR:
     def __init__(self, syncdb: "pyalpm.Database", localdb: "pyalpm.Database"):
+        import requests
+        import networkx as nx
+
+        self.requests = requests
+        self.nx = nx
         self.syncdb = syncdb
         self.localdb = localdb
         self.search_endpoint = "https://aur.archlinux.org/rpc/?v=5&type=search&arg="
@@ -20,7 +23,7 @@ class AUR:
     def search(self, query):
         packages = []
 
-        results = requests.get(
+        results = self.requests.get(
             f"https://aur.archlinux.org/rpc/?v=5&type=search&arg={query}"
         ).json()
 
@@ -36,7 +39,7 @@ class AUR:
         missing = []
         names = list(set(names))
 
-        results = requests.get(
+        results = self.requests.get(
             f"{self.info_endpoint}&arg[]={'&arg[]='.join(names)}"
         ).json()
         for result in results["results"]:
@@ -55,7 +58,7 @@ class AUR:
         self,
         *packages: AURPackage,
         recursive: Optional[bool] = True,
-    ) -> nx.DiGraph:
+    ) -> "nx.DiGraph":
         """
         Get the AUR dependency tree for a package or series of packages
 
@@ -65,7 +68,7 @@ class AUR:
         :return: A dependency tree of all packages passed to the function
         :rtype: nx.DiGraph
         """
-        tree = nx.DiGraph()
+        tree = self.nx.DiGraph()
         aur_query = []
 
         aur_deps = {pkg: {} for pkg in packages}
@@ -85,14 +88,14 @@ class AUR:
         if recursive is False:
             return tree
 
-        layers = [layer for layer in nx.bfs_layers(tree, packages)]
+        layers = [layer for layer in self.nx.bfs_layers(tree, packages)]
         if len(layers) > 1:
             dependencies = layers[1]
-            tree = nx.compose(tree, self.get_dependency_tree(*dependencies))
+            tree = self.nx.compose(tree, self.get_dependency_tree(*dependencies))
 
         return tree
 
-    def get_depends(self, aur_tree: nx.DiGraph) -> list[Package]:
+    def get_depends(self, aur_tree: "nx.DiGraph") -> list[Package]:
         """
         Get the aur dependencies from installation targets
 

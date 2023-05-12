@@ -8,6 +8,7 @@ def main() -> None:
         operation = args["operation"]
         operation = operation(**args["args"])
         operation.run()
+
     except KeyboardInterrupt:
         quit()
     except ArgumentError as err:
