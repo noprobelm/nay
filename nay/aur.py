@@ -3,18 +3,14 @@ from .config import CACHEDIR
 from .package import AURBasic, AURPackage, Package
 import shutil
 from typing import Optional
-from .utils import makepkg
 import subprocess
 import shlex
+import requests
+import networkx as nx
 
 
 class AUR:
     def __init__(self, syncdb: "pyalpm.Database", localdb: "pyalpm.Database"):
-        import requests
-        import networkx as nx
-
-        self.requests = requests
-        self.nx = nx
         self.syncdb = syncdb
         self.localdb = localdb
         self.search_endpoint = "https://aur.archlinux.org/rpc/?v=5&type=search&arg="
@@ -23,7 +19,7 @@ class AUR:
     def search(self, query):
         packages = []
 
-        results = self.requests.get(
+        results = requests.get(
             f"https://aur.archlinux.org/rpc/?v=5&type=search&arg={query}"
         ).json()
 
@@ -39,7 +35,7 @@ class AUR:
         missing = []
         names = list(set(names))
 
-        results = self.requests.get(
+        results = requests.get(
             f"{self.info_endpoint}&arg[]={'&arg[]='.join(names)}"
         ).json()
         for result in results["results"]:
@@ -68,7 +64,7 @@ class AUR:
         :return: A dependency tree of all packages passed to the function
         :rtype: nx.DiGraph
         """
-        tree = self.nx.DiGraph()
+        tree = nx.DiGraph()
         aur_query = []
 
         aur_deps = {pkg: {} for pkg in packages}
@@ -88,7 +84,7 @@ class AUR:
         if recursive is False:
             return tree
 
-        layers = [layer for layer in self.nx.bfs_layers(tree, packages)]
+        layers = [layer for layer in nx.bfs_layers(tree, packages)]
         if len(layers) > 1:
             dependencies = layers[1]
             tree = self.nx.compose(tree, self.get_dependency_tree(*dependencies))
@@ -115,21 +111,6 @@ class AUR:
 
         return aur_depends
 
-    def clean_cachedir(self) -> None:
-        os.chdir(CACHEDIR)
-        for obj in os.listdir():
-            shutil.rmtree(obj, ignore_errors=True)
-
-    def clean_untracked(self) -> None:
-        os.chdir(CACHEDIR)
-        for obj in os.listdir():
-            if os.path.isdir(os.path.join(os.getcwd(), obj)):
-                os.chdir(os.path.join(os.getcwd(), obj))
-                for _ in os.listdir():
-                    if _.endswith(".tar.zst"):
-                        os.remove(_)
-                os.chdir("../")
-
     def install(
         self,
         *packages: AURPackage,
@@ -147,6 +128,9 @@ class AUR:
         :param download_only: Flag download only (makepkg will still occur, packages will not be installed)
         :type download_only bool
         """
+
+        from .utils import makepkg
+
         targets = []
         for pkg in packages:
             if skip_depchecks is True:
@@ -156,7 +140,6 @@ class AUR:
 
             pattern = f"{pkg.name}-"
             for obj in os.listdir(os.path.join(CACHEDIR, pkg.name)):
-                print(obj)
                 if pattern in obj and obj.endswith("zst"):
                     targets.append(os.path.join(CACHEDIR, pkg.name, obj))
 

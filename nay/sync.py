@@ -381,7 +381,6 @@ class Sync(Operation):
                 ::-1
             ]
             for num, layer in enumerate(install_order):
-                print(f"INSTALLING TARGETS {[pkg.name for pkg in layer]}")
                 if num + 1 == len(install_order):
                     self.aur.install(*layer, download_only=download_only, asdeps=False)
                 else:
