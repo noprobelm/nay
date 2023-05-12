@@ -1,10 +1,10 @@
-from .args import parse
+from .args import parse_args
 from .exceptions import ArgumentError
 
 
 def main() -> None:
     try:
-        args = parse()
+        args = parse_args()
         operation = args["operation"]
         operation = operation(**args["args"])
         operation.run()

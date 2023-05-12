@@ -2,8 +2,8 @@ import sys
 import argparse
 
 from nay.sync import Sync, Nay
-from nay.pure_wrappers import Query, Remove, Upgrade, Deptest, Files, Database
 from .exceptions import ConflictingOperations, InvalidOperation, ConflictingOptions
+from nay.operations import Remove, Upgrade, Query, Database, Files, Deptest
 
 TRANSACTION_ARGS = {
     "nodeps": {
@@ -616,7 +616,7 @@ def _get_operation():
     return operation[0]
 
 
-def parse():
+def parse_args():
     operation = _get_operation()
     pacman_params = []
     unparsed = ARG_MAPPER[operation]
