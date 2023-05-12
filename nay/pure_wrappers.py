@@ -12,6 +12,13 @@ class Transaction(Operation):
     print_only: bool
     print_format: str
 
+    def run(self) -> None:
+        sudo = True
+        if "--print" in self.pacman_params:
+            sudo = False
+
+        self.wrap_pacman(sudo=sudo)
+
 
 @dataclass
 class Remove(Transaction):
@@ -19,13 +26,6 @@ class Remove(Transaction):
     nosave: bool
     recursive: bool
     unneeded: bool
-
-    def run(self) -> None:
-        sudo = True
-        if "--print" in self.pacman_params:
-            sudo = False
-
-        self.wrap_pacman(sudo=sudo)
 
 
 @dataclass
@@ -37,12 +37,26 @@ class Upgrade(Transaction):
     needed: bool
     overwrite: bool
 
-    def run(self) -> None:
-        sudo = True
-        if "--print" in self.pacman_params:
-            sudo = False
 
-        self.wrap_pacman(sudo=sudo)
+@dataclass
+class Query(Operation):
+    changelog: bool
+    deps: bool
+    explicit: bool
+    group: bool
+    info: bool
+    check: bool
+    _list: bool
+    foreign: bool
+    native: bool
+    owns: bool
+    _file: bool
+    quiet: bool
+    search: bool
+    unrequired: bool
+
+    def run(self) -> None:
+        self.wrap_pacman(sudo=False)
 
 
 @dataclass
@@ -80,25 +94,4 @@ class Files(Operation):
 @dataclass
 class Deptest(Operation):
     def run(self):
-        self.wrap_pacman(sudo=False)
-
-
-@dataclass
-class Query(Operation):
-    changelog: bool
-    deps: bool
-    explicit: bool
-    group: bool
-    info: bool
-    check: bool
-    _list: bool
-    foreign: bool
-    native: bool
-    owns: bool
-    _file: bool
-    quiet: bool
-    search: bool
-    unrequired: bool
-
-    def run(self) -> None:
         self.wrap_pacman(sudo=False)
