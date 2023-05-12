@@ -1,8 +1,7 @@
 import sys
 import argparse
 from .exceptions import ConflictingOperations, InvalidOperation, ConflictingOptions
-from .sync import Sync, Nay
-from nay.operations import Remove, Upgrade, Query, Database, Files, Deptest
+from . import wrapper
 
 
 def get_transaction_args():
@@ -586,15 +585,13 @@ OPERATIONS = {
 }
 
 OPERATION_MAPPER = {
-    "remove": Remove,
-    "upgrade": Upgrade,
-    "sync": Sync,
-    "query": Query,
-    "database": Database,
-    "files": Files,
-    "nay": Nay,
+    "remove": wrapper.Remove,
+    "upgrade": wrapper.Upgrade,
+    "query": wrapper.Query,
+    "database": wrapper.Database,
+    "files": wrapper.Files,
     "getpkgbuild": "",
-    "deptest": Deptest,
+    "deptest": wrapper.Deptest,
     "version": "",
 }
 
@@ -652,7 +649,6 @@ def parse_args():
     pacman_params = []
     unparsed = ARG_MAPPER[operation]()
     unparsed.update(get_global_args())
-    cls = OPERATION_MAPPER[operation]
     parser = argparse.ArgumentParser()
 
     for arg in unparsed:
@@ -691,6 +687,17 @@ def parse_args():
                 for _ in range(parsed[arg]):
                     pacman_params.append(f"{unparsed[arg]['pacman_param']}")
 
-    parsed["pacman_params"] = pacman_params
+    if operation in ["nay", "sync", "getpkgbuild", "version"]:
+        from . import sync
+
+        if operation == "nay":
+            cls = sync.Nay
+        elif operation == "sync":
+            cls = sync.Sync
+
+        parsed["pacman_params"] = pacman_params
+    else:
+        cls = OPERATION_MAPPER[operation]
+        parsed = {"targets": parsed["targets"], "pacman_params": pacman_params}
 
     return {"operation": cls, "args": parsed}
