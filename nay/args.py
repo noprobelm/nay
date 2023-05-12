@@ -5,14 +5,7 @@ from nay.sync import Sync, Nay
 from nay.pure_wrappers import Query, Remove, Upgrade, Deptest, Files, Database
 from .exceptions import ConflictingOperations, InvalidOperation, ConflictingOptions
 
-
-UPGRADE_ARGS = {
-    "upgrade": {
-        "args": ["-U", "--upgrade"],
-        "kwargs": {"action": "store_true"},
-        "conflicts": [],
-        "pacman_param": "--upgrade",
-    },
+TRANSACTION_ARGS = {
     "nodeps": {
         "args": ["-d", "--nodeps"],
         "kwargs": {"action": "count", "default": 0},
@@ -54,6 +47,15 @@ UPGRADE_ARGS = {
         "kwargs": {"nargs": "+"},
         "conflicts": [],
         "pacman_param": "--print-format",
+    },
+}
+
+UPGRADE_ARGS = {
+    "upgrade": {
+        "args": ["-U", "--upgrade"],
+        "kwargs": {"action": "store_true"},
+        "conflicts": [],
+        "pacman_param": "--upgrade",
     },
     "download_only": {
         "args": ["-w", "--downloadonly"],
@@ -92,6 +94,7 @@ UPGRADE_ARGS = {
         "pacman_param": "--overwrite",
     },
 }
+UPGRADE_ARGS.update(TRANSACTION_ARGS)
 
 REMOVE_ARGS = {
     "remove": {
@@ -99,48 +102,6 @@ REMOVE_ARGS = {
         "kwargs": {"action": "store_true"},
         "conflicts": [],
         "pacman_param": "--remove",
-    },
-    "nodeps": {
-        "args": ["-d", "--nodeps"],
-        "kwargs": {"action": "count", "default": 0},
-        "conflicts": [],
-        "pacman_param": "--nodeps",
-    },
-    "assume_installed": {
-        "args": ["--assume-installed"],
-        "kwargs": {"nargs": "+", "dest": "assume_installed"},
-        "conflicts": [],
-        "pacman_param": "--assume_installed",
-    },
-    "dbonly": {
-        "args": ["--dbonly"],
-        "kwargs": {"action": "store_true"},
-        "conflicts": [],
-        "pacman_param": "--dbonly",
-    },
-    "noprogressbar": {
-        "args": ["--noprogressbar"],
-        "kwargs": {"action": "store_true"},
-        "conflicts": [],
-        "pacman_param": "--noprogressbar",
-    },
-    "noscriptlet": {
-        "args": ["--noscriptlet"],
-        "kwargs": {"action": "store_true"},
-        "conflicts": [],
-        "pacman_param": "--noscriptlet",
-    },
-    "print_only": {
-        "args": ["-p", "--print"],
-        "kwargs": {"action": "store_true", "dest": "print_only"},
-        "conflicts": [],
-        "pacman_param": "--print",
-    },
-    "print_format": {
-        "args": ["--print-format"],
-        "kwargs": {"nargs": "+"},
-        "conflicts": [],
-        "pacman_param": "--print-format",
     },
     "cascade": {
         "args": ["-c", "--cascade"],
@@ -167,6 +128,7 @@ REMOVE_ARGS = {
         "pacman_param": "--unneeded",
     },
 }
+REMOVE_ARGS.update(TRANSACTION_ARGS)
 
 
 SYNC_ARGS = {
@@ -175,48 +137,6 @@ SYNC_ARGS = {
         "kwargs": {"action": "store_true"},
         "conflicts": [],
         "pacman_param": "--sync",
-    },
-    "nodeps": {
-        "args": ["-d", "--nodeps"],
-        "kwargs": {"action": "count", "default": 0},
-        "conflicts": [],
-        "pacman_param": "--nodeps",
-    },
-    "assume_installed": {
-        "args": ["--assume-installed"],
-        "kwargs": {"nargs": "+", "dest": "assume_installed"},
-        "conflicts": [],
-        "pacman_param": "--assume_installed",
-    },
-    "dbonly": {
-        "args": ["--dbonly"],
-        "kwargs": {"action": "store_true"},
-        "conflicts": [],
-        "pacman_param": "--dbonly",
-    },
-    "noprogressbar": {
-        "args": ["--noprogressbar"],
-        "kwargs": {"action": "store_true"},
-        "conflicts": [],
-        "pacman_param": "--noprogressbar",
-    },
-    "noscriptlet": {
-        "args": ["--noscriptlet"],
-        "kwargs": {"action": "store_true"},
-        "conflicts": [],
-        "pacman_param": "--noscriplet",
-    },
-    "print_only": {
-        "args": ["-p", "--print"],
-        "kwargs": {"action": "store_true", "dest": "print_only"},
-        "conflicts": [],
-        "pacman_param": "--print",
-    },
-    "print_format": {
-        "args": ["--print-format"],
-        "kwargs": {"nargs": "+"},
-        "conflicts": [],
-        "pacman_param": "--print-format",
     },
     "download_only": {
         "args": ["-w", "--downloadonly"],
@@ -303,6 +223,7 @@ SYNC_ARGS = {
         "pacman_param": "--refresh",
     },
 }
+REMOVE_ARGS.update(TRANSACTION_ARGS)
 
 
 DATABASE_ARGS = {
