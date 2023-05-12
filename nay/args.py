@@ -1,14 +1,8 @@
-import pathlib
 import sys
 import argparse
-import re
-from dataclasses import dataclass
-from typing import Iterable
 
-from . import operations
-from . import sync
-from . import remove
-from . import query
+from nay.sync import Sync, Nay
+from nay.pure_wrappers import Query, Remove, Upgrade, Deptest, Files, Database
 from .exceptions import ConflictingOperations, InvalidOperation, ConflictingOptions
 
 
@@ -68,7 +62,7 @@ UPGRADE_ARGS = {
         "pacman_param": "--downloadonly",
     },
     "asdeps": {
-        "args": ["--aspdeps"],
+        "args": ["--asdeps"],
         "kwargs": {"action": "store_true"},
         "conflicts": [],
         "pacman_param": "--asdeps",
@@ -460,7 +454,7 @@ FILES_ARGS = {
     },
     "regex": {
         "args": ["-x", "--regex"],
-        "kwargs": {"action": "store_true"},
+        "kwargs": {"nargs": 1},
         "conflicts": [],
         "pacman_param": "--regex",
     },
@@ -640,16 +634,16 @@ OPERATIONS = {
 }
 
 OPERATION_MAPPER = {
-    "remove": remove.Remove,
-    "upgrade": operations.Operation,
-    "sync": sync.Sync,
-    "query": query.Query,
-    "database": operations.Operation,
-    "files": operations.Operation,
-    "nay": sync.Nay,
-    "getpkgbuild": operations.Operation,
-    "deptest": operations.Operation,
-    "version": operations.Operation,
+    "remove": Remove,
+    "upgrade": Upgrade,
+    "sync": Sync,
+    "query": Query,
+    "database": Database,
+    "files": Files,
+    "nay": Nay,
+    "getpkgbuild": "",
+    "deptest": Deptest,
+    "version": "",
 }
 
 ARG_MAPPER = {
@@ -729,7 +723,6 @@ def parse():
         if parsed[arg]:
             for other in parsed:
                 if parsed[other]:
-                    print(unparsed[arg])
                     if other in unparsed[arg]["conflicts"]:
                         raise ConflictingOptions(
                             f"error: invalid option: '{arg}' and '{other}' may not be used together"
