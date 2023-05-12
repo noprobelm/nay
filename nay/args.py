@@ -744,7 +744,6 @@ def parse():
             else:
                 for _ in range(parsed[arg]):
                     pacman_params.append(f"{unparsed[arg]['pacman_param']}")
-            pacman_params.append(parsed["targets"])
 
     parsed["pacman_params"] = pacman_params
 

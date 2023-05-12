@@ -54,7 +54,7 @@ class Operation:
         ]
         return db_params
 
-    def wrap_pacman(self, params: list[str], sudo: bool = False):
+    def blind_wrap(self, sudo: bool):
         prefix = "sudo " if sudo is True else ""
-        params.extend([f"--dbpath {self.dbpath}", f"--root {self.root}"])
+        params = self.pacman_params + [" ".join(self.targets)]
         subprocess.run(shlex.split(f"{prefix}pacman {' '.join([p for p in params])}"))

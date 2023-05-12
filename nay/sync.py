@@ -7,6 +7,8 @@ from rich.table import Table, Column
 import networkx as nx
 import concurrent.futures
 from .utils import get_pkgbuild
+import subprocess
+import shlex
 
 
 @dataclass
@@ -50,11 +52,11 @@ class Sync(Operation):
     def run(self) -> None:
         if self.refresh:
             params = self.db_params + ["--refresh" for _ in range(self.refresh)]
-            self.wrap_pacman(params, sudo=True)
+            self.wrap_sync(params, sudo=True)
 
         if self.sysupgrade is True:
             params = self.db_params + ["--sysupgrade"]
-            self.wrap_pacman(params, sudo=True)
+            self.wrap_sync(params, sudo=True)
             if not self.targets:
                 return
 
@@ -66,7 +68,7 @@ class Sync(Operation):
         if self.search is True:
             if not self.targets:
                 params = self.db_params + ["--search"]
-                self.wrap_pacman(params, sudo=False)
+                self.wrap_sync(params, sudo=False)
                 return
 
             packages = self.search_packages(" ".join(self.targets))
@@ -79,7 +81,7 @@ class Sync(Operation):
                     "--sync",
                     "--info",
                 ]
-                self.wrap_pacman(params, sudo=False)
+                self.wrap_sync(params, sudo=False)
             else:
                 self.print_pkginfo()
 
@@ -97,6 +99,11 @@ class Sync(Operation):
             params.append("--nodeps")
         if self.download_only:
             params.append("--downloadonly")
+
+    def wrap_sync(self, params: list[str], sudo: bool = False):
+        prefix = "sudo " if sudo is True else ""
+        params.extend([f"--dbpath {self.dbpath}", f"--root {self.root}"])
+        subprocess.run(shlex.split(f"{prefix}pacman {' '.join([p for p in params])}"))
 
     def clean_pkgcache(self) -> None:
         if self.console.prompt(
@@ -187,7 +194,7 @@ class Sync(Operation):
 
         if sync:
             params = self.db_params + ["--info", f"{' '.join(sync)}"]
-            self.wrap_pacman(params, sudo=False)
+            self.wrap_sync(params, sudo=False)
 
         self.console.print_pkginfo(*aur)
 
@@ -327,7 +334,7 @@ class Sync(Operation):
             if aur_explicit:
                 self.aur.install(*aur_explicit)
             if sync_explicit:
-                self.wrap_pacman(sync_params, sudo=True)
+                self.wrap_sync(sync_params, sudo=True)
 
         # Dependency resolution is just a big, dirty band-aid right now. Need to add SRCINFO parsing for proper
         # fetching of sync deps
@@ -381,7 +388,7 @@ class Sync(Operation):
                     self.aur.install(*layer, download_only=download_only, asdeps=True)
         if sync_explicit:
             sync_params.extend(pkg.name for pkg in sync_explicit)
-            self.wrap_pacman(sync_params, sudo=True)
+            self.wrap_sync(sync_params, sudo=True)
 
 
 @dataclass
@@ -390,7 +397,7 @@ class Nay(Sync):
         self.wrapper_prefix = "sync"
         if not self.targets:
             params = self.db_params + ["--refresh", "--sysupgrade"]
-            self.wrap_pacman(params, sudo=True)
+            self.wrap_sync(params, sudo=True)
             return
         packages = self.search_packages(" ".join([target for target in self.targets]))
         self.console.print_packages(packages, self.local, include_num=True)

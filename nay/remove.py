@@ -17,5 +17,8 @@ class Remove(Operation):
     unneeded: bool
 
     def run(self) -> None:
-        print(self.pacman_params)
-        quit()
+        sudo = True
+        if "--print" in self.pacman_params:
+            sudo = False
+
+        self.blind_wrap(sudo=sudo)
