@@ -49,23 +49,23 @@ class Sync(Operation):
 
     def run(self) -> None:
         if self.refresh:
-            params = self.wrapper_params + ["--refresh" for _ in range(self.refresh)]
+            params = self.db_params + ["--refresh" for _ in range(self.refresh)]
             self.wrap_pacman(params, sudo=True)
 
         if self.sysupgrade is True:
-            params = self.wrapper_params + ["--sysupgrade"]
+            params = self.db_params + ["--sysupgrade"]
             self.wrap_pacman(params, sudo=True)
             if not self.targets:
                 return
 
         if self.clean:
-            params = self.wrapper_params + ["--clean" for _ in range(self.clean)]
+            params = self.db_params + ["--clean" for _ in range(self.clean)]
             self.clean_pkgcache()
             return
 
         if self.search is True:
             if not self.targets:
-                params = self.wrapper_params + ["--search"]
+                params = self.db_params + ["--search"]
                 self.wrap_pacman(params, sudo=False)
                 return
 
@@ -92,7 +92,7 @@ class Sync(Operation):
 
     @property
     def install_params(self):
-        params = self.wrapper_params
+        params = self.db_params
         for _ in range(self.nodeps):
             params.append("--nodeps")
         if self.download_only:
@@ -186,13 +186,13 @@ class Sync(Operation):
         )
 
         if sync:
-            params = self.wrapper_params + ["--info", f"{' '.join(sync)}"]
+            params = self.db_params + ["--info", f"{' '.join(sync)}"]
             self.wrap_pacman(params, sudo=False)
 
         self.console.print_pkginfo(*aur)
 
     def install(self, targets: Optional[list[Package]] = None) -> None:
-        sync_params = self.wrapper_params
+        sync_params = self.db_params
         sync_params.extend(["--nodeps" for _ in range(self.nodeps)])
         sync_params.extend(["--downloadonly" for _ in range(self.download_only)])
 
@@ -389,7 +389,7 @@ class Nay(Sync):
     def run(self):
         self.wrapper_prefix = "sync"
         if not self.targets:
-            params = self.wrapper_params + ["--refresh", "--sysupgrade"]
+            params = self.db_params + ["--refresh", "--sysupgrade"]
             self.wrap_pacman(params, sudo=True)
             return
         packages = self.search_packages(" ".join([target for target in self.targets]))

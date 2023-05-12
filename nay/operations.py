@@ -25,6 +25,7 @@ class Operation:
     noconfirm: bool
     disable_download_timeout: bool
     sysroot: bool
+    pacman_params: list[str]
 
     def __post_init__(self):
         self.console = NayConsole()
@@ -45,13 +46,13 @@ class Operation:
         self.aur = AUR(self.sync, self.local)
 
     @property
-    def wrapper_params(self):
-        wrapper_params = [
+    def db_params(self):
+        db_params = [
             f"--{self.wrapper_prefix}",
             f"--dbpath {self.dbpath}",
             f"--root {self.root}",
         ]
-        return wrapper_params
+        return db_params
 
     def wrap_pacman(self, params: list[str], sudo: bool = False):
         prefix = "sudo " if sudo is True else ""
