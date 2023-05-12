@@ -622,7 +622,7 @@ def parse_args():
     unparsed = ARG_MAPPER[operation]
     unparsed.update(GLOBAL_ARGS)
     cls = OPERATION_MAPPER[operation]
-    parser = argparse.ArgumentParser(exit_on_error=False)
+    parser = argparse.ArgumentParser()
 
     for arg in unparsed:
         parser.add_argument(
