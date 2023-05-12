@@ -8,6 +8,7 @@ from typing import Iterable
 from . import operations
 from . import sync
 from . import remove
+from . import query
 from .exceptions import ConflictingOperations, InvalidOperation, ConflictingOptions
 
 
@@ -314,31 +315,31 @@ DATABASE_ARGS = {
     "database": {
         "args": ["-D", "--database"],
         "kwargs": {"action": "store_true"},
-        "conflcits": [],
+        "conflicts": [],
         "pacman_param": "--database",
     },
     "asdeps": {
         "args": ["--asdeps"],
         "kwargs": {"action": "store_true"},
-        "conflcits": [],
+        "conflicts": [],
         "pacman_param": "--asdeps",
     },
     "asexplicit": {
         "args": ["--asexplicit"],
         "kwargs": {"action": "store_true"},
-        "conflcits": [],
+        "conflicts": [],
         "pacman_param": "--asexplicit",
     },
     "check": {
         "args": ["-k", "--check"],
         "kwargs": {"action": "store_true"},
-        "conflcits": [],
+        "conflicts": [],
         "pacman_param": "--check",
     },
     "quiet": {
         "args": ["-q", "--quiet"],
         "kwargs": {"action": "store_true"},
-        "conflcits": [],
+        "conflicts": [],
         "pacman_param": "--quiet",
     },
 }
@@ -348,7 +349,7 @@ QUERY_ARGS = {
     "query": {
         "args": ["-Q", "--query"],
         "kwargs": {"action": "store_true"},
-        "conflcits": [],
+        "conflicts": [],
         "pacman_param": "--query",
     },
     "changelog": {
@@ -360,73 +361,73 @@ QUERY_ARGS = {
     "deps": {
         "args": ["-d", "--deps"],
         "kwargs": {"action": "store_true"},
-        "conflcits": [],
+        "conflicts": [],
         "pacman_param": "--deps",
     },
     "explicit": {
         "args": ["-e", "--explicit"],
         "kwargs": {"action": "store_true"},
-        "conflcits": [],
+        "conflicts": [],
         "pacman_param": "--explicit",
     },
     "group": {
         "args": ["-g", "--group"],
         "kwargs": {"action": "store_true"},
-        "conflcits": [],
+        "conflicts": [],
         "pacman_param": "--group",
     },
     "info": {
         "args": ["-i", "--info"],
         "kwargs": {"action": "store_true"},
-        "conflcits": ["search"],
+        "conflicts": [],
         "pacman_param": "--info",
     },
     "check": {
         "args": ["-k", "--check"],
         "kwargs": {"action": "store_true"},
-        "conflcits": [],
+        "conflicts": [],
         "pacman_param": "--check",
     },
     "list": {
         "args": ["-l", "--list"],
-        "kwargs": {"action": "store_true"},
-        "conflcits": [],
+        "kwargs": {"action": "store_true", "dest": "_list"},
+        "conflicts": [],
         "pacman_param": "--list",
     },
     "foreign": {
         "args": ["-m", "--foreign"],
         "kwargs": {"action": "store_true"},
-        "conflcits": [],
+        "conflicts": [],
         "pacman_param": "--foreign",
     },
     "native": {
         "args": ["-n", "--native"],
         "kwargs": {"action": "store_true"},
-        "conflcits": [],
+        "conflicts": [],
         "pacman_param": "--native",
     },
     "owns": {
         "args": ["-o", "--owns"],
         "kwargs": {"action": "store_true"},
-        "conflcits": [],
+        "conflicts": [],
         "pacman_param": "--owns",
     },
     "file": {
         "args": ["-p", "--file"],
-        "kwargs": {"action": "store_true"},
-        "conflcits": [],
+        "kwargs": {"action": "store_true", "dest": "_file"},
+        "conflicts": [],
         "pacman_param": "--file",
     },
     "quiet": {
         "args": ["-q", "--quiet"],
         "kwargs": {"action": "store_true"},
-        "conflcits": [],
+        "conflicts": [],
         "pacman_param": "--quiet",
     },
     "search": {
         "args": ["-s", "--search"],
         "kwargs": {"action": "store_true"},
-        "conflcits": [],
+        "conflicts": [],
         "pacman_param": "--search",
     },
     "unrequired": {
@@ -642,7 +643,7 @@ OPERATION_MAPPER = {
     "remove": remove.Remove,
     "upgrade": operations.Operation,
     "sync": sync.Sync,
-    "query": operations.Operation,
+    "query": query.Query,
     "database": operations.Operation,
     "files": operations.Operation,
     "nay": sync.Nay,
@@ -728,6 +729,7 @@ def parse():
         if parsed[arg]:
             for other in parsed:
                 if parsed[other]:
+                    print(unparsed[arg])
                     if other in unparsed[arg]["conflicts"]:
                         raise ConflictingOptions(
                             f"error: invalid option: '{arg}' and '{other}' may not be used together"

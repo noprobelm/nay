@@ -21,4 +21,4 @@ class Remove(Operation):
         if "--print" in self.pacman_params:
             sudo = False
 
-        self.blind_wrap(sudo=sudo)
+        self.wrap_pacman(sudo=sudo)
