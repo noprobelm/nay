@@ -6,7 +6,6 @@ from .package import Package, SyncPackage, AURPackage, AURBasic
 from rich.table import Table, Column
 import networkx as nx
 import concurrent.futures
-from .utils import get_pkgbuild
 import subprocess
 import shlex
 
@@ -290,14 +289,14 @@ class Sync(Operation):
             if multithread:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
                     for num, pkg in enumerate(missing):
-                        executor.submit(get_pkgbuild, pkg, force=True)
+                        executor.submit(self.aur.get_pkgbuild, pkg, force=True)
                         if verbose:
                             self.console.notify(
                                 f"({num+1}/{len(missing)}) Downloaded PKGBUILD: [bright_cyan]{pkg.name}"
                             )
             else:
                 for num, pkg in enumerate(missing):
-                    get_pkgbuild(pkg, force=True)
+                    self.aur.get_pkgbuild(pkg, force=True)
                     if verbose:
                         self.console.notify(
                             f"({num+1}/{len(missing)} Downloaded PKGBUILD: [bright_cyan]{pkg.name}"
