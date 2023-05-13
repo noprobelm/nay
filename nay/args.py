@@ -629,7 +629,7 @@ def _get_operation():
         raise ConflictingOperations("error: only one operation may be used at a time")
 
     operation_parser = argparse.ArgumentParser(
-        description="Argument parser for high level operations"
+        description="Argument parser for high level operations",
     )
 
     for operation in OPERATIONS:
@@ -660,7 +660,7 @@ def parse_args():
     parsed = vars(parsed)
     if operation == "nay":
         del parsed["sync"]
-        parsed["nay"] = True
+        del parsed["nay"]
         pacman_params.append("--sync")
     else:
         pacman_params.append(f"--{operation}")

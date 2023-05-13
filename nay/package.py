@@ -288,52 +288,6 @@ class AURBasic(Package):
 
 
 class AURPackage(AURBasic):
-    """
-    A representation of an Arch package sourced from the AUR
-
-    :param db: The sync database name where the package is located (i.e. 'aur')
-    :type db: str
-    :param name: The name of the package
-    :type name: str
-    :param version: The package version
-    :type version: str
-    :param desc: The description of the package
-    :type desc: str
-    :param votes: The number of votes on the package
-    :type votes: int
-    :param popularity: The popularity score of the package
-    :type popularity: float
-    :param flag_date: An optional int representing the epoch that the package was flagged as out-of-date (if present)
-    :type flag_date: Optional[int]
-    :param orphaned: An optional boolean indicating whether or not the package is an orphan
-    :type orphaned: Optional[bool]
-    :param make_depends: An optional list of strings representing the make dependencies of the package
-    :type make_depends: Optional[List[str]]
-    :param check_depends: An optional list of strings representing the check dependencies of the package
-    :type check_depends: Optional[List[str]]
-    :param depends: An optional list of strings representing the runtime dependencies of the package
-    :type depends: Optional[List[str]]
-    :param opt_depends: An optional list of strings representing the optional dependencies of the package
-    :type opt_depends: Optional[List[str]]
-    :param info_query: An optional dictionary containing the package's info query from the Aurweb RPC interface (read: https://wiki.archlinux.org/title/Aurweb_RPC_interface)
-    :type info_query: Optional[dict]
-
-    :ivar db: The sync database name where the package is located (i.e. 'aur')
-    :ivar name: The name of the package
-    :ivar version: The package version
-    :ivar desc: The description of the package
-    :ivar votes: The number of votes on the package
-    :ivar popularity: The popularity score of the package
-    :ivar flag_date: An optional int representing the epoch that the package was flagged as out-of-date (if present)
-    :ivar orphaned: An optional boolean indicating whether or not the package is an orphan
-    :ivar make_depends: An optional list of strings representing the make dependencies of the package
-    :ivar check_depends: An optional list of strings representing the check dependencies of the package
-    :ivar depends: An optional list of strings representing the runtime dependencies of the package
-    :ivar opt_depends: An optional list of strings representing the optional dependencies of the package
-    :ivar info_query: An optional dictionary containing the package's info query from the Aurweb RPC interface (read: https://wiki.archlinux.org/title/Aurweb_RPC_interface)
-
-    """
-
     def __init__(
         self,
         db: str,
