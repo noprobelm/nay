@@ -3,6 +3,11 @@ class ArgumentError(Exception):
 
     pass
 
+class ALPMError(Exception):
+    """Base class for exceptions encountered with libalpm/pyalpm"""
+
+    pass
+
 
 class ConflictingOperations(ArgumentError):
     """
@@ -65,3 +70,5 @@ class PacmanError(ArgumentError):
     :type message: str
 
     """
+
+class CreateHandleError()

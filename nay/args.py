@@ -688,12 +688,18 @@ def parse_args():
                     pacman_params.append(f"{unparsed[arg]['pacman_param']}")
 
     if operation in ["nay", "sync", "getpkgbuild", "version"]:
-        from . import sync
-
         if operation == "nay":
+            from . import sync
+
             cls = sync.Nay
         elif operation == "sync":
+            from . import sync
+
             cls = sync.Sync
+        elif operation == "getpkgbuild":
+            from . import get_pkgbuild
+
+            cls = get_pkgbuild.GetPKGBUILD
 
         parsed["pacman_params"] = pacman_params
     else:
