@@ -1,6 +1,6 @@
 from .args import parse_args
 from .exceptions import ArgumentError, ConfigReadError, HandleCreateError
-from nay import console
+from . import console
 
 
 def main() -> None:

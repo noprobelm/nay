@@ -3,7 +3,7 @@ from .wrapper import Wrapper
 from .exceptions import ConfigReadError, HandleCreateError
 import pyalpm
 import configparser
-from nay import console
+from . import console
 
 
 @dataclass
