@@ -1,5 +1,9 @@
 from dataclasses import dataclass
 from .wrapper import Wrapper
+from .exceptions import ConfigReadError, HandleCreateError
+import pyalpm
+import configparser
+from nay import console
 
 
 @dataclass
@@ -21,27 +25,15 @@ class Operation(Wrapper):
     sysroot: bool
 
     def __post_init__(self):
-        import configparser
         from .aur import AUR
-        import pyalpm
-        from .console import NayConsole
 
-        self.console = NayConsole()
+        self.console = console
         self.wrapper_prefix = type(self).__name__.lower()
 
-        handle = pyalpm.Handle(self.root, self.dbpath)
-        parser = configparser.ConfigParser(allow_no_value=True)
-        parser.read(self.config)
-
-        self.local = handle.get_localdb()
-
-        self.sync = {}
-        for section in parser.sections():
-            if section != "options":
-                self.sync[section] = handle.register_syncdb(
-                    section, pyalpm.SIG_DATABASE_OPTIONAL
-                )
-
+        parser = self.__get_config_parser(self.config)
+        handle = self.__get_handle(self.root, self.dbpath)
+        self.local = self.__get_localdb(handle)
+        self.sync = self.__get_syncdb(handle, parser)
         self.aur = AUR(self.sync, self.local)
 
     @property
@@ -52,3 +44,33 @@ class Operation(Wrapper):
             f"--root {self.root}",
         ]
         return db_params
+
+    def __get_handle(self, root, dbpath):
+        try:
+            return pyalpm.Handle(root, dbpath)
+        except pyalpm.error as err:
+            raise HandleCreateError(str(err))
+
+    def __get_syncdb(
+        self, handle: pyalpm.Handle, parser: configparser.ConfigParser
+    ) -> dict[str, "pyalpm.Database"]:
+        sync = {}
+        for section in parser.sections():
+            if section == "options":
+                sync[section] = handle.register_syncdb(
+                    section, pyalpm.SIG_DATABASE_OPTIONAL
+                )
+
+        return sync
+
+    def __get_localdb(self, handle: pyalpm.Handle) -> "pyalpm.DataBase":
+        return handle.get_localdb()
+
+    def __get_config_parser(self, configdir: str) -> configparser.ConfigParser:
+        parser = configparser.ConfigParser(allow_no_value=True)
+        if not parser.read(configdir):
+            raise ConfigReadError(
+                f"error: config file {configdir} could not be read: no such file or directory"
+            )
+
+        return parser

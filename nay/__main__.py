@@ -1,5 +1,6 @@
 from .args import parse_args
-from .exceptions import ArgumentError
+from .exceptions import ArgumentError, ConfigReadError, HandleCreateError
+from nay import console
 
 
 def main() -> None:
@@ -11,9 +12,8 @@ def main() -> None:
 
     except KeyboardInterrupt:
         quit()
-    except ArgumentError as err:
-        print(err)
-        quit()
+    except (ArgumentError, HandleCreateError, ConfigReadError) as err:
+        console.warn(str(err), exit=True)
 
 
 if __name__ == "__main__":

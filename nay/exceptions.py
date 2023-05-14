@@ -3,8 +3,15 @@ class ArgumentError(Exception):
 
     pass
 
+
 class ALPMError(Exception):
     """Base class for exceptions encountered with libalpm/pyalpm"""
+
+    pass
+
+
+class ConfigReadError(Exception):
+    """Class for handling pacman config read errors"""
 
     pass
 
@@ -71,4 +78,6 @@ class PacmanError(ArgumentError):
 
     """
 
-class CreateHandleError()
+
+class HandleCreateError(ALPMError):
+    pass

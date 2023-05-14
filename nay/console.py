@@ -33,8 +33,10 @@ class NayConsole(Console):
     def alert(self, message: str):
         self.print(f"[alert]->[/alert] {message}")
 
-    def warn(self, message: str):
+    def warn(self, message: str, exit=False):
         self.print(f"[warn]->[/warn] {message}")
+        if exit:
+            quit()
 
     def prompt(self, message: str, affirm: str):
         if affirm in self.input(f"[prompt]==>[/prompt] {message} ").lower():
