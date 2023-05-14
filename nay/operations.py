@@ -32,9 +32,10 @@ class Operation(Wrapper):
 
         parser = self.__get_config_parser(self.config)
         handle = self.__get_handle(self.root, self.dbpath)
+
+        self.aur = AUR()
         self.local = self.__get_localdb(handle)
         self.sync = self.__get_syncdb(handle, parser)
-        self.aur = AUR(self.sync, self.local)
 
     @property
     def db_params(self):
