@@ -1,11 +1,12 @@
+from datetime import datetime
 import sys
 from rich.console import Console, Group
 from rich.theme import Theme
-from .package import Package
 from typing import Optional
 from rich.text import Text
-from .package import SyncPackage, AURBasic, AURPackage
+from .package import SyncPackage, AURBasic, AURPackage, Package
 import re
+
 
 DEFAULT = Theme(
     {

@@ -3,7 +3,7 @@ from .wrapper import Wrapper
 from .exceptions import ConfigReadError, HandleCreateError
 import pyalpm
 import configparser
-from . import console
+from .console import NayConsole
 
 
 @dataclass
@@ -27,7 +27,7 @@ class Operation(Wrapper):
     def __post_init__(self):
         from .aur import AUR
 
-        self.console = console
+        self.console = NayConsole()
         self.wrapper_prefix = type(self).__name__.lower()
 
         parser = self.__get_config_parser(self.config)

@@ -1,10 +1,7 @@
 import subprocess
 import shlex
 import os
-from .config import CACHEDIR
-import shutil
 from .package import Package
-from typing import Optional
 
 
 def makepkg(pkg: Package, pkgdir: str, flags: str) -> None:

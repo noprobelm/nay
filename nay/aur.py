@@ -7,6 +7,7 @@ import subprocess
 import shlex
 import requests
 import networkx as nx
+from . import console
 
 
 class AUR:
