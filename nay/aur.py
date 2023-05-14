@@ -10,9 +10,7 @@ import networkx as nx
 
 
 class AUR:
-    def __init__(self, syncdb: "pyalpm.Database", localdb: "pyalpm.Database"):
-        self.syncdb = syncdb
-        self.localdb = localdb
+    def __init__(self):
         self.search_endpoint = "https://aur.archlinux.org/rpc/?v=5&type=search&arg="
         self.info_endpoint = "https://aur.archlinux.org/rpc/?v=5&type=info&arg[]="
 

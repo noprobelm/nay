@@ -1,3 +1,4 @@
+import sys
 from .args import parse_args
 from .exceptions import ArgumentError, ConfigReadError, HandleCreateError
 from . import console
@@ -11,7 +12,7 @@ def main() -> None:
         operation.run()
 
     except KeyboardInterrupt:
-        quit()
+        sys.exit()
     except (ArgumentError, HandleCreateError, ConfigReadError) as err:
         console.warn(str(err), exit=True)
 

@@ -1,3 +1,4 @@
+import sys
 from rich.console import Console, Group
 from rich.theme import Theme
 from .package import Package
@@ -35,8 +36,8 @@ class NayConsole(Console):
 
     def warn(self, message: str, exit=False):
         self.print(f"[warn]->[/warn] {message}")
-        if exit:
-            quit()
+        if exit is True:
+            sys.exit()
 
     def prompt(self, message: str, affirm: str):
         if affirm in self.input(f"[prompt]==>[/prompt] {message} ").lower():
@@ -68,7 +69,7 @@ class NayConsole(Console):
     def print_packages(
         self,
         packages: dict[int, Package],
-        localdb: "pyalpm.Database",
+        local: "pyalpm.Database",
         include_num: Optional[bool] = False,
     ):
         def get_size(pkg):
@@ -111,7 +112,7 @@ class NayConsole(Console):
             if isinstance(pkg, SyncPackage):
                 renderable.append_text(Text(f"({get_size(pkg)} "))
                 renderable.append_text(Text(f"{get_isize(pkg)}) "))
-                local_pkg = localdb.get_pkg(pkg.name)
+                local_pkg = local.get_pkg(pkg.name)
                 if local_pkg:
                     renderable.append_text(
                         Text(
@@ -124,7 +125,7 @@ class NayConsole(Console):
                 renderable.append_text(
                     Text(f"(+{get_votes(pkg)} {get_popularity(pkg)}) ")
                 )
-                local_pkg = localdb.get_pkg(pkg.name)
+                local_pkg = local.get_pkg(pkg.name)
                 if local_pkg:
                     renderable.append_text(
                         Text(
