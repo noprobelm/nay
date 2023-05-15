@@ -116,9 +116,7 @@ class AUR:
     def install(
         self,
         *packages: AURPackage,
-        skip_depchecks: Optional[bool] = False,
-        download_only: Optional[bool] = False,
-        asdeps: Optional[bool] = False,
+        pacman_params: list,
     ):
         """
         Install passed AURPackage objects
@@ -135,7 +133,7 @@ class AUR:
 
         targets = []
         for pkg in packages:
-            if skip_depchecks is True:
+            if pacman_params.count("--nodeps") > 1:
                 makepkg(pkg, CACHEDIR, "fscd")
             else:
                 makepkg(pkg, CACHEDIR, "fsc")
@@ -145,18 +143,9 @@ class AUR:
                 if pattern in obj and obj.endswith("zst"):
                     targets.append(os.path.join(CACHEDIR, pkg.name, obj))
 
-        if download_only is False:
-            if asdeps is True:
-                subprocess.run(
-                    shlex.split(f"sudo pacman -U --asdeps {' '.join(targets)}")
-                )
-            else:
-                subprocess.run(shlex.split(f"sudo pacman -U {' '.join(targets)}"))
-
-        else:
-            console.print(
-                f"-> nothing to install for {' '.join([target for target in targets])}"
-            )
+        subprocess.run(
+            shlex.split(f"sudo pacman {' '.join(pacman_params)} {' '.join(targets)}")
+        )
 
     def clean_cachedir(self) -> None:
         """

@@ -334,7 +334,7 @@ class Sync(Operation):
                 return
 
             if aur_explicit:
-                self.aur.install(*aur_explicit)
+                self.aur.install(*aur_explicit, pacman_params=self.pacman_params)
             if sync_explicit:
                 self.wrap_sync(self.pacman_params, sudo=True)
 
@@ -383,10 +383,16 @@ class Sync(Operation):
                 ::-1
             ]
             for num, layer in enumerate(install_order):
+                pacman_params = list(
+                    filter(lambda x: x != "--sync", self.pacman_params)
+                )
+                pacman_params.append("--upgrade")
                 if num + 1 == len(install_order):
-                    self.aur.install(*layer, download_only=download_only, asdeps=False)
+                    pacman_params.append("--asdeps")
+
+                    self.aur.install(*layer, pacman_params=pacman_params)
                 else:
-                    self.aur.install(*layer, download_only=download_only, asdeps=True)
+                    self.aur.install(*layer, pacman_params=pacman_params)
         if sync_explicit:
             pacman_params = self.pacman_params
             pacman_params.extend([pkg.name for pkg in sync_explicit])
