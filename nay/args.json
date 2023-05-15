@@ -555,6 +555,350 @@
       "pacman_param": "--refresh"
     }
   },
+  "query": {
+    "query": {
+      "args": [
+        "-Q",
+        "--query"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--query"
+    },
+    "changelog": {
+      "args": [
+        "-c",
+        "--changelog"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--changelog"
+    },
+    "deps": {
+      "args": [
+        "-d",
+        "--deps"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--deps"
+    },
+    "explicit": {
+      "args": [
+        "-e",
+        "--explicit"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--explicit"
+    },
+    "group": {
+      "args": [
+        "-g",
+        "--group"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--group"
+    },
+    "info": {
+      "args": [
+        "-i",
+        "--info"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--info"
+    },
+    "check": {
+      "args": [
+        "-k",
+        "--check"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--check"
+    },
+    "list": {
+      "args": [
+        "-l",
+        "--list"
+      ],
+      "kwargs": {
+        "action": "store_true",
+        "dest": "_list"
+      },
+      "conflicts": [],
+      "pacman_param": "--list"
+    },
+    "foreign": {
+      "args": [
+        "-m",
+        "--foreign"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--foreign"
+    },
+    "native": {
+      "args": [
+        "-n",
+        "--native"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--native"
+    },
+    "owns": {
+      "args": [
+        "-o",
+        "--owns"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--owns"
+    },
+    "file": {
+      "args": [
+        "-p",
+        "--file"
+      ],
+      "kwargs": {
+        "action": "store_true",
+        "dest": "_file"
+      },
+      "conflicts": [],
+      "pacman_param": "--file"
+    },
+    "quiet": {
+      "args": [
+        "-q",
+        "--quiet"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--quiet"
+    },
+    "search": {
+      "args": [
+        "-s",
+        "--search"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--search"
+    },
+    "unrequired": {
+      "args": [
+        "-t",
+        "--unrequired"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--unrequired"
+    }
+  },
+  "database": {
+    "database": {
+      "args": [
+        "-D",
+        "--database"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--database"
+    },
+    "asdeps": {
+      "args": [
+        "--asdeps"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--asdeps"
+    },
+    "asexplicit": {
+      "args": [
+        "--asexplicit"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--asexplicit"
+    },
+    "check": {
+      "args": [
+        "-k",
+        "--check"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--check"
+    },
+    "quiet": {
+      "args": [
+        "-q",
+        "--quiet"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--quiet"
+    }
+  },
+  "files": {
+    "files": {
+      "args": [
+        "-F",
+        "--files"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--files"
+    },
+    "refresh": {
+      "args": [
+        "-y",
+        "--refresh"
+      ],
+      "kwargs": {
+        "action": "count",
+        "default": 0
+      },
+      "conflicts": [],
+      "pacman_param": "--refresh"
+    },
+    "list": {
+      "args": [
+        "-l",
+        "--list"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--list"
+    },
+    "regex": {
+      "args": [
+        "-x",
+        "--regex"
+      ],
+      "kwargs": {
+        "nargs": 1
+      },
+      "conflicts": [],
+      "pacman_param": "--regex"
+    },
+    "quiet": {
+      "args": [
+        "-q",
+        "--quiet"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--quiet"
+    },
+    "machinereadable": {
+      "args": [
+        "--machinereadable"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--machinereadable"
+    }
+  },
+  "get_pkgbuild": {
+    "GetPKGBUILD": {
+      "args": [
+        "-G",
+        "--getpkgbuild"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": ""
+    }
+  },
+  "nay": {
+    "nay": {
+      "args": [
+        "-N",
+        "--nay"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--sync"
+    }
+  },
+  "deptest": {
+    "deptest": {
+      "args": [
+        "-T",
+        "--deptest"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      },
+      "conflicts": [],
+      "pacman_param": "--deptest"
+    }
+  },
+  "version": {
+    "version": {
+      "args": [
+        "-V",
+        "--version"
+      ],
+      "kwargs": {
+        "action": "store_true",
+        "conflicts": [],
+        "pacman_param": "--version"
+      }
+    }
+  },
   "operations": {
     "remove": {
       "args": [

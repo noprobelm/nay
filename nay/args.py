@@ -59,6 +59,7 @@ def get_operation():
 def parse_args():
     operation = get_operation()
     pacman_params = []
+    print(operation)
     unparsed = ARGS_MAPPER[operation]
     unparsed.update(ARGS_MAPPER["global"])
     if operation in ["sync", "remove", "upgrade"]:
