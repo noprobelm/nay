@@ -1,5 +1,5 @@
 {
-  "GLOBAL_ARGS": {
+  "global": {
     "dbpath": {
       "args": [
         "--dbpath"
@@ -162,7 +162,7 @@
       "pacman_param": "--sysroot"
     }
   },
-  "TRANSACTION_ARGS": {
+  "transaction": {
     "nodeps": {
       "args": [
         "-d",
@@ -239,7 +239,7 @@
       "pacman_param": "--print-format"
     }
   },
-  "UPGRADE_ARGS": {
+  "upgrade": {
     "upgrade": {
       "args": [
         "-U",
@@ -314,7 +314,7 @@
       "pacman_param": "--overwrite"
     }
   },
-  "REMOVE_ARGS": {
+  "remove": {
     "remove": {
       "args": [
         "-R",
@@ -371,7 +371,7 @@
       "pacman_param": "--unneeded"
     }
   },
-  "SYNC_ARGS": {
+  "sync": {
     "sync": {
       "args": [
         "-S",
@@ -553,6 +553,98 @@
         "clean"
       ],
       "pacman_param": "--refresh"
+    }
+  },
+  "operations": {
+    "remove": {
+      "args": [
+        "-R",
+        "--remove"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      }
+    },
+    "upgrade": {
+      "args": [
+        "-U",
+        "--upgrade"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      }
+    },
+    "sync": {
+      "args": [
+        "-S",
+        "--sync"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      }
+    },
+    "query": {
+      "args": [
+        "-Q",
+        "--query"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      }
+    },
+    "database": {
+      "args": [
+        "-D",
+        "--database"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      }
+    },
+    "files": {
+      "args": [
+        "-F",
+        "--files"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      }
+    },
+    "nay": {
+      "args": [
+        "-N",
+        "--nay"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      }
+    },
+    "getpkgbuild": {
+      "args": [
+        "-G",
+        "--getpkgbuild"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      }
+    },
+    "deptest": {
+      "args": [
+        "-T",
+        "--deptest"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      }
+    },
+    "version": {
+      "args": [
+        "-V",
+        "--version"
+      ],
+      "kwargs": {
+        "action": "store_true"
+      }
     }
   }
 }
