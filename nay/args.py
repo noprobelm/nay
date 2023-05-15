@@ -2,7 +2,7 @@ import sys
 import os
 import argparse
 import json
-from .exceptions import ConflictingOperations, InvalidOperation, ConflictingOptions
+from .exceptions import ConflictingOperations, ConflictingOptions
 from . import wrapper
 
 
@@ -67,7 +67,9 @@ def parse_args():
     pacman_params = []
     unparsed = ARGS_MAPPER[operation]
     unparsed.update(ARGS_MAPPER["global"])
-    if operation in ["sync", "remove", "upgrade"]:
+    if operation == "nay":
+        unparsed.update(ARGS_MAPPER["sync"])
+    if operation in ["sync", "remove", "upgrade", "nay"]:
         unparsed.update(ARGS_MAPPER["transaction"])
 
     parser = ArgumentParser()
