@@ -109,7 +109,6 @@ class Sync(Operation):
 
     def wrap_sync(self, params: list[str], sudo: bool = False):
         prefix = "sudo " if sudo is True else ""
-        params.extend([f"--dbpath {self.dbpath}", f"--root {self.root}"])
         subprocess.run(shlex.split(f"{prefix}pacman {' '.join([p for p in params])}"))
 
     def clean_pkgcache(self) -> None:
