@@ -206,15 +206,23 @@ class AUR:
         )
 
     def refresh(self, force=False):
-        aur_cache = os.path.join(CACHEDIR, "aur.cache")
-        last_modified = datetime.datetime.now() - datetime.datetime.fromtimestamp(
-            os.path.getmtime(aur_cache)
-        )
-        if force is True or last_modified.days >= 5:
+        def get_cache():
             response = requests.get("https://aur.archlinux.org/packages.gz")
             content = response.content.decode().strip()
             with open(os.path.join(CACHEDIR, "aur.cache"), "w") as f:
                 f.write(content)
+
+        aur_cache = os.path.join(CACHEDIR, "aur.cache")
+        try:
+            last_modified = datetime.datetime.now() - datetime.datetime.fromtimestamp(
+                os.path.getmtime(aur_cache)
+            )
+        except FileNotFoundError:
+            get_cache()
+            return
+
+        if force is True or last_modified.days >= 5:
+            get_cache()
 
     def list(self):
         with open(os.path.join(CACHEDIR, "aur.cache"), "r") as f:
