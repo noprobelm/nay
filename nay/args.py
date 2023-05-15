@@ -5,6 +5,12 @@ import json
 from .exceptions import ConflictingOperations, InvalidOperation, ConflictingOptions
 from . import wrapper
 
+
+class ArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        self.exit(2, "%s: %s\n" % (self.prog, message))
+
+
 parent = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(parent, "args.json"), "r") as f:
     ARGS_MAPPER = json.load(f)
@@ -40,8 +46,8 @@ def get_operation():
     elif len(selected_operations) > 1:
         raise ConflictingOperations("error: only one operation may be used at a time")
 
-    operation_parser = argparse.ArgumentParser(
-        description="Argument parser for high level operations",
+    operation_parser = ArgumentParser(
+        description="Argument parser for high level operations"
     )
 
     for operation in ARGS_MAPPER["operations"]:
@@ -59,13 +65,12 @@ def get_operation():
 def parse_args():
     operation = get_operation()
     pacman_params = []
-    print(operation)
     unparsed = ARGS_MAPPER[operation]
     unparsed.update(ARGS_MAPPER["global"])
     if operation in ["sync", "remove", "upgrade"]:
         unparsed.update(ARGS_MAPPER["transaction"])
 
-    parser = argparse.ArgumentParser()
+    parser = ArgumentParser()
 
     for arg in unparsed:
         parser.add_argument(
