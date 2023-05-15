@@ -12,20 +12,6 @@ import shlex
 
 @dataclass
 class Sync(Operation):
-    """Sync operations
-
-    :param options: The options for the operation (e.g. ['-u', '-y'])
-    :type options: list[str]
-    :param targets: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :type targets: list[str]
-    :param run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
-    :type run: Callable
-
-    :ivar options: The options for the operation (e.g. ['-u', '-y'])
-    :ivar args: The args for the operation (e.g. ['pkg1', 'pkg2'])
-    :ivar run: The Callable for the operation. This is expected to be called after successful instantiation of the child class
-    """
-
     nodeps: int
     assume_installed: list[str]
     dbonly: bool
@@ -50,11 +36,19 @@ class Sync(Operation):
 
     def run(self) -> None:
         if self.refresh:
-            params = self.db_params + ["--refresh" for _ in range(self.refresh)]
+            refresh = ["--refresh" for _ in range(self.refresh)]
+            params = self.db_params + refresh
             self.wrap_sync(params, sudo=True)
             self.pacman_params = list(
                 filter(lambda x: x != "--refresh", self.pacman_params)
             )
+            force = False
+            if len(refresh) > 1:
+                force = True
+            self.aur.refresh(force=force)
+
+            if not self.targets:
+                return
 
         if self.sysupgrade is True:
             params = self.db_params + ["--sysupgrade"]
@@ -80,6 +74,13 @@ class Sync(Operation):
             packages = self.search_packages(" ".join(self.targets))
             self.console.print_packages(packages, self.local, include_num=False)
             return
+
+        if self._list is True:
+            if not self.targets:
+                params = self.db_params + ["--list"]
+                self.wrap_sync(params, sudo=False)
+                self.aur.list()
+                return
 
         if self.info is True:
             if not self.targets:

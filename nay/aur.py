@@ -1,4 +1,5 @@
 import os
+import datetime
 from .config import CACHEDIR
 from .package import AURBasic, AURPackage, Package
 import shutil
@@ -203,3 +204,23 @@ class AUR:
             ),
             capture_output=True,
         )
+
+    def refresh(self, force=False):
+        aur_cache = os.path.join(CACHEDIR, "aur.cache")
+        last_modified = datetime.datetime.now() - datetime.datetime.fromtimestamp(
+            os.path.getmtime(aur_cache)
+        )
+        if force is True or last_modified.days >= 5:
+            response = requests.get("https://aur.archlinux.org/packages.gz")
+            content = response.content.decode().strip()
+            with open(os.path.join(CACHEDIR, "aur.cache"), "w") as f:
+                f.write(content)
+
+    def list(self):
+        with open(os.path.join(CACHEDIR, "aur.cache"), "r") as f:
+            packages = f.read().split("\n")
+
+        # Rich takes too long to render these data. Might work to find a workaround in the future.
+        for pkg in packages:
+            pkg = f"\u001b[34;1maur\033[0m {pkg}\033[92m unknown-version\033[0m"
+            print(pkg)
