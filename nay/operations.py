@@ -57,7 +57,7 @@ class Operation(Wrapper):
     ) -> dict[str, "pyalpm.Database"]:
         sync = {}
         for section in parser.sections():
-            if section == "options":
+            if section != "options":
                 sync[section] = handle.register_syncdb(
                     section, pyalpm.SIG_DATABASE_OPTIONAL
                 )
