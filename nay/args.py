@@ -2,7 +2,6 @@ import sys
 import argparse
 from .exceptions import ConflictingOperations, InvalidOperation, ConflictingOptions
 from . import wrapper
-from . import get_pkgbuild
 
 
 def get_transaction_args():
