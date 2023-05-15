@@ -52,10 +52,17 @@ class Sync(Operation):
         if self.refresh:
             params = self.db_params + ["--refresh" for _ in range(self.refresh)]
             self.wrap_sync(params, sudo=True)
+            self.pacman_params = list(
+                filter(lambda x: x != "--refresh", self.pacman_params)
+            )
 
         if self.sysupgrade is True:
             params = self.db_params + ["--sysupgrade"]
             self.wrap_sync(params, sudo=True)
+            self.pacman_params = list(
+                filter(lambda x: x != "--sysupgrade", self.pacman_params)
+            )
+
             if not self.targets:
                 return
 
@@ -198,10 +205,6 @@ class Sync(Operation):
         self.console.print_pkginfo(*aur)
 
     def install(self, targets: Optional[list[Package]] = None) -> None:
-        sync_params = self.db_params
-        sync_params.extend(["--nodeps" for _ in range(self.nodeps)])
-        sync_params.extend(["--downloadonly" for _ in range(self.download_only)])
-
         skip_verchecks = True if self.nodeps > 0 else False
         skip_depchecks = True if self.nodeps > 1 else False
         download_only = self.download_only
@@ -333,7 +336,7 @@ class Sync(Operation):
             if aur_explicit:
                 self.aur.install(*aur_explicit)
             if sync_explicit:
-                self.wrap_sync(sync_params, sudo=True)
+                self.wrap_sync(self.pacman_params, sudo=True)
 
         # Dependency resolution is just a big, dirty band-aid right now. Need to add SRCINFO parsing for proper
         # fetching of sync deps
@@ -385,8 +388,9 @@ class Sync(Operation):
                 else:
                     self.aur.install(*layer, download_only=download_only, asdeps=True)
         if sync_explicit:
-            sync_params.extend(pkg.name for pkg in sync_explicit)
-            self.wrap_sync(sync_params, sudo=True)
+            pacman_params = self.pacman_params
+            pacman_params.extend([pkg.name for pkg in sync_explicit])
+            self.wrap_sync(pacman_params, sudo=True)
 
 
 @dataclass
