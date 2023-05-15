@@ -207,7 +207,6 @@ class Sync(Operation):
     def install(self, targets: Optional[list[Package]] = None) -> None:
         skip_verchecks = True if self.nodeps > 0 else False
         skip_depchecks = True if self.nodeps > 1 else False
-        download_only = self.download_only
 
         if targets is None:
             targets = list(set(self.targets))
