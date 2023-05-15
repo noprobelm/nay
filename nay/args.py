@@ -2,6 +2,7 @@ import sys
 import argparse
 from .exceptions import ConflictingOperations, InvalidOperation, ConflictingOptions
 from . import wrapper
+from . import get_pkgbuild
 
 
 def get_transaction_args():
@@ -590,7 +591,7 @@ OPERATION_MAPPER = {
     "query": wrapper.Query,
     "database": wrapper.Database,
     "files": wrapper.Files,
-    "getpkgbuild": "",
+    "getpkgbuild": get_pkgbuild.GetPKGBUILD,
     "deptest": wrapper.Deptest,
     "version": "",
 }

@@ -1,12 +1,8 @@
+import datetime
 import os
 import re
-from datetime import datetime
 from typing import Optional
-
 import pyalpm
-import requests
-from rich.table import Column, Table
-
 from .config import CACHEDIR
 
 
@@ -365,13 +361,16 @@ class AURPackage(AURBasic):
         return cls(**kwargs)
 
     @property
-    def info(self) -> Table:
+    def info(self) -> "Table":
         """
         Get the information on the AUR package in a table format (analogous to the output of pacman -Si <pkg>)
 
         :return: A table containing package information
         :rtype: rich.table.Table
         """
+
+        import requests
+        from rich.table import Column, Table
 
         if not self.info_query:
             query = requests.get(

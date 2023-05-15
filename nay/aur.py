@@ -7,11 +7,12 @@ import subprocess
 import shlex
 import requests
 import networkx as nx
-from . import console
+from .console import NayConsole
 
 
 class AUR:
     def __init__(self):
+        self.console = NayConsole()
         self.search_endpoint = "https://aur.archlinux.org/rpc/?v=5&type=search&arg="
         self.info_endpoint = "https://aur.archlinux.org/rpc/?v=5&type=info&arg[]="
 
@@ -43,7 +44,7 @@ class AUR:
             packages.append(AURPackage.from_info_query(result))
 
         if missing and verbose is True:
-            console.print(
+            self.console.print(
                 f"[red]->[/red] No AUR package found for {', '.join(missing)}"
             )
 

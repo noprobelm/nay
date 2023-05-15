@@ -13,9 +13,8 @@ def main() -> None:
     except KeyboardInterrupt:
         sys.exit()
     except (ArgumentError, HandleCreateError, ConfigReadError) as err:
-        from .console import NayConsole
+        from . import console
 
-        console = NayConsole()
         console.warn(str(err), exit=True)
 
 
