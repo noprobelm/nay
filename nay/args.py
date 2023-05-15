@@ -4,7 +4,6 @@ import argparse
 import json
 from .exceptions import ConflictingOperations, InvalidOperation, ConflictingOptions
 from . import wrapper
-from . import get_pkgbuild
 
 parent = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(parent, "args.json"), "r") as f:
@@ -17,13 +16,12 @@ OPERATION_MAPPER = {
     "query": wrapper.Query,
     "database": wrapper.Database,
     "files": wrapper.Files,
-    "getpkgbuild": get_pkgbuild.GetPKGBUILD,
     "deptest": wrapper.Deptest,
     "version": "",
 }
 
 
-def _get_operation():
+def get_operation():
     valid_operations = []
     for arg in ARGS_MAPPER["operations"]:
         valid_operations.extend(ARGS_MAPPER["operations"][arg]["args"])
@@ -59,7 +57,7 @@ def _get_operation():
 
 
 def parse_args():
-    operation = _get_operation()
+    operation = get_operation()
     pacman_params = []
     unparsed = ARGS_MAPPER[operation]
     unparsed.update(ARGS_MAPPER["global"])
