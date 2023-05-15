@@ -484,7 +484,7 @@
       "kwargs": {
         "action": "store_true"
       },
-      "conflicts": [],
+      "conflicts": ["search", "_list"],
       "pacman_param": "--info"
     },
     "_list": {
@@ -496,7 +496,7 @@
         "action": "store_true",
         "dest": "_list"
       },
-      "conflicts": [],
+      "conflicts": ["search", "info", "groups"],
       "pacman_param": "--list"
     },
     "quiet": {
@@ -521,7 +521,8 @@
       "conflicts": [
         "sysupgrade",
         "info",
-        "clean"
+        "clean",
+          "_list"
       ],
       "pacman_param": "--search"
     },
