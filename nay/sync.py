@@ -77,9 +77,9 @@ class Sync(Operation):
 
         if self._list is True:
             if not self.targets:
+                self.aur.list()
                 params = self.db_params + ["--list"]
                 self.wrap_sync(params, sudo=False)
-                self.aur.list()
                 return
 
         if self.info is True:
