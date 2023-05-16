@@ -23,12 +23,12 @@ class Operation(Wrapper):
     noconfirm: bool
     disable_download_timeout: bool
     sysroot: bool
+    console: NayConsole
 
     def __post_init__(self):
         from .aur import AUR
 
         self.wrapper_prefix = type(self).__name__.lower()
-        self.console = NayConsole()
 
         parser = self.__get_config_parser(self.config)
         handle = self.__get_handle(self.root, self.dbpath)

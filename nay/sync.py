@@ -35,7 +35,7 @@ class Sync(Operation):
     refresh: int
 
     def run(self) -> None:
-        if self.refresh:
+        if "--refresh" in self.pacman_params:
             refresh = ["--refresh" for _ in range(self.refresh)]
             params = self.db_params + refresh
             self.wrap_sync(params, sudo=True)
@@ -50,7 +50,7 @@ class Sync(Operation):
             if not self.targets:
                 return
 
-        if self.sysupgrade is True:
+        if "--sysupgrade" in self.pacman_params:
             params = self.db_params + ["--sysupgrade"]
             self.wrap_sync(params, sudo=True)
             self.pacman_params = list(
@@ -60,12 +60,13 @@ class Sync(Operation):
             if not self.targets:
                 return
 
-        if self.clean:
+        if "--clean" in self.pacman_params:
             params = self.db_params + ["--clean" for _ in range(self.clean)]
+            self.wrap_sync(params, sudo=True)
             self.clean_pkgcache()
             return
 
-        if self.search is True:
+        if "--search" in self.pacman_params:
             if not self.targets:
                 params = self.db_params + ["--search"]
                 self.wrap_sync(params, sudo=False)
@@ -75,19 +76,16 @@ class Sync(Operation):
             self.console.print_packages(packages, self.local, include_num=False)
             return
 
-        if self._list is True:
+        if "--list" in self.pacman_params:
             params = self.db_params + ["--list"] + self.targets
             if "aur" in self.targets or len(self.targets) == 0:
                 self.aur.list()
             self.wrap_sync(params, sudo=False)
             return
 
-        if self.info is True:
+        if "--info" in self.pacman_params:
             if not self.targets:
-                params = [
-                    "--sync",
-                    "--info",
-                ]
+                params = self.db_params + ["--info"]
                 self.wrap_sync(params, sudo=False)
             else:
                 self.print_pkginfo()

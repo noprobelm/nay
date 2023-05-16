@@ -2,7 +2,7 @@ import sys
 import os
 import argparse
 import json
-from .exceptions import ConflictingOperations, ConflictingOptions
+from .exceptions import ConflictingOptions
 from . import wrapper
 
 
@@ -27,7 +27,7 @@ OPERATION_MAPPER = {
 }
 
 
-def get_operation():
+def parse_operation():
     valid_operations = []
     for arg in ARGS_MAPPER["operations"]:
         valid_operations.extend(ARGS_MAPPER["operations"][arg]["args"])
@@ -43,27 +43,24 @@ def get_operation():
                     selected_operations.append(f"-{switch}")
     if len(selected_operations) == 0:
         selected_operations.append("--nay")
-    elif len(selected_operations) > 1:
-        raise ConflictingOperations("error: only one operation may be used at a time")
 
-    operation_parser = ArgumentParser(
-        description="Argument parser for high level operations"
-    )
+    parser = ArgumentParser(description="Argument parser for high level operations")
 
+    exclusive = parser.add_mutually_exclusive_group()
     for operation in ARGS_MAPPER["operations"]:
-        operation_parser.add_argument(
+        exclusive.add_argument(
             *ARGS_MAPPER["operations"][operation]["args"],
             **ARGS_MAPPER["operations"][operation]["kwargs"],
         )
 
-    operations = vars(operation_parser.parse_args(selected_operations))
+    operations = vars(parser.parse_args(selected_operations))
     operation = [operation for operation in operations if operations[operation] is True]
 
     return operation[0]
 
 
 def parse_args():
-    operation = get_operation()
+    operation = parse_operation()
     pacman_params = []
     unparsed = ARGS_MAPPER[operation]
     unparsed.update(ARGS_MAPPER["global"])
@@ -111,6 +108,9 @@ def parse_args():
                     pacman_params.append(f"{unparsed[arg]['pacman_param']}")
 
     if operation in ["nay", "sync", "getpkgbuild", "version"]:
+        from .console import NayConsole
+
+        console = NayConsole()
         if operation == "nay":
             from . import sync
 
@@ -124,6 +124,7 @@ def parse_args():
 
             cls = get_pkgbuild.GetPKGBUILD
 
+        parsed["console"] = console
         parsed["pacman_params"] = pacman_params
     else:
         cls = OPERATION_MAPPER[operation]
