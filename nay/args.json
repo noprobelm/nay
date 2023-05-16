@@ -472,7 +472,8 @@
       "conflicts": [
         "info",
         "search",
-        "sysupgrade"
+        "sysupgrade",
+        "list"
       ],
       "pacman_param": "--groups"
     },
@@ -484,7 +485,11 @@
       "kwargs": {
         "action": "store_true"
       },
-      "conflicts": ["search", "_list"],
+      "conflicts": [
+        "_list",
+        "search",
+        "groups"
+      ],
       "pacman_param": "--info"
     },
     "_list": {
@@ -496,7 +501,11 @@
         "action": "store_true",
         "dest": "_list"
       },
-      "conflicts": ["search", "info", "groups"],
+      "conflicts": [
+        "search",
+        "info",
+        "groups"
+      ],
       "pacman_param": "--list"
     },
     "quiet": {
@@ -521,8 +530,7 @@
       "conflicts": [
         "sysupgrade",
         "info",
-        "clean",
-          "_list"
+        "clean"
       ],
       "pacman_param": "--search"
     },
@@ -908,7 +916,11 @@
       ],
       "kwargs": {
         "action": "store_true"
-      }
+      },
+      "parents": [
+        "global",
+        "transaction"
+      ]
     },
     "upgrade": {
       "args": [
@@ -917,7 +929,11 @@
       ],
       "kwargs": {
         "action": "store_true"
-      }
+      },
+      "parents": [
+        "global",
+        "transaction"
+      ]
     },
     "sync": {
       "args": [
@@ -926,7 +942,11 @@
       ],
       "kwargs": {
         "action": "store_true"
-      }
+      },
+      "parents": [
+        "global",
+        "transaction"
+      ]
     },
     "query": {
       "args": [
@@ -935,7 +955,10 @@
       ],
       "kwargs": {
         "action": "store_true"
-      }
+      },
+      "parents": [
+        "global"
+      ]
     },
     "database": {
       "args": [
@@ -944,7 +967,10 @@
       ],
       "kwargs": {
         "action": "store_true"
-      }
+      },
+      "parents": [
+        "global"
+      ]
     },
     "files": {
       "args": [
@@ -953,7 +979,10 @@
       ],
       "kwargs": {
         "action": "store_true"
-      }
+      },
+      "parents": [
+        "global"
+      ]
     },
     "nay": {
       "args": [
@@ -971,7 +1000,12 @@
       ],
       "kwargs": {
         "action": "store_true"
-      }
+      },
+      "parents": [
+        "global",
+        "sync",
+        "transaction"
+      ]
     },
     "deptest": {
       "args": [
@@ -980,7 +1014,10 @@
       ],
       "kwargs": {
         "action": "store_true"
-      }
+      },
+      "parents": [
+        "global"
+      ]
     },
     "version": {
       "args": [
@@ -989,7 +1026,10 @@
       ],
       "kwargs": {
         "action": "store_true"
-      }
+      },
+      "parents": [
+        "global"
+      ]
     }
   }
 }
