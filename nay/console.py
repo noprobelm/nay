@@ -1,12 +1,12 @@
 import re
 import sys
-from typing import Optional
+from typing import Optional, Union
 
 from rich.console import Console, Group
 from rich.text import Text
 from rich.theme import Theme
 
-from .package import AURBasic, AURPackage, Package, SyncPackage
+from .package import AURBasic, AURPackage, SyncPackage
 
 DEFAULT = Theme(
     {
@@ -69,7 +69,7 @@ class NayConsole(Console):
 
     def print_packages(
         self,
-        packages: dict[int, Package],
+        packages: dict[int, Union[SyncPackage, AURBasic]],
         local: "pyalpm.Database",
         include_num: Optional[bool] = False,
     ):
