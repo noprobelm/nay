@@ -3,14 +3,14 @@ import concurrent.futures
 import shlex
 import subprocess
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
 import networkx as nx
 
 from nay.exceptions import MissingTargets
 from nay.operations import Operation
 
-from .package import AURBasic, AURPackage, Package, SyncPackage
+from .package import AURBasic, AURPackage, SyncPackage
 
 
 @dataclass
@@ -119,7 +119,7 @@ class Sync(Operation):
 
     def search_packages(
         self, query: str, sortby: Optional[str] = "db"
-    ) -> dict[int, Package]:
+    ) -> dict[int, Union[SyncPackage, AURBasic]]:
         def search():
             packages = []
             for db in self.sync:
@@ -197,7 +197,9 @@ class Sync(Operation):
 
         self.console.print_pkginfo(*aur)
 
-    def install(self, targets: Optional[list[Package]] = None) -> None:
+    def install(
+        self, targets: Optional[list[Union[SyncPackage, AURPackage]]] = None
+    ) -> None:
         skip_verchecks = True if self.nodeps > 0 else False
         skip_depchecks = True if self.nodeps > 1 else False
 
