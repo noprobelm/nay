@@ -41,12 +41,19 @@ class NayConsole(Console):
             sys.exit()
 
     def prompt(self, message: str, affirm: str):
-        if affirm in self.input(f"[prompt]==>[/prompt] {message} ").lower():
+        if (
+            affirm
+            in self.input(
+                f"[prompt]==>[/prompt] {message}\n[prompt]==>[/prompt] "
+            ).lower()
+        ):
             return True
         return False
 
     def get_nums(self, message: str):
-        selections = self.input(f"[prompt]==>[/prompt] {message} ")
+        selections = self.input(
+            f"[prompt]==>[/prompt] {message}\n[prompt]==>[/prompt] "
+        )
         matches = re.findall(r"\^?\d+(?:-\d+)?", selections)
         selections = set()
         for match in matches:
