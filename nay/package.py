@@ -376,53 +376,95 @@ class AURPackage(AURBasic):
 
         if not self.info_query:
             query = requests.get(
-                f"https://aur.archlinux.org/rpc/?v=5&type=search&arg={self.name}"
+                f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={self.name}"
             ).json()
             self.info_query = query["results"][0]
 
         grid = Table.grid(Column("field", width=30), Column("value"))
         grid.add_row("Repository", ": aur")
         grid.add_row("Name", f": {self.info_query['Name']}")
-        grid.add_row(
-            "Keywords",
-            f": {self.info_query['Keywords'] if self.info_query['Keywords'] else None}",
-        )
+        if self.info_query["Keywords"]:
+            grid.add_row(
+                "Keywords", f": {'  '.join([_ for _ in self.info_query['Keywords']])}"
+            )
+        else:
+            grid.add_row("Keywords", ": None")
         grid.add_row("Version", f": {self.info_query['Version']}")
-        grid.add_row("Description", f": {self.info_query['Description']}")
+        if self.info_query["Description"]:
+            grid.add_row("Description", f": {self.info_query['Description']}")
+        else:
+            grid.add_row("Description", ": None")
         grid.add_row("URL", f": {self.info_query['URL']}")
         grid.add_row("AUR URL", f": https://aur.archlinux.org/packages/{self.name}")
         # TODO: Fix hardcoded 'None'
-        grid.add_row("Groups", ": None")
-        grid.add_row(
-            "License", f": {'  '.join([_ for _ in self.info_query['License']])}"
-        )
-        grid.add_row(
-            "Provides", f": {'  '.join([pkg for pkg in self.info_query['Provides']])}"
-        )
-        grid.add_row(
-            "Depends On",
-            f": {'  '.join([pkg for pkg in self.info_query['Depends']])}",
-        )
-        grid.add_row(
-            "Make Deps",
-            f": {'  '.join([pkg for pkg in self.info_query['MakeDepends']])}",
-        )
+        if "Groups" in self.info_query.keys():
+            grid.add_row(
+                "Groups", f": {'  '.join([_ for _ in self.info_query['Groups']])}"
+            )
+        else:
+            grid.add_row("Groups", ": None")
+        if "License" in self.info_query.keys():
+            grid.add_row(
+                "License", f": {'  '.join([_ for _ in self.info_query['License']])}"
+            )
+        else:
+            grid.add_row("License", ": None")
+        if "Provides" in self.info_query.keys():
+            grid.add_row(
+                "Provides",
+                f": {'  '.join([pkg for pkg in self.info_query['Provides']]) if self.info_query['Provides'] else None}",
+            )
+        else:
+            grid.add_row("Provides", ": None")
+        if "Depends" in self.info_query.keys():
+            grid.add_row(
+                "Depends On",
+                f": {'  '.join([pkg for pkg in self.info_query['Depends']])}",
+            )
+        else:
+            grid.add_row("Depends On", ": None")
+        if "MakeDepends" in self.info_query.keys():
+            grid.add_row(
+                "Make Deps",
+                f": {'  '.join([pkg for pkg in self.info_query['MakeDepends']])}",
+            )
+        else:
+            grid.add_row("Make Deps", ": None")
+        if "CheckDepends" in self.info_query.keys():
+            grid.add_row(
+                "Check Deps",
+                f": {'  '.join([pkg for pkg in self.info_query['CheckDepends']])}",
+            )
+        else:
+            grid.add_row("Check Deps", ": None")
+        if "OptDepends" in self.info_query.keys():
+            grid.add_row(
+                "Optional Deps",
+                f": {'  '.join([pkg for pkg in self.info_query['OptDepends']])}",
+            )
+        else:
+            grid.add_row("Check Deps", ": None")
         # TODO: Fix hardcoded 'None'
-        grid.add_row("Check Deps", ": None")
-        # TODO: Fix hardcoded 'None'
-        grid.add_row("Optional Deps", ": None")
-        # TODO: Fix hardcoded 'None'
-        grid.add_row("Conflicts With", ": None")
-        grid.add_row("Maintainer", f": {self.info_query['Maintainer']}")
+        if "Conflicts" in self.info_query.keys():
+            grid.add_row(
+                "Optional Deps",
+                f": {'  '.join([pkg for pkg in self.info_query['Conflicts']])}",
+            )
+        else:
+            grid.add_row("Conflicts With", ": None")
+        if "Maintainer" in self.info_query.keys():
+            grid.add_row("Maintainer", f": {self.info_query['Maintainer']}")
+        else:
+            grid.add_row("Maintainer", ": None")
         grid.add_row("Votes", f": {self.info_query['NumVotes']}")
         grid.add_row("Popularity", f": {self.info_query['Popularity']}")
         grid.add_row(
             "First Submitted",
-            f": {datetime.fromtimestamp(self.info_query['FirstSubmitted']).strftime('%s %d %b %Y %I:%M:%S %p %Z')}",
+            f": {datetime.fromtimestamp(self.info_query['FirstSubmitted']).strftime('%d %b %Y %I:%M:%S %p %Z')}",
         )
         grid.add_row(
             "Last Modified",
-            f": {datetime.fromtimestamp(self.info_query['LastModified']).strftime('%s %d %b %Y %I:%M:%S %p %Z')}",
+            f": {datetime.fromtimestamp(self.info_query['LastModified']).strftime('%d %b %Y %I:%M:%S %p %Z')}",
         )
 
         return grid
