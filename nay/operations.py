@@ -1,9 +1,11 @@
-from dataclasses import dataclass
-from .wrapper import Wrapper
-from .exceptions import ConfigReadError, HandleCreateError
-import pyalpm
 import configparser
+from dataclasses import dataclass
+
+import pyalpm
+
 from .console import NayConsole
+from .exceptions import ConfigReadError, HandleCreateError
+from .wrapper import Wrapper
 
 
 @dataclass

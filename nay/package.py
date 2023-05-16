@@ -1,8 +1,10 @@
-from datetime import datetime
 import os
 import re
+from datetime import datetime
 from typing import Optional
+
 import pyalpm
+
 from .config import CACHEDIR
 
 

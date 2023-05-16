@@ -1,13 +1,16 @@
-from nay.operations import Operation
-from nay.exceptions import MissingTargets
-from typing import Optional
-from dataclasses import dataclass
-from .package import Package, SyncPackage, AURPackage, AURBasic
-from rich.table import Table, Column
-import networkx as nx
 import concurrent.futures
-import subprocess
 import shlex
+import subprocess
+from dataclasses import dataclass
+from typing import Optional
+
+import networkx as nx
+from rich.table import Column, Table
+
+from nay.exceptions import MissingTargets
+from nay.operations import Operation
+
+from .package import AURBasic, AURPackage, Package, SyncPackage
 
 
 @dataclass

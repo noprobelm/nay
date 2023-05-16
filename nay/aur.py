@@ -1,14 +1,16 @@
-import os
 import datetime
-from .config import CACHEDIR
-from .package import AURBasic, AURPackage, Package
-import shutil
-from typing import Optional
-import subprocess
+import os
 import shlex
-import requests
+import shutil
+import subprocess
+from typing import Optional
+
 import networkx as nx
+import requests
+
+from .config import CACHEDIR
 from .console import NayConsole
+from .package import AURBasic, AURPackage, Package
 
 
 class AUR:

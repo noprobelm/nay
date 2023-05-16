@@ -1,6 +1,7 @@
-import subprocess
-import shlex
 import os
+import shlex
+import subprocess
+
 from .package import Package
 
 

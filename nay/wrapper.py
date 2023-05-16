@@ -1,6 +1,6 @@
-from dataclasses import dataclass
-import subprocess
 import shlex
+import subprocess
+from dataclasses import dataclass
 
 
 @dataclass

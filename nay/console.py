@@ -1,11 +1,12 @@
-import sys
-from rich.console import Console, Group
-from rich.theme import Theme
-from typing import Optional
-from rich.text import Text
-from .package import SyncPackage, AURBasic, AURPackage, Package
 import re
+import sys
+from typing import Optional
 
+from rich.console import Console, Group
+from rich.text import Text
+from rich.theme import Theme
+
+from .package import AURBasic, AURPackage, Package, SyncPackage
 
 DEFAULT = Theme(
     {

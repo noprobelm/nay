@@ -1,7 +1,8 @@
-from .operations import Operation
 import os
-import subprocess
 import shlex
+import subprocess
+
+from .operations import Operation
 
 
 class GetPKGBUILD(Operation):
