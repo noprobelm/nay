@@ -101,14 +101,6 @@ class Sync(Operation):
 
         self.install()
 
-    @property
-    def install_params(self):
-        params = self.db_params
-        for _ in range(self.nodeps):
-            params.append("--nodeps")
-        if self.download_only:
-            params.append("--downloadonly")
-
     def wrap_sync(self, params: list[str], sudo: bool = False):
         prefix = "sudo " if sudo is True else ""
         subprocess.run(shlex.split(f"{prefix}pacman {' '.join([p for p in params])}"))
