@@ -2,7 +2,6 @@ import sys
 import os
 import argparse
 import json
-from .exceptions import ConflictingOptions
 from . import wrapper
 
 
