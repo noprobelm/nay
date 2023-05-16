@@ -298,9 +298,9 @@ class AURPackage(AURBasic):
         opt_depends: list[str],
         votes: int,
         popularity: int,
+        info_query: dict,
         flag_date: Optional[int] = None,
         orphaned: Optional[int] = False,
-        info_query: Optional[dict] = None,
     ) -> None:
         super().__init__(
             db,
@@ -371,14 +371,7 @@ class AURPackage(AURBasic):
         :rtype: rich.table.Table
         """
 
-        import requests
         from rich.table import Column, Table
-
-        if not self.info_query:
-            query = requests.get(
-                f"https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={self.name}"
-            ).json()
-            self.info_query = query["results"][0]
 
         grid = Table.grid(Column("field", width=30), Column("value"))
         grid.add_row("Repository", ": aur")
@@ -466,5 +459,6 @@ class AURPackage(AURBasic):
             "Last Modified",
             f": {datetime.fromtimestamp(self.info_query['LastModified']).strftime('%d %b %Y %I:%M:%S %p %Z')}",
         )
+        grid.add_row()
 
         return grid

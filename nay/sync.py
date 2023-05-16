@@ -172,7 +172,7 @@ class Sync(Operation):
         :param packages: A package.Package or series of package.Package objects for which to retrieve info
         :type packages: package.Package
         """
-        self.console.notify(":: Querying AUR...")
+        self.console.notify("Querying AUR...")
 
         missing = list(self.targets)
         sync = []
@@ -187,15 +187,16 @@ class Sync(Operation):
             if pkg.name in missing:
                 missing.pop(missing.index(pkg.name))
 
-        self.console.alert(
-            f"Packages not in AUR: {', '.join([pkg for pkg in missing])}"
-        )
-
         if sync:
             params = self.db_params + ["--info", f"{' '.join(sync)}"]
             self.wrap_sync(params, sudo=False)
 
         self.console.print_pkginfo(*aur)
+
+        if missing:
+            self.console.alert(
+                f"Packages not in AUR: {', '.join([pkg for pkg in missing])}"
+            )
 
     def install(
         self, targets: Optional[list[Union[SyncPackage, AURPackage]]] = None
@@ -403,6 +404,7 @@ class Nay(Sync):
             params = self.db_params + ["--refresh", "--sysupgrade"]
             self.wrap_sync(params, sudo=True)
             return
+
         packages = self.search_packages(" ".join([target for target in self.targets]))
         if not packages:
             sys.exit()
