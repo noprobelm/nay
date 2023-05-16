@@ -457,7 +457,8 @@
       "conflicts": [
         "refresh",
         "search",
-        "sysupgrade"
+        "sysupgrade",
+        "info"
       ],
       "pacman_param": "--clean"
     },
@@ -920,7 +921,8 @@
       "parents": [
         "global",
         "transaction"
-      ]
+      ],
+      "pure_wrapper": true
     },
     "upgrade": {
       "args": [
@@ -933,7 +935,8 @@
       "parents": [
         "global",
         "transaction"
-      ]
+      ],
+      "pure_wrapper": true
     },
     "sync": {
       "args": [
@@ -946,7 +949,8 @@
       "parents": [
         "global",
         "transaction"
-      ]
+      ],
+      "pure_wrapper": false
     },
     "query": {
       "args": [
@@ -958,7 +962,8 @@
       },
       "parents": [
         "global"
-      ]
+      ],
+      "pure_wrapper": true
     },
     "database": {
       "args": [
@@ -970,7 +975,8 @@
       },
       "parents": [
         "global"
-      ]
+      ],
+      "pure_wrapper": true
     },
     "files": {
       "args": [
@@ -982,7 +988,8 @@
       },
       "parents": [
         "global"
-      ]
+      ],
+      "pure_wrapper": true
     },
     "nay": {
       "args": [
@@ -991,7 +998,13 @@
       ],
       "kwargs": {
         "action": "store_true"
-      }
+      },
+      "parents": [
+        "global",
+        "sync",
+        "transaction"
+      ],
+      "pure_wrapper": false
     },
     "getpkgbuild": {
       "args": [
@@ -1002,10 +1015,9 @@
         "action": "store_true"
       },
       "parents": [
-        "global",
-        "sync",
-        "transaction"
-      ]
+        "global"
+      ],
+      "pure_wrapper": false
     },
     "deptest": {
       "args": [
@@ -1017,7 +1029,8 @@
       },
       "parents": [
         "global"
-      ]
+      ],
+      "pure_wrapper": true
     },
     "version": {
       "args": [
@@ -1029,7 +1042,8 @@
       },
       "parents": [
         "global"
-      ]
+      ],
+      "pure_wrapper": true
     }
   }
 }
