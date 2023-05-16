@@ -15,7 +15,7 @@ with open(os.path.join(parent, "args.json"), "r") as f:
     ARGS_MAPPER = json.load(f)
 
 
-OPERATION_MAPPER = {
+WRAPPERS = {
     "remove": wrapper.Remove,
     "upgrade": wrapper.Upgrade,
     "query": wrapper.Query,
@@ -103,18 +103,21 @@ def parse_args():
                 for _ in range(parsed[arg]):
                     pacman_params.append(f"{unparsed[arg]['pacman_param']}")
 
-    if operation in ["nay", "sync", "getpkgbuild", "version"]:
+    if ARGS_MAPPER["operations"][operation]["pure_wrapper"] is True:
+        cls = WRAPPERS[operation]
+        parsed = {"targets": parsed["targets"], "pacman_params": pacman_params}
+
+    else:
         from .console import NayConsole
 
         console = NayConsole()
-        if operation == "nay":
+        if operation in ["sync", "nay"]:
             from . import sync
 
-            cls = sync.Nay
-        elif operation == "sync":
-            from . import sync
-
-            cls = sync.Sync
+            if operation == "sync":
+                cls = sync.Sync
+            elif operation == "nay":
+                cls = sync.Nay
         elif operation == "getpkgbuild":
             from . import get_pkgbuild
 
@@ -122,8 +125,5 @@ def parse_args():
 
         parsed["console"] = console
         parsed["pacman_params"] = pacman_params
-    else:
-        cls = OPERATION_MAPPER[operation]
-        parsed = {"targets": parsed["targets"], "pacman_params": pacman_params}
 
     return {"operation": cls, "args": parsed}
