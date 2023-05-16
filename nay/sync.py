@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from typing import Optional
 
 import networkx as nx
-from rich.table import Column, Table
 
 from nay.exceptions import MissingTargets
 from nay.operations import Operation
@@ -299,6 +298,8 @@ class Sync(Operation):
                         )
 
         def print_pkgbuild_status(*packages: AURPackage) -> None:
+            from rich.table import Column, Table
+
             table = Table.grid(
                 Column("num", justify="right"),
                 Column("pkgname", width=35, justify="left"),
