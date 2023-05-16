@@ -91,8 +91,8 @@ def parse_args():
             for other in parsed:
                 if parsed[other]:
                     if other in unparsed[arg]["conflicts"]:
-                        raise ConflictingOptions(
-                            f"error: invalid option: '{arg}' and '{other}' may not be used together"
+                        parser.error(
+                            f"invalid option: '{arg}' and '{other}' may not be used together"
                         )
 
             if arg == "targets":
