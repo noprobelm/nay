@@ -1,4 +1,3 @@
-from datetime import datetime
 import sys
 from rich.console import Console, Group
 from rich.theme import Theme
