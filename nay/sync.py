@@ -1,3 +1,4 @@
+import sys
 import concurrent.futures
 import shlex
 import subprocess
@@ -408,6 +409,8 @@ class Nay(Sync):
             self.wrap_sync(params, sudo=True)
             return
         packages = self.search_packages(" ".join([target for target in self.targets]))
+        if not packages:
+            sys.exit()
         self.console.print_packages(packages, self.local, include_num=True)
         packages = self.select_packages(packages)
         self.install(packages)
