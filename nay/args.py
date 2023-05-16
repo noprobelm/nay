@@ -62,11 +62,8 @@ def parse_args():
     operation = parse_operation()
     pacman_params = []
     unparsed = ARGS_MAPPER[operation]
-    unparsed.update(ARGS_MAPPER["global"])
-    if operation == "nay":
-        unparsed.update(ARGS_MAPPER["sync"])
-    if operation in ["sync", "remove", "upgrade", "nay"]:
-        unparsed.update(ARGS_MAPPER["transaction"])
+    for parent in ARGS_MAPPER["operations"][operation]["parents"]:
+        unparsed.update(ARGS_MAPPER[parent])
 
     parser = ArgumentParser()
 
@@ -75,8 +72,8 @@ def parse_args():
             *unparsed[arg]["args"],
             **unparsed[arg]["kwargs"],
         )
-    parsed = parser.parse_args()
-    parsed = vars(parsed)
+
+    parsed = vars(parser.parse_args())
     if operation == "nay":
         del parsed["sync"]
         del parsed["nay"]
