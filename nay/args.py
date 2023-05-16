@@ -43,7 +43,7 @@ def parse_operation():
     if len(selected_operations) == 0:
         selected_operations.append("--nay")
 
-    parser = ArgumentParser(description="Argument parser for high level operations")
+    parser = ArgumentParser()
 
     exclusive = parser.add_mutually_exclusive_group()
     for operation in ARGS_MAPPER["operations"]:
