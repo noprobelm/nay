@@ -27,13 +27,8 @@ DEFAULT = Theme(
     inherit=False,
 )
 
-COLORLESS = Theme(inherit=False)
-
 
 class NayConsole(Console):
-    def __init__(self, theme: Optional[Theme] = DEFAULT):
-        super().__init__(theme=theme)
-
     def notify(self, message: str):
         self.print(f"[notify]::[/notify] {message}")
 
