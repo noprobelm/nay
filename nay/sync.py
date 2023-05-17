@@ -5,8 +5,6 @@ import subprocess
 from dataclasses import dataclass
 from typing import Optional, Union
 
-import networkx as nx
-
 from nay.exceptions import MissingTargets
 from nay.operations import Operation
 
