@@ -11,8 +11,8 @@ class ArgumentParser(argparse.ArgumentParser):
         self.exit(2, "%s: %s\n" % (self.prog, message))
 
 
-parent = os.path.dirname(os.path.abspath(__file__))
-with open(os.path.join(parent, "args.json"), "r") as f:
+project_root = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(project_root, "args.json"), "r") as f:
     ARGS_MAPPER = json.load(f)
 
 
