@@ -109,9 +109,13 @@ def parse_args():
         parsed = {"targets": parsed["targets"], "pacman_params": pacman_params}
 
     else:
-        from .console import NayConsole
+        from .console import NayConsole, COLORLESS
 
-        console = NayConsole()
+        if parsed["color"] == "never":
+            console = NayConsole(theme=COLORLESS)
+
+        else:
+            console = NayConsole()
         if operation in ["sync", "nay"]:
             from . import sync
 

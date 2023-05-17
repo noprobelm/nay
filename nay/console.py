@@ -20,14 +20,19 @@ DEFAULT = Theme(
         "notify": "bright_cyan",
         "alert": "yellow",
         "warn": "red",
+        "pkg": "cyan",
+        "orphan": "bright_red",
+        "installed_status": "bright_green",
     },
     inherit=False,
 )
 
+COLORLESS = Theme(inherit=False)
+
 
 class NayConsole(Console):
-    def __init__(self):
-        super().__init__(theme=DEFAULT)
+    def __init__(self, theme: Optional[Theme] = DEFAULT):
+        super().__init__(theme=theme)
 
     def notify(self, message: str):
         self.print(f"[notify]::[/notify] {message}")
@@ -93,7 +98,7 @@ class NayConsole(Console):
             return Text("{:.2f}".format(pkg.popularity))
 
         def get_orphan(pkg):
-            return Text("(Orphaned) ", style="bright_red") if pkg.orphaned else Text("")
+            return Text("(Orphaned) ", style="orphan") if pkg.orphaned else Text("")
 
         def get_flag_date(pkg):
             return (
@@ -114,7 +119,7 @@ class NayConsole(Console):
                 ),
                 Text("/"),
                 Text(f"{pkg.name} "),
-                Text(f"{pkg.version} ", style="cyan"),
+                Text(f"{pkg.version} ", style="pkg"),
             )
 
             if isinstance(pkg, SyncPackage):
@@ -125,7 +130,7 @@ class NayConsole(Console):
                     renderable.append_text(
                         Text(
                             f"(Installed: {pkg.version}) ",
-                            style="bright_green",
+                            style="installed_status",
                         )
                     )
 
@@ -138,7 +143,7 @@ class NayConsole(Console):
                     renderable.append_text(
                         Text(
                             f"(Installed: {pkg.version}) ",
-                            style="bright_green",
+                            style="installed_status",
                         )
                     )
                 renderable.append_text(get_orphan(pkg))
