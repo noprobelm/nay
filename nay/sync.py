@@ -64,14 +64,14 @@ class Sync(Operation):
                 return
 
         if "--clean" in self.pacman_params:
-            params = self.db_params + ["--clean" for _ in range(self.clean)]
+            params = self.pacman_params + self.targets
             self.wrap_sync(params, sudo=True)
             self.clean_pkgcache()
             return
 
         if "--search" in self.pacman_params:
             if not self.targets:
-                params = self.db_params + ["--search"]
+                params = self.pacman_params + self.targets
                 self.wrap_sync(params, sudo=False)
                 return
 
@@ -80,7 +80,7 @@ class Sync(Operation):
             return
 
         if "--list" in self.pacman_params:
-            params = self.db_params + ["--list"] + self.targets
+            params = self.pacman_params + self.targets
             if "aur" in self.targets or len(self.targets) == 0:
                 self.aur.list()
             self.wrap_sync(params, sudo=False)

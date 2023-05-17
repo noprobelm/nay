@@ -14,9 +14,9 @@ from .package import AURBasic, AURPackage, Package
 
 
 class AUR:
-    def __init__(self, local: "pyalpm.Database"):
+    def __init__(self, local: "pyalpm.Database", console: NayConsole):
         self.local = local
-        self.console = NayConsole()
+        self.console = console
         self.search_endpoint = "https://aur.archlinux.org/rpc/?v=5&type=search&arg="
         self.info_endpoint = "https://aur.archlinux.org/rpc/?v=5&type=info&arg[]="
 
@@ -225,7 +225,13 @@ class AUR:
             installed = False
             if self.local.get_pkg(pkg):
                 installed = True
-            pkg = f"\u001b[34;1maur\033[0m {pkg}\033[92m unknown-version\033[0m"
-            if installed is True:
-                pkg = f"{pkg} \033[96m[installed]\033[0m"
+            if self.console.color_system is not None:
+                pkg = f"\u001b[34;1maur\033[0m {pkg}\033[92m unknown-version\033[0m"
+                if installed is True:
+                    pkg = f"{pkg} \033[96m[installed]\033[0m"
+            else:
+                pkg = f"aur {pkg} unknown-version"
+                if installed is True:
+                    pkg = f"{pkg} [installed]"
+
             print(pkg)

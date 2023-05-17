@@ -37,7 +37,7 @@ class Operation(Wrapper):
 
         self.local = self.__get_localdb(handle)
         self.sync = self.__get_syncdb(handle, parser)
-        self.aur = AUR(self.local)
+        self.aur = AUR(self.local, self.console)
 
     @property
     def db_params(self):

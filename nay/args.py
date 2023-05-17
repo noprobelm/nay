@@ -109,10 +109,10 @@ def parse_args():
         parsed = {"targets": parsed["targets"], "pacman_params": pacman_params}
 
     else:
-        from .console import NayConsole, COLORLESS
+        from .console import NayConsole
 
         if parsed["color"] == "never":
-            console = NayConsole(theme=COLORLESS)
+            console = NayConsole(color_system=None)
 
         else:
             console = NayConsole()
