@@ -1,86 +1,138 @@
+import argparse
+import json
+import os
 import sys
 
-from . import operations
-from .exceptions import ConflictingOperations, InvalidOperation
+from . import wrapper
 
 
-class Args(dict):
-    """
-    Class to parse sys.argv arguments
+class ArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        self.exit(2, "%s: %s\n" % (self.prog, message))
 
-    :cvar OPERATIONS: A dict mapper of valid operations to their respective operations.Operation subclass
-    """
 
-    OPERATIONS = {
-        "--nay": operations.Nay,
-        "-N": operations.Nay,
-        "--getpkgbuild": operations.GetPKGBUILD,
-        "-G": operations.GetPKGBUILD,
-        "--sync": operations.Sync,
-        "-S": operations.Sync,
-        "--upgrade": operations.Upgrade,
-        "-U": operations.Upgrade,
-        "--database": operations.Database,
-        "-D": operations.Database,
-        "--query": operations.Query,
-        "-Q": operations.Query,
-        "--remove": operations.Remove,
-        "-R": operations.Remove,
-        "--deptest": operations.DepTest,
-        "-T": operations.DepTest,
-        "--files": operations.Files,
-        "-F": operations.Files,
-        "--version": operations.Version,
-        "-V": operations.Version,
-        "--help": operations.Help,
-        "-h": operations.Help,
-    }
+project_root = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(project_root, "args.json"), "r") as f:
+    ARGS_MAPPER = json.load(f)
 
-    def __init__(self) -> None:
-        operation = []
-        options = []
-        targets = []
 
-        if len(sys.argv) == 1:
-            super().__init__(
-                {"operation": operations.Nay, "options": options, "targets": targets}
-            )
-            return
+WRAPPERS = {
+    "remove": wrapper.Remove,
+    "upgrade": wrapper.Upgrade,
+    "query": wrapper.Query,
+    "database": wrapper.Database,
+    "files": wrapper.Files,
+    "deptest": wrapper.Deptest,
+}
 
-        for arg in sys.argv[1:]:
-            if arg.startswith("--"):
-                if arg in self.OPERATIONS.keys():
-                    operation.append(arg)
-                else:
-                    options.append(arg)
-            elif arg.startswith("-"):
-                for switch in arg[1:]:
-                    if switch.islower() and switch not in self.OPERATIONS.keys():
-                        options.append(f"-{switch}")
-                    elif switch.isupper():
-                        if f"-{switch}" not in self.OPERATIONS.keys():
-                            raise InvalidOperation(f"nay: invalid option -- '{switch}'")
-                        else:
-                            operation.append(f"-{switch}")
 
+def parse_operation():
+    valid_operations = []
+    for arg in ARGS_MAPPER["operations"]:
+        valid_operations.extend(ARGS_MAPPER["operations"][arg]["args"])
+
+    selected_operations = []
+    for arg in sys.argv[1:]:
+        if arg.startswith("--"):
+            if arg in valid_operations:
+                selected_operations.append(arg)
+        elif arg.startswith("-"):
+            for switch in arg[1:]:
+                if f"-{switch}" in valid_operations:
+                    selected_operations.append(f"-{switch}")
+    if len(selected_operations) == 0:
+        selected_operations.append("--nay")
+
+    parser = ArgumentParser()
+
+    exclusive = parser.add_mutually_exclusive_group()
+    for operation in ARGS_MAPPER["operations"]:
+        exclusive.add_argument(
+            *ARGS_MAPPER["operations"][operation]["args"],
+            **ARGS_MAPPER["operations"][operation]["kwargs"],
+        )
+
+    operations = vars(parser.parse_args(selected_operations))
+    operation = [operation for operation in operations if operations[operation] is True]
+
+    return operation[0]
+
+
+def parse_args():
+    operation = parse_operation()
+    pacman_params = []
+    unparsed = ARGS_MAPPER[operation]
+    for parent in ARGS_MAPPER["operations"][operation]["parents"]:
+        unparsed.update(ARGS_MAPPER[parent])
+
+    parser = ArgumentParser()
+
+    for arg in unparsed:
+        parser.add_argument(
+            *unparsed[arg]["args"],
+            **unparsed[arg]["kwargs"],
+        )
+
+    parsed = vars(parser.parse_args())
+    if operation == "nay":
+        del parsed["sync"]
+        del parsed["nay"]
+        pacman_params.append("--sync")
+    else:
+        pacman_params.append(f"--{operation}")
+        del parsed[operation]
+
+    for arg in parsed:
+        if parsed[arg]:
+            for other in parsed:
+                if parsed[other]:
+                    if other in unparsed[arg]["conflicts"]:
+                        parser.error(
+                            f"invalid option: '{arg}' and '{other}' may not be used together"
+                        )
+
+            if arg == "targets":
+                pass
+            elif isinstance(parsed[arg], str):
+                pacman_params.append(f"{unparsed[arg]['pacman_param']} {parsed[arg]}")
+            elif isinstance(parsed[arg], list):
+                pacman_params.append(
+                    f"{unparsed[arg]['pacman_param']} {' '.join(parsed[arg])}"
+                )
             else:
-                targets.append(arg)
+                for _ in range(parsed[arg]):
+                    pacman_params.append(f"{unparsed[arg]['pacman_param']}")
 
-        if len(operation) > 1:
-            raise ConflictingOperations(
-                "error: only one operation may be used at a time"
-            )
+    if ARGS_MAPPER["operations"][operation]["pure_wrapper"] is True:
+        cls = WRAPPERS[operation]
+        parsed = {"targets": parsed["targets"], "pacman_params": pacman_params}
 
-        if len(operation) == 1:
-            operation = operation[0]
+    else:
+        from .console import NayConsole
+
+        if parsed["color"] == "never":
+            console = NayConsole(color_system=None)
 
         else:
-            operation = "--nay"
+            console = NayConsole()
 
-        super().__init__(
-            {
-                "operation": self.OPERATIONS[operation],
-                "options": options,
-                "targets": targets,
-            }
-        )
+        if operation == "version":
+            console.print_version()
+            sys.exit()
+
+        if operation in ["sync", "nay"]:
+            from . import sync
+
+            if operation == "sync":
+                cls = sync.Sync
+            elif operation == "nay":
+                cls = sync.Nay
+        elif operation == "getpkgbuild":
+            from . import get_pkgbuild
+
+            cls = get_pkgbuild.GetPKGBUILD
+
+        parsed["console"] = console
+        parsed["pacman_params"] = pacman_params
+
+    return {"operation": cls, "args": parsed}

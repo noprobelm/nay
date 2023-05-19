@@ -1,17 +1,24 @@
-from .args import Args
-from .exceptions import ArgumentError
+import sys
+
+from .args import parse_args
+from .exceptions import ConfigReadError, HandleCreateError, MissingTargets
 
 
 def main() -> None:
     try:
-        args = Args()
-        operation = args["operation"](options=args["options"], targets=args["targets"])
+        args = parse_args()
+        operation = args["operation"]
+
+        operation = operation(**args["args"])
         operation.run()
+
     except KeyboardInterrupt:
-        quit()
-    except ArgumentError as err:
-        print(err)
-        quit()
+        sys.exit()
+    except (HandleCreateError, ConfigReadError, MissingTargets) as err:
+        from .console import NayConsole
+
+        console = NayConsole()
+        console.warn(str(err), exit=True)
 
 
 if __name__ == "__main__":

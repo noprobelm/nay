@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nay"
-version = "0.2.1"
+version = "0.3.1"
 description = "A wrapper for pacman which includes support for AUR packages."
 authors = ["noprobelm <noprobelm@protonmail.com>"]
 license = "MIT"
