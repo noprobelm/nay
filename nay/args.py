@@ -23,7 +23,6 @@ WRAPPERS = {
     "database": wrapper.Database,
     "files": wrapper.Files,
     "deptest": wrapper.Deptest,
-    "version": "",
 }
 
 
@@ -116,6 +115,11 @@ def parse_args():
 
         else:
             console = NayConsole()
+
+        if operation == "version":
+            console.print_version()
+            sys.exit()
+
         if operation in ["sync", "nay"]:
             from . import sync
 

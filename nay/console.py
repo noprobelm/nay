@@ -5,6 +5,7 @@ from typing import Optional, Union
 from rich.console import Console, Group
 from rich.text import Text
 from rich.theme import Theme
+from . import __version__
 
 from .package import AURBasic, AURPackage, SyncPackage
 
@@ -162,3 +163,6 @@ class NayConsole(Console):
     def print_pkginfo(self, *packages: AURPackage) -> None:
         group = Group(*[pkg.info for pkg in packages])
         self.print(group)
+
+    def print_version(self):
+        self.print(f"nay {__version__}")
