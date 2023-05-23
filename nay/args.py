@@ -27,6 +27,14 @@ WRAPPERS = {
 
 
 def parse_operation():
+    parser = ArgumentParser()
+
+    exclusive = parser.add_mutually_exclusive_group()
+    for operation in ARGS_MAPPER["operations"]:
+        exclusive.add_argument(
+            *ARGS_MAPPER["operations"][operation]["args"],
+            **ARGS_MAPPER["operations"][operation]["kwargs"],
+        )
     valid_operations = []
     for arg in ARGS_MAPPER["operations"]:
         valid_operations.extend(ARGS_MAPPER["operations"][arg]["args"])
@@ -42,15 +50,6 @@ def parse_operation():
                     selected_operations.append(f"-{switch}")
     if len(selected_operations) == 0:
         selected_operations.append("--nay")
-
-    parser = ArgumentParser()
-
-    exclusive = parser.add_mutually_exclusive_group()
-    for operation in ARGS_MAPPER["operations"]:
-        exclusive.add_argument(
-            *ARGS_MAPPER["operations"][operation]["args"],
-            **ARGS_MAPPER["operations"][operation]["kwargs"],
-        )
 
     operations = vars(parser.parse_args(selected_operations))
     operation = [operation for operation in operations if operations[operation] is True]
