@@ -108,13 +108,13 @@ def parse_args():
         parsed = {"targets": parsed["targets"], "pacman_params": pacman_params}
 
     else:
-        from .console import NayConsole
+        from .console import NayConsole, DEFAULT
 
         if parsed["color"] == "never":
             console = NayConsole(color_system=None)
 
         else:
-            console = NayConsole()
+            console = NayConsole(theme=DEFAULT)
 
         if operation == "version":
             console.print_version()
@@ -134,5 +134,13 @@ def parse_args():
 
         parsed["console"] = console
         parsed["pacman_params"] = pacman_params
+        parsed = {
+            "targets": parsed["targets"],
+            "pacman_params": pacman_params,
+            "dbpath": parsed["dbpath"],
+            "root": parsed["root"],
+            "config": parsed["config"],
+            "console": parsed["console"],
+        }
 
     return {"operation": cls, "args": parsed}
