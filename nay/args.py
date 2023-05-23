@@ -28,16 +28,15 @@ WRAPPERS = {
 
 def parse_operation():
     parser = ArgumentParser()
+    valid_operations = []
 
     exclusive = parser.add_mutually_exclusive_group()
     for operation in ARGS_MAPPER["operations"]:
+        valid_operations.extend(ARGS_MAPPER["operations"][arg]["args"])
         exclusive.add_argument(
             *ARGS_MAPPER["operations"][operation]["args"],
             **ARGS_MAPPER["operations"][operation]["kwargs"],
         )
-    valid_operations = []
-    for arg in ARGS_MAPPER["operations"]:
-        valid_operations.extend(ARGS_MAPPER["operations"][arg]["args"])
 
     selected_operations = []
     for arg in sys.argv[1:]:
@@ -52,9 +51,11 @@ def parse_operation():
         selected_operations.append("--nay")
 
     operations = vars(parser.parse_args(selected_operations))
-    operation = [operation for operation in operations if operations[operation] is True]
+    operation = [
+        operation for operation in operations if operations[operation] is True
+    ][0]
 
-    return operation[0]
+    return operation
 
 
 def parse_args():
