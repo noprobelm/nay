@@ -3,11 +3,11 @@ import json
 import os
 import sys
 
-from . import get_console, ROOT_DIR, wrapper
+from . import get_console, PACKAGE_ROOT_DIR, wrapper
 
 
 class ArgumentParser(argparse.ArgumentParser):
-    with open(os.path.join(ROOT_DIR, "args.json"), "r") as f:
+    with open(os.path.join(PACKAGE_ROOT_DIR, "args.json"), "r") as f:
         ARGS_MAPPER = json.load(f)
 
     @property
