@@ -19,7 +19,7 @@ def get_wrappers_mapper():
     return mapper
 
 
-def get_nay_mapper():
+def get_nay_mapper() -> dict:
     from . import sync, get_pkgbuild
 
     mapper = {
