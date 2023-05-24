@@ -3,7 +3,7 @@ from typing import Union
 
 __version__ = "0.3.1"
 
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+PACKAGE_ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_console(color_system: Union[str, None]) -> "NayConsole":

@@ -111,7 +111,9 @@ class NayConsole(Console):
             renderable = Text.assemble(
                 Text(
                     pkg.db,
-                    style=pkg.db if pkg.db in DEFAULT.styles.keys() else "other_db",
+                    style=pkg.db
+                    if pkg.db in THEME_DEFAULT.styles.keys()
+                    else "other_db",
                 ),
                 Text("/"),
                 Text(f"{pkg.name} "),
