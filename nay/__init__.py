@@ -1,4 +1,5 @@
 import os
+from typing import Union
 
 __version__ = "0.3.1"
 
