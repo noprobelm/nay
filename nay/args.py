@@ -10,8 +10,6 @@ class ArgumentParser(argparse.ArgumentParser):
     with open(os.path.join(ROOT_DIR, "args.json"), "r") as f:
         ARGS_MAPPER = json.load(f)
 
-    _known_args = {}
-
     @property
     def known_args(self):
         return self._known_args
