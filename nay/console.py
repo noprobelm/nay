@@ -9,7 +9,7 @@ from . import __version__
 
 from .package import AURBasic, AURPackage, SyncPackage
 
-DEFAULT = Theme(
+THEME_DEFAULT = Theme(
     {
         "aur": "bright_blue",
         "community": "bright_magenta",

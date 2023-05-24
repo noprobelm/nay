@@ -3,24 +3,42 @@ import json
 import os
 import sys
 
-from . import wrapper
-
-project_root = os.path.dirname(os.path.abspath(__file__))
-with open(os.path.join(project_root, "args.json"), "r") as f:
-    ARGS_MAPPER = json.load(f)
-
-
-WRAPPERS = {
-    "remove": wrapper.Remove,
-    "upgrade": wrapper.Upgrade,
-    "query": wrapper.Query,
-    "database": wrapper.Database,
-    "files": wrapper.Files,
-    "deptest": wrapper.Deptest,
-}
+from . import get_operation_mapper, get_console, ROOT_DIR, wrapper
 
 
 class ArgumentParser(argparse.ArgumentParser):
+    with open(os.path.join(ROOT_DIR, "args.json"), "r") as f:
+        ARGS_MAPPER = json.load(f)
+
+    _known_args = {}
+
+    @property
+    def operation(self):
+        return self._operation
+
+    @operation.setter
+    def operation(self, operation) -> None:
+        self.known_args = operation
+        self._operation = operation
+
+    @property
+    def known_args(self):
+        return self._known_args
+
+    @known_args.setter
+    def known_args(self, operation) -> None:
+        known_args = self.ARGS_MAPPER[operation]
+        for parent in self.ARGS_MAPPER["operations"][operation]["parents"]:
+            known_args.update(self.ARGS_MAPPER[parent])
+
+        self._known_args = known_args
+
+    @property
+    def nay_args(self) -> dict:
+        self._parse_operation()
+        args = self._parse_options
+        return args
+
     def error(self, message):
         self.exit(2, "%s: %s\n" % (self.prog, message))
 
@@ -42,11 +60,11 @@ class ArgumentParser(argparse.ArgumentParser):
     def _parse_operation(self):
         oplist = []
         exclusive = self.add_mutually_exclusive_group()
-        for operation in ARGS_MAPPER["operations"]:
-            oplist.extend(ARGS_MAPPER["operations"][operation]["args"])
+        for operation in self.ARGS_MAPPER["operations"]:
+            oplist.extend(self.ARGS_MAPPER["operations"][operation]["args"])
             exclusive.add_argument(
-                *ARGS_MAPPER["operations"][operation]["args"],
-                **ARGS_MAPPER["operations"][operation]["kwargs"],
+                *self.ARGS_MAPPER["operations"][operation]["args"],
+                **self.ARGS_MAPPER["operations"][operation]["kwargs"],
             )
 
         args = self._isolate_operation_args(oplist)
@@ -55,22 +73,112 @@ class ArgumentParser(argparse.ArgumentParser):
             operation for operation in operations if operations[operation] is True
         ][0]
 
-        return operation
-
-    def _parse_options(self):
-        operation = self._parse_operation
-        unparsed = ARGS_MAPPER[operation]
-        for parent in ARGS_MAPPER["operations"][operation]["parents"]:
-            unparsed.update(ARGS_MAPPER[parent])
-
-        for arg in unparsed:
-            self.add_argument(*unparsed[arg]["args"], **unparsed[arg]["kwargs"])
-
-        parsed = vars(self.parse_args())
-        return parsed
+        self.operation = operation
 
     def _check_conflicts(self, parsed: dict):
-        pass
+        known_args = self.known_args
+        for arg in parsed:
+            for other in parsed:
+                if parsed[other]:
+                    if other in known_args[arg]["conflicts"]:
+                        self.error(
+                            f"invalid option: '{arg}' and '{other}' may not be used together"
+                        )
+
+    def _parse_options(self) -> dict:
+        for arg in self.known_args:
+            self.add_argument(
+                *self.known_args[arg]["args"], **self.known_args[arg]["kwargs"]
+            )
+
+        parsed = vars(self.parse_args())
+        self._check_conflicts(parsed)
+
+        return parsed
+
+
+class OperationMapper(dict):
+    def __init__(self, key):
+        self.pure_wrapper = True
+        mapper = {
+            "remove": wrapper.Remove,
+            "upgrade": wrapper.Upgrade,
+            "query": wrapper.Query,
+            "database": wrapper.Database,
+            "files": wrapper.Files,
+            "deptest": wrapper.Deptest,
+        }
+
+        if key not in mapper:
+            from . import sync, get_pkgbuild
+
+            mapper = {
+                "sync": sync.Sync,
+                "nay": sync.Nay,
+                "getpkgbuild": get_pkgbuild.GetPKGBUILD,
+            }
+
+            self.pure_wrapper = False
+
+        super().__init__(mapper)
+
+
+class OperationParams(dict):
+    def __init__(self):
+        parser = ArgumentParser()
+        self.args = parser.nay_args
+
+        operation_key = self.args["operation"]
+        self._mapper = OperationMapper(operation_key)
+
+        cls = self._mapper[operation_key]
+        kwargs = self._get_kwargs(operation_key)
+
+        super().__init__({"op_cls": cls, "kwargs": kwargs})
+
+    def _get_kwargs(self, operation_key):
+        kwargs = {
+            "targets": self.args["targets"],
+            "pacman_params": self._get_pacman_params(),
+        }
+        if self._mapper.pure_wrapper is False:
+            kwargs.update(
+                {
+                    "console": self._get_console(),
+                    "dbpath": self.args["dbpath"],
+                    "root": self.args["root"],
+                    "config": self.args["config"],
+                }
+            )
+
+        return kwargs
+
+    def _get_pacman_params(self):
+        params = []
+        for arg in self.args:
+            if arg == "targets":
+                continue
+
+            if isinstance(self.args[arg], str):
+                params.append(f"{self.args[arg]}")
+            elif isinstance(self.args[arg], list):
+                params.append(
+                    f"{self.args[arg]['pacman_param']} {' '.join(self.args[arg])}"
+                )
+            else:
+                for _ in range(self.args[arg]):
+                    params.append(f"{self.args[arg]['pacman_param']}")
+
+        return params
+
+    def _get_console(self):
+        color_system = "auto"
+
+        if self.args["color"] == "never":
+            color_system = None
+
+        console = get_console(color_system)
+        return console
 
 
 def parse_args():
