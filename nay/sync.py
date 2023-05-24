@@ -7,6 +7,7 @@ from typing import Optional, Union
 
 from nay.exceptions import MissingTargets
 from nay.operations import Operation
+import networkx as nx
 
 from .package import AURBasic, AURPackage, SyncPackage
 
@@ -15,7 +16,9 @@ from .package import AURBasic, AURPackage, SyncPackage
 class Sync(Operation):
     def run(self) -> None:
         if "--refresh" in self.pacman_params:
-            refresh = ["--refresh" for _ in range(self.refresh)]
+            refresh = [
+                "--refresh" for _ in range(self.pacman_params.count("--refresh"))
+            ]
             params = self.db_params + refresh
             self.wrap_sync(params, sudo=True)
             self.pacman_params = list(
@@ -177,8 +180,8 @@ class Sync(Operation):
     def install(
         self, targets: Optional[list[Union[SyncPackage, AURPackage]]] = None
     ) -> None:
-        skip_verchecks = True if self.nodeps > 0 else False
-        skip_depchecks = True if self.nodeps > 1 else False
+        skip_verchecks = True if self.pacman_params.count("--nodeps") > 0 else False
+        skip_depchecks = True if self.pacman_params.count("--nodeps") > 1 else False
 
         if targets is None:
             targets = list(set(self.targets))
