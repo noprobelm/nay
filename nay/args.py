@@ -114,19 +114,6 @@ class ArgumentParser(argparse.ArgumentParser):
         return {"operation": operation, "args": args}
 
 
-class Args(dict):
-    def __init__(self):
-        parser = ArgumentParser()
-        args = parser.parse_nay_args()
-        super().__init__(
-            {
-                "operation": args["operation"],
-                "args": args["args"],
-                "known_args": parser.known_args,
-            }
-        )
-
-
 class OperationMapper(dict):
     def __init__(self, key):
         self.pure_wrapper = True
@@ -155,11 +142,12 @@ class OperationMapper(dict):
 
 class OperationParams(dict):
     def __init__(self):
-        parsed_args = Args()
+        parser = ArgumentParser()
+        args = parser.parse_nay_args()
 
-        self.args = parsed_args["args"]
+        self.args = args["args"]
+        operation_key = args["operation"]
 
-        operation_key = parsed_args["operation"]
         self._mapper = OperationMapper(operation_key)
 
         cls = self._mapper[operation_key]
