@@ -1,15 +1,16 @@
 import sys
 
-from .args import parse_args
+from .args import OperationParams
 from .exceptions import ConfigReadError, HandleCreateError, MissingTargets
 
 
 def main() -> None:
     try:
-        args = parse_args()
-        operation = args["operation"]
+        op_params = OperationParams()
+        op_cls = op_params["op_cls"]
+        kwargs = op_params["kwargs"]
 
-        operation = operation(**args["args"])
+        operation = op_cls(**kwargs)
         operation.run()
 
     except KeyboardInterrupt:
