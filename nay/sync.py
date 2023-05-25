@@ -364,10 +364,9 @@ class Sync(Operation):
                 )
                 pacman_params.append("--upgrade")
                 if num + 1 == len(install_order):
-                    pacman_params.append("--asdeps")
-
                     self.aur.install(*layer, pacman_params=pacman_params)
                 else:
+                    pacman_params.append("--asdeps")
                     self.aur.install(*layer, pacman_params=pacman_params)
         if sync_explicit:
             pacman_params = self.pacman_params
