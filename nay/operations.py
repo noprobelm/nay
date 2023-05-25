@@ -13,18 +13,6 @@ class Operation(Wrapper):
     dbpath: str
     root: str
     config: str
-    cachedir: str
-    gpgdir: str
-    hookdir: str
-    logfile: str
-    targets: list
-    verbose: bool
-    arch: bool
-    color: str
-    debug: bool
-    noconfirm: bool
-    disable_download_timeout: bool
-    sysroot: bool
     console: NayConsole
 
     def __post_init__(self):

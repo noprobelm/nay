@@ -9,7 +9,7 @@ from . import __version__
 
 from .package import AURBasic, AURPackage, SyncPackage
 
-DEFAULT = Theme(
+THEME_DEFAULT = Theme(
     {
         "aur": "bright_blue",
         "community": "bright_magenta",
@@ -111,7 +111,9 @@ class NayConsole(Console):
             renderable = Text.assemble(
                 Text(
                     pkg.db,
-                    style=pkg.db if pkg.db in DEFAULT.styles.keys() else "other_db",
+                    style=pkg.db
+                    if pkg.db in THEME_DEFAULT.styles.keys()
+                    else "other_db",
                 ),
                 Text("/"),
                 Text(f"{pkg.name} "),
